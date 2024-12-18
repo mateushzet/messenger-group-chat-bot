@@ -2,7 +2,9 @@ package service;
 
 import repository.UserRepository;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Random;
 
 import utils.ConfigReader;
@@ -27,11 +29,18 @@ public class RouletteService {
     private static final String numberEmojiUrl8 = ConfigReader.getNumberEmojiUrl8();
     private static final String numberEmojiUrl9 = ConfigReader.getNumberEmojiUrl9();
 
+    private static final Queue<Integer> rouletteHistory = new LinkedList<>(); //last five colors
     
     public static void handleRouletteCommand(CommandContext context) {
         String userName = context.getUserName();
         String amount = context.getFirstArgument();
         String field = context.getSecondArgument();
+
+        // Show history if requested
+        if(amount.equals("history")) {
+            showHistory();
+            return;
+        }
 
         LoggerUtil.logInfo("%s bet: %s on %s", userName, amount, field);
     
@@ -78,6 +87,9 @@ public class RouletteService {
         int updatedBalance = calculateUpdatedBalance(field, randomNumber, amount, userBalance);
         
         resultMessage += " Balance: " + updatedBalance;
+
+        int color = getColorNumber(randomNumber);
+        storeRouletteColor(color);
 
         handleEmoji(randomNumber);
         
@@ -126,12 +138,12 @@ public class RouletteService {
     );
 
     private static void handleEmoji(int randomNumber) {
-        String heartEmoji = emojiMap.getOrDefault(randomNumber % 2, emojiMap.get(1)); // 1 for odd, 2 for even
+        String heartEmoji = emojiMap.get(getColorNumber(randomNumber));
         MessageService.clickEmoji(heartEmoji, heartsEmojisName);
 
         if (randomNumber >= 10) {
-            int tens = randomNumber / 10; // Pierwsza cyfra
-            int ones = randomNumber % 10; // Druga cyfra
+            int tens = randomNumber / 10; // first number
+            int ones = randomNumber % 10; // second number
             MessageService.clickEmoji(getNumbersUrls()[tens], numbersEmojisName);
             MessageService.clickEmoji(getNumbersUrls()[ones], numbersEmojisName);
         } else {
@@ -219,4 +231,31 @@ public class RouletteService {
             return getColorCode(field.trim().toLowerCase());
         }
     }
+
+       private static void showHistory() {
+        if (rouletteHistory.isEmpty()) {
+            MessageService.sendMessage("No roulette history available.");
+            return;
+        }
+        
+        for (int colorNumber : rouletteHistory) {
+            String heartEmoji = emojiMap.get(colorNumber); // 1 red, 2 black, 3 green
+            MessageService.clickEmoji(heartEmoji, heartsEmojisName);
+        }
+        MessageService.sendMessage("");
+    }
+
+    private static void storeRouletteColor(int colorNumber) {
+        if (rouletteHistory.size() >= 5) {
+            rouletteHistory.poll();
+        }
+        rouletteHistory.offer(colorNumber);
+    }
+
+    private static int getColorNumber(int number){
+        int colorNumber = number % 2; // 0 for black, 1 for red
+        if (number == 0) colorNumber = 2; // 2 for green
+        return colorNumber;
+    }
+
 }
