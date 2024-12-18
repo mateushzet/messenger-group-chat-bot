@@ -2,11 +2,10 @@ resources/config.properties
 
 notes
 
-repository/users_money.txt
-
 *.log
 *.log.*
 *.lck
+!samplelog.log
 
 *.tmp
 *.bak
@@ -22,5 +21,4 @@ CHANGES
 src/drivers/LICENSE.chromedriver
 src/drivers/THIRD_PARTY_NOTICES.chromedriver
 lib/CHANGELOG
-src/repository/users_money.txt
 src/resources/config.properties
