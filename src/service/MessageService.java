@@ -116,7 +116,9 @@ public class MessageService {
     public static void clickEmoji(String emojiUrl, String emojiName) {
    
         // click on emoji selection icon
-        WebElement emojiButton = driver.findElement(By.cssSelector(emojiButtonCssSelector));
+         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebElement emojiButton = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(emojiButtonCssSelector)));
+
         emojiButton.click();
         
         try {
@@ -128,8 +130,6 @@ public class MessageService {
     // find emoji search input and type emoji name, than click on the emoji based on src url
     WebElement inputField = driver.findElement(By.cssSelector(searchEmojiInputCssSelector));
     inputField.sendKeys(emojiName);
-
-    WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
     
     WebElement imgElement = wait.until(ExpectedConditions.presenceOfElementLocated(
         By.cssSelector("img[src='" + emojiUrl + "']")));
