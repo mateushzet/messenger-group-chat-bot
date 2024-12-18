@@ -98,7 +98,6 @@ public class UserRepository {
         updateUserBalance(receiverName, balanceReceiver + transferAmount);
 
         LoggerUtil.logInfo("Transaction successful: %s -> %s, Amount: %d", senderName, receiverName, transferAmount);
-        MessageService.sendMessage("Transfer successful: %d coins sent to %s", transferAmount, receiverName);
         return true;
     }
 
