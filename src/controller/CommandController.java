@@ -2,7 +2,7 @@ package controller;
 
 import model.CommandContext;
 import service.MessageService;
-import service.RouletteService;
+import service.roulette.RouletteService;
 import utils.ConfigReader;
 import utils.LoggerUtil;
 import service.CommandService;
