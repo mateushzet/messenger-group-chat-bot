@@ -4,7 +4,7 @@ public class RouletteResultProcessor {
 
     public static String generateResultMessage(int field, int randomNumber, int amount) {
         if (randomNumber == 0) {
-            return field == BetType.GREEN.getCode() ? "Won " + amount * 12 : "Lost " + 0;
+            return field == BetType.GREEN.getCode() ? "Won " + amount * 12 : "Lost " + amount;
         }
 
         if (field == BetType.RED.getCode() && randomNumber % 2 != 0) {
