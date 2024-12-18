@@ -21,8 +21,10 @@ public class WebDriverFactory {
         String webdriverPath = ConfigReader.getWebDriverPath();
         System.setProperty("webdriver.chrome.driver", webdriverPath);
         ChromeOptions options = new ChromeOptions();
-        options.addArguments("--start-maximized");
+        //options.addArguments("--start-maximized");
         options.addArguments("--disable-notifications");
+        options.addArguments("--headless");
+
         driver = new ChromeDriver(options);
     }
 
