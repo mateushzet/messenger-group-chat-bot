@@ -11,7 +11,7 @@ public class ConfigReader {
     }
 
     public static String getWebDriverPath() {
-        return "webdriver"; 
+        return "/webdriver"; 
     }
 
     public static boolean getMathQuestionRandomTime() {
