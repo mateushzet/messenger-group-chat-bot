@@ -21,7 +21,7 @@ public class WebDriverFactory {
         //String webdriverPath = ConfigReader.getWebDriverPath();
         String currentDirectory = System.getProperty("user.dir");
         System.out.println("Bieżąca ścieżka robocza: " + currentDirectory);
-        System.setProperty("webdriver.chrome.driver", System.getProperty("user.dir") + "/src/factory/chromedriver.exe");
+        System.setProperty("webdriver.chrome.driver", System.getProperty("user.dir") + "/chromedriver.exe");
         ChromeOptions options = new ChromeOptions();
         //options.addArguments("--start-maximized");
         options.addArguments("--disable-notifications");
