@@ -19,8 +19,8 @@ public class WebDriverFactory {
 
     private static void initializeDriver() {
         //String webdriverPath = ConfigReader.getWebDriverPath();
-        String currentDirectory = System.getProperty("user.dir");
-        System.out.println("Bieżąca ścieżka robocza: " + currentDirectory);
+
+        System.out.println("Bieżąca ścieżka robocza: " + "/usr/local/bin/chromedriver");
         System.setProperty("webdriver.chrome.driver", System.getProperty("user.dir") + "/chromedriver.exe");
         ChromeOptions options = new ChromeOptions();
         //options.addArguments("--start-maximized");
