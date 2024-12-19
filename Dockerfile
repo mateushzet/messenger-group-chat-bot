@@ -10,6 +10,6 @@ RUN apt-get update && apt-get install -y \
 ENV CHROME_BIN=/usr/bin/chromium
 ENV CHROME_DRIVER=/usr/bin/chromium-driver
 
-COPY ./target/app.jar /app.jar
+COPY ./app.jar /app.jar
 
 ENTRYPOINT ["java", "-jar", "/MessengerGroupChatBot.jar"]
