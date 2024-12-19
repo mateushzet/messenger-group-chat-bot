@@ -9,11 +9,20 @@ public class ConfigReader {
     private static Properties properties;
 
     static {
-        try (FileInputStream input = new FileInputStream("src/resources/config.properties")) {
+        try {
+            FileInputStream input = new FileInputStream("src/resources/config.properties");
             properties = new Properties();
             properties.load(input);
+            input.close();
         } catch (IOException e) {
-            System.out.println(e);
+    
+            try {
+                FileInputStream input = new FileInputStream("/etc/secrets/config.properties");
+                properties = new Properties();
+                properties.load(input);
+                input.close();
+            } catch (IOException ex) {
+            }
         }
     }
 
