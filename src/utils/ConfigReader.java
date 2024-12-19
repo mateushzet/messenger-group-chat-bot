@@ -22,9 +22,40 @@ public class ConfigReader {
                 properties.load(input);
                 input.close();
             } catch (IOException ex) {
+            } 
+
+            if(properties == null){
+                try {
+                    FileInputStream input = new FileInputStream("config.properties");
+                    properties = new Properties();
+                    properties.load(input);
+                    input.close();
+                } catch (IOException ex) {
+                } 
+            }
+
+            if(properties == null){
+                try {
+                    FileInputStream input = new FileInputStream("src/config.properties");
+                    properties = new Properties();
+                    properties.load(input);
+                    input.close();
+                } catch (IOException ex) {
+                } 
+            }
+
+            if(properties == null){
+                try {
+                    FileInputStream input = new FileInputStream("messengergroupchatbot/config.properties");
+                    properties = new Properties();
+                    properties.load(input);
+                    input.close();
+                } catch (IOException ex) {
+                } 
+            }
+
             }
         }
-    }
 
     public static String getUsername() {
         return properties.getProperty("username");
