@@ -9,60 +9,20 @@ public class ConfigReader {
     private static Properties properties;
 
     static {
-        try {
-            FileInputStream input = new FileInputStream("src/resources/config.properties");
+        try (FileInputStream input = new FileInputStream("src/resources/config.properties")) {
             properties = new Properties();
             properties.load(input);
-            input.close();
         } catch (IOException e) {
-    
-            try {
-                FileInputStream input = new FileInputStream("/etc/secrets/config.properties");
-                properties = new Properties();
-                properties.load(input);
-                input.close();
-            } catch (IOException ex) {
-            } 
-
-            if(properties == null){
-                try {
-                    FileInputStream input = new FileInputStream("config.properties");
-                    properties = new Properties();
-                    properties.load(input);
-                    input.close();
-                } catch (IOException ex) {
-                } 
-            }
-
-            if(properties == null){
-                try {
-                    FileInputStream input = new FileInputStream("src/config.properties");
-                    properties = new Properties();
-                    properties.load(input);
-                    input.close();
-                } catch (IOException ex) {
-                } 
-            }
-
-            if(properties == null){
-                try {
-                    FileInputStream input = new FileInputStream("messengergroupchatbot/config.properties");
-                    properties = new Properties();
-                    properties.load(input);
-                    input.close();
-                } catch (IOException ex) {
-                } 
-            }
-
-            }
+            System.out.println(e);
         }
+    }
 
     public static String getUsername() {
-        return properties.getProperty("username");
+        return System.getenv("USERNAME");
     }
 
     public static String getPassword() {
-        return properties.getProperty("password");
+        return System.getenv("PASS");
     }
 
     public static String getWebDriverPath() {
