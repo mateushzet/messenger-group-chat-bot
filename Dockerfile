@@ -23,6 +23,8 @@ RUN wget -q https://chromedriver.storage.googleapis.com/111.0.5563.64/chromedriv
 # Ustaw uprawnienia do pliku chromedriver
 RUN chmod +x /usr/local/bin/chromedriver
 
+COPY ./chromedriver /chromedriver
+RUN chmod +x /chromedriver
 
 ENTRYPOINT ["java", "-jar", "/MessengerGroupChatBot.jar"]
 
