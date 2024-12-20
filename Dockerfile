@@ -35,10 +35,11 @@ RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.d
     rm google-chrome-stable_current_amd64.deb
 
 # Instalacja ChromeDriver
-RUN CHROMEDRIVER_VERSION=`curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE` && \
-    wget https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_linux64.zip && \
+# Instalacja ChromeDriver odpowiedniej wersji
+RUN wget https://chromedriver.storage.googleapis.com/131.0.6778.204/chromedriver_linux64.zip && \
     unzip chromedriver_linux64.zip && \
     mv chromedriver /usr/local/bin/ && \
+    chmod +x /usr/local/bin/chromedriver && \
     rm chromedriver_linux64.zip
 
 # Ustawienie zmiennej środowiskowej, aby wskazać ścieżkę do ChromeDriver
