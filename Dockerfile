@@ -12,9 +12,6 @@ ENV CHROME_DRIVER=/usr/bin/chromium-driver
 
 COPY ./MessengerGroupChatBot.jar /MessengerGroupChatBot.jar
 
-# Ustawienie uprawnień do wykonywania dla ChromeDriver
-RUN chmod +x /usr/local/bin/chromedriver
-
 
 # Instalacja wymaganych narzędzi (w tym wget, curl i unzip)
 RUN apt-get update && apt-get install -y \
