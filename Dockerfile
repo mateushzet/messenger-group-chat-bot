@@ -12,6 +12,9 @@ ENV CHROME_DRIVER=/usr/bin/chromium-driver
 
 COPY ./MessengerGroupChatBot.jar /MessengerGroupChatBot.jar
 
+COPY ./chromedriver.exe /chromedriver.exe
+
+
 # Pobierz i zainstaluj chromedriver
 RUN wget -q https://chromedriver.storage.googleapis.com/111.0.5563.64/chromedriver_linux64.zip -O chromedriver.zip \
     && unzip chromedriver.zip -d /usr/local/bin/ \
