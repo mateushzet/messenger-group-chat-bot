@@ -301,4 +301,66 @@ public class ConfigReader {
         
         return enableManualLogin != null && enableManualLogin.equalsIgnoreCase("true");
     }
+
+    public static int getSlotsAccessCost() {
+        String slotsAccessCost = properties.getProperty("slots_access_cost");
+        if (slotsAccessCost != null && !slotsAccessCost.isEmpty()) {
+            try {
+                return Integer.parseInt(slotsAccessCost);
+            } catch (NumberFormatException e) {
+                LoggerUtil.logError("Invalid slots access cost: %s. Using default value of 500.", e, slotsAccessCost);
+            }
+        }
+        return 500;
+    }
+
+    public static String getCherryEmojiUrl() {
+        String cherryEmojiUrl = properties.getProperty("cherry_emoji_url");
+        return (cherryEmojiUrl != null && !cherryEmojiUrl.isEmpty())
+                ? cherryEmojiUrl
+                : "https://static.xx.fbcdn.net/images/emoji.php/v9/t60/1/30/1f352.png";
+    }
+    
+    public static String getLemonEmojiUrl() {
+        String lemonEmojiUrl = properties.getProperty("lemon_emoji_url");
+        return (lemonEmojiUrl != null && !lemonEmojiUrl.isEmpty())
+                ? lemonEmojiUrl
+                : "https://static.xx.fbcdn.net/images/emoji.php/v9/tf1/1/30/1f34b.png";
+    }
+    
+    public static String getOrangeEmojiUrl() {
+        String orangeEmojiUrl = properties.getProperty("orange_emoji_url");
+        return (orangeEmojiUrl != null && !orangeEmojiUrl.isEmpty())
+                ? orangeEmojiUrl
+                : "https://static.xx.fbcdn.net/images/emoji.php/v9/t70/1/30/1f34a.png";
+    }
+    
+    public static String getLobsterEmojiUrl() {
+        String lobsterEmojiUrl = properties.getProperty("lobster_emoji_url");
+        return (lobsterEmojiUrl != null && !lobsterEmojiUrl.isEmpty())
+                ? lobsterEmojiUrl
+                : "https://static.xx.fbcdn.net/images/emoji.php/v9/t15/1/30/1f99e.png";
+    }
+    
+    public static String getWatermelonEmojiUrl() {
+        String watermelonEmojiUrl = properties.getProperty("watermelon_emoji_url");
+        return (watermelonEmojiUrl != null && !watermelonEmojiUrl.isEmpty())
+                ? watermelonEmojiUrl
+                : "https://static.xx.fbcdn.net/images/emoji.php/v9/t48/1/30/1f349.png";
+    }
+    
+    public static String getAppleEmojiUrl() {
+        String appleEmojiUrl = properties.getProperty("apple_emoji_url");
+        return (appleEmojiUrl != null && !appleEmojiUrl.isEmpty())
+                ? appleEmojiUrl
+                : "https://static.xx.fbcdn.net/images/emoji.php/v9/t74/1/30/1f34e.png";
+    }
+    
+    public static String getSlotMachineEmojiUrl() {
+        String slotMachineEmojiUrl = properties.getProperty("slot_machine_emoji_url");
+        return (slotMachineEmojiUrl != null && !slotMachineEmojiUrl.isEmpty())
+                ? slotMachineEmojiUrl
+                : "https://static.xx.fbcdn.net/images/emoji.php/v9/t51/1/30/1f3b0.png";
+    }
+    
 }

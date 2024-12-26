@@ -2,6 +2,7 @@ package controller;
 
 import model.CommandContext;
 import service.MessageService;
+import service.SlotsService;
 import service.roulette.RouletteService;
 import utils.ConfigReader;
 import utils.LoggerUtil;
@@ -31,6 +32,8 @@ public class CommandController {
         commands.put("transfer", CommandService::handleTransferCommand);
         commands.put("rank", CommandService::handleRankCommand);
         commands.put("help", CommandService::handleHelpCommand);
+        commands.put("slots", SlotsService::handleSlotsCommand);
+        commands.put("buy", SlotsService::handleBuySlotsCommand);        
     }
 
     public static void processCommand(String userName, String message) {
