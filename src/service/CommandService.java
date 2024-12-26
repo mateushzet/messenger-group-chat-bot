@@ -2,9 +2,12 @@ package service;
 
 import repository.UserRepository;
 
+import java.awt.AWTException;
+import java.awt.Robot;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
+import java.awt.event.KeyEvent;
 import java.time.Duration;
 import java.util.List;
 
@@ -12,12 +15,10 @@ import utils.ConfigReader;
 import utils.LoggerUtil;
 
 import org.openqa.selenium.By;
-import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-
 import app.App;
 import factory.WebDriverFactory;
 import model.CommandContext;
@@ -87,8 +88,7 @@ public static void handleTransferCommand(CommandContext context) {
 
     public static void handleRankCommand(CommandContext context) {
         String rankingString = UserRepository.getRanking();
-        copyToClipboard(rankingString);
-        pasteAndSend(context);
+        pasteAndSend(rankingString);
     }
 
     public static void handleHelpCommand(CommandContext context) {
@@ -104,12 +104,41 @@ public static void handleTransferCommand(CommandContext context) {
             "> stop - Stops the bot",
             "> start - Starts the bot",
             "> kill - Completely shuts down the bot",
-            "> help - Displays this list of available commands"
+            "> help - Displays this list of available commands",
+            "> slots - /bot slots <bet> - Play the slot machine.",
+            "> slots jackpot - Check the current jackpot value.",
+            "> buy slots - Buy access to the slot machine."
         };
 
         String helpMessageString = String.join("\n", helpMessages);
-        copyToClipboard(helpMessageString);
-        pasteAndSend(context);
+        pasteAndSend(helpMessageString);
+
+    }
+
+    private static void pasteAndSend(String messageString){
+
+        copyToClipboard(messageString);
+    
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebElement inputBox = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(messageInputBoxCssSelector)));
+
+        inputBox.click();
+
+
+        Robot robot;
+        try {
+            robot = new Robot();
+            robot.keyPress(KeyEvent.VK_CONTROL);
+            robot.keyPress(KeyEvent.VK_V);
+            robot.keyRelease(KeyEvent.VK_V);
+            robot.keyRelease(KeyEvent.VK_CONTROL);
+            
+            robot.keyPress(KeyEvent.VK_ENTER);
+            robot.keyRelease(KeyEvent.VK_ENTER);
+        } catch (AWTException e) {
+            MessageService.sendMessage(messageString);
+            LoggerUtil.logError("Failed to paste the message due to incorrect initialization of the Robot", e);
+        }
     }
 
     private static void copyToClipboard(String text) {
@@ -117,14 +146,4 @@ public static void handleTransferCommand(CommandContext context) {
         Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
         clipboard.setContents(stringSelection, null);
     }
-
-    private static void pasteAndSend(CommandContext context) {
-
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        WebElement inputBox = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(messageInputBoxCssSelector)));
-
-        inputBox.sendKeys(Keys.CONTROL + "v");
-        inputBox.sendKeys(Keys.ENTER);
-    }
-
 }

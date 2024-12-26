@@ -17,7 +17,7 @@ public class SlotsRepository {
             return false;
         }
 
-        try (FileWriter writer = new FileWriter(file, true)) {
+        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file, true), "UTF-8"))) {
             writer.write(userName + "\n");
         } catch (IOException e) {
             LoggerUtil.logError("Error adding user %s to slots access file: %s", e, userName);
