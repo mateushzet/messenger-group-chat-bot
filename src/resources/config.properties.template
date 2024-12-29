@@ -10,6 +10,7 @@ password=examplepass
 math_question_random_time=true
 math_question_random_start_minute=0
 math_question_random_end_minute=30
+math_question_prize=30
 
 # Bot selectors
 bot_command=/bot
@@ -42,6 +43,13 @@ message_heart_reaction_css_selector=div[role='menuitem'] img[alt='\u2764']
 red_heart_emoji_url=https://static.xx.fbcdn.net/images/emoji.php/v9/t38/1/30/1f5a4.png
 black_heart_emoji_url=https://static.xx.fbcdn.net/images/emoji.php/v9/t34/1/30/2764.png
 green_heart_emoji_url=https://static.xx.fbcdn.net/images/emoji.php/v9/tcc/1/30/1f49a.png
+cherry_emoji_url=https://static.xx.fbcdn.net/images/emoji.php/v9/t60/1/30/1f352.png
+lemon_emoji_url=https://static.xx.fbcdn.net/images/emoji.php/v9/tf1/1/30/1f34b.png
+orange_emoji_url=https://static.xx.fbcdn.net/images/emoji.php/v9/t70/1/30/1f34a.png
+lobster_emoji_url=https://static.xx.fbcdn.net/images/emoji.php/v9/t15/1/30/1f99e.png
+watermelon_emoji_url=https://static.xx.fbcdn.net/images/emoji.php/v9/t48/1/30/1f349.png
+apple_emoji_url=https://static.xx.fbcdn.net/images/emoji.php/v9/t74/1/30/1f34e.png
+slot_machine_emoji_url=https://static.xx.fbcdn.net/images/emoji.php/v9/t51/1/30/1f3b0.png
 
 # Emoji names
 hearts_emojis_name=heart
@@ -58,3 +66,6 @@ number_emoji_url_6=https://static.xx.fbcdn.net/images/emoji.php/v9/t4d/1/30/36_2
 number_emoji_url_7=https://static.xx.fbcdn.net/images/emoji.php/v9/t6c/1/30/37_20e3.png
 number_emoji_url_8=https://static.xx.fbcdn.net/images/emoji.php/v9/t8b/1/30/38_20e3.png
 number_emoji_url_9=https://static.xx.fbcdn.net/images/emoji.php/v9/taa/1/30/39_20e3.png
+
+# Games configuration
+slots_access_cost=500

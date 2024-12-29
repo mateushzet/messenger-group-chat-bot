@@ -372,4 +372,23 @@ public class ConfigReader {
                 : "https://static.xx.fbcdn.net/images/emoji.php/v9/t51/1/30/1f3b0.png";
     }
     
+    
+    public static int getMathQuestionPrize() {
+        String mathQuestionPrize = properties.getProperty("math_question_prize");
+        if (mathQuestionPrize != null && !mathQuestionPrize.isEmpty()) {
+            try {
+                int value = Integer.parseInt(mathQuestionPrize);
+                
+                if (value <= 0) {
+                    LoggerUtil.logWarning("Value for math_question_prize must be greater than zero: %s", mathQuestionPrize);
+                }
+    
+                return value;
+            } catch (NumberFormatException e) {
+                LoggerUtil.logError("Invalid format for math_question_prize: %s", e, mathQuestionPrize);
+            }
+        }
+        return 10;
+    }
+
 }
