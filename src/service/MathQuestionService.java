@@ -18,6 +18,7 @@ public class MathQuestionService {
     private static int mathQuestionRandomMinuteStart = ConfigReader.getMathQuestionRandomStartMinute();
     private static int mathQuestionRandomMinuteEnd = ConfigReader.getMathQuestionRandomEndMinute();
     private static int mathQuestionRandomMinute = setRandomMinute();
+    private static int mathQuestionPrize = ConfigReader.getMathQuestionPrize();
 
     public static void handleMathAnswer(String answer, String userName) {
         if (!isQuestionSolved) {
@@ -69,9 +70,9 @@ public class MathQuestionService {
 
     private static void rewardUser(String userName) {
         int userBalance = UserRepository.getUserBalance(userName, true);
-        UserRepository.updateUserBalance(userName, userBalance + 10);
-        MessageService.sendMessage("%s correct answer! You earn 10 coins! Current balance: %d", userName, (userBalance + 10));
-        LoggerUtil.logInfo("%s solved math question and earned 10 coins, previous balance: %d", userName, userBalance);
+        UserRepository.updateUserBalance(userName, userBalance + mathQuestionPrize);
+        MessageService.sendMessage("%s correct answer! You earn %d coins! Current balance: %d", userName, mathQuestionPrize, (userBalance + mathQuestionPrize));
+        LoggerUtil.logInfo("%s solved math question and earned %d coins, previous balance: %d", userName, mathQuestionPrize, userBalance);
     }
 
     private static void sendMathQuestion(){

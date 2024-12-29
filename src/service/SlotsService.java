@@ -107,7 +107,7 @@ public class SlotsService {
         MessageService.clickEmoji(result[0], "fruit");
         MessageService.clickEmoji(result[1], "fruit");
         MessageService.clickEmoji(result[2], "fruit");
-        LoggerUtil.logInfo("%s spun the slots: %s", playerName);
+        LoggerUtil.logInfo("%s spun the slots", playerName);
 
         double multiplier = getMultiplier(result);
         int winnings = (int) (betAmount * multiplier);

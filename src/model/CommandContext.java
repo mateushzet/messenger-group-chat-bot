@@ -8,10 +8,8 @@ public class CommandContext {
     private final String userName;
 
     public CommandContext(String command, List<String> arguments, String userName) {
-        this.command = command.toLowerCase();
-        this.arguments = arguments.stream()
-                                   .map(String::toLowerCase)
-                                   .toList();
+        this.command = command;
+        this.arguments = arguments;
         this.userName = userName;
     }
 
