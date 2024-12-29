@@ -13,7 +13,7 @@ MessengerGroupChatBot is a bot designed to providie interactive features like ma
 ### Requirements:
 - Java 11 or higher
 
-### Command list:
+## Command list:
 money - Shows your current balance.
 
 roulette - /bot roulette <bet> <number or color (red, black, green)>
