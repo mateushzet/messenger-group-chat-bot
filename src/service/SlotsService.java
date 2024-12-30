@@ -145,10 +145,16 @@ public class SlotsService {
             return 2;
         }
 
+        if((result[0].equals(symbols[3]) && result[1].equals(symbols[3])) 
+            || (result[1].equals(symbols[3]) && result[2].equals(symbols[3]))    
+            || (result[0].equals(symbols[3]) && result[2].equals(symbols[3]))) {
+            return 2;
+        }
+
         if (result[0].equals(result[1]) || result[1].equals(result[2]) || result[0].equals(result[2])) {
             return 1.5;
         } else if ((result[0].equals(symbols[3]) || result[1].equals(symbols[3]) || result[2].equals(symbols[3]))) {
-            return 1.1;
+            return 1.2;
         }
 
         return 0;
