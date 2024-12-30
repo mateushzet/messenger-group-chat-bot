@@ -69,8 +69,8 @@ public class RouletteService {
     public static void processRouletteOutcome(int field, int randomNumber, int amount, int userBalance, String userName) {
         String resultMessage = RouletteResultProcessor.generateResultMessage(field, randomNumber, amount);
         int updatedBalance = RouletteResultProcessor.calculateBalanceChange(field, randomNumber, amount) + userBalance;
-
-        resultMessage += " Balance: " + updatedBalance;
+        
+        resultMessage = userName + resultMessage + " Balance: " + updatedBalance;
 
         storeRouletteColor(getColorNumber(randomNumber));
         handleEmoji(randomNumber);
