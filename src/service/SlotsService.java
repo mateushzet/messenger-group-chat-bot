@@ -110,7 +110,10 @@ public class SlotsService {
         LoggerUtil.logInfo("%s spun the slots", playerName);
 
         double multiplier = getMultiplier(result);
-        int winnings = (int) (betAmount * multiplier);
+
+        int winnings;
+        if (!isJackpot(result)) winnings = (int) (betAmount * multiplier);
+        else winnings = (int) ((betAmount * 5) + multiplier);
 
         newBalance += winnings;
         UserRepository.updateUserBalance(playerName, newBalance);

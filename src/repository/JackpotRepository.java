@@ -38,15 +38,12 @@ public class JackpotRepository {
 
     public static void addToJackpotPool(int betAmount) {
         loadJackpot();
-        jackpotPool += (int) (betAmount / 10);  // Add 10% of the bet amount to the jackpot pool
+        jackpotPool += (int) (betAmount * 0.9);  // Add 90% of the bet amount to the jackpot pool
         saveJackpot();
     }
 
     public static double getJackpotMultiplier() {
         loadJackpot();
-        if (jackpotPool == 0) {
-            jackpotPool = 5;  // Default jackpot multiplier if it's empty
-        }
         return jackpotPool;
     }
 
