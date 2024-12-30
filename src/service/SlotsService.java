@@ -104,9 +104,9 @@ public class SlotsService {
         LoggerUtil.logInfo("%s placed a bet of %d coins. New balance: %d", playerName, betAmount, newBalance);
 
         String[] result = spinSlotsWithWildcard();
-        MessageService.clickEmoji(result[0], "fruit");
-        MessageService.clickEmoji(result[1], "fruit");
-        MessageService.clickEmoji(result[2], "fruit");
+        MessageService.clickEmoji(result[0], result[0] == symbols[3] ? "lobster" : "fruit");
+        MessageService.clickEmoji(result[1], result[1] == symbols[3] ? "lobster" : "fruit");
+        MessageService.clickEmoji(result[2], result[2] == symbols[3] ? "lobster" : "fruit");
         LoggerUtil.logInfo("%s spun the slots", playerName);
 
         double multiplier = getMultiplier(result);

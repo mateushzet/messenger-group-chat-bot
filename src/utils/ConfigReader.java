@@ -390,5 +390,23 @@ public class ConfigReader {
         }
         return 10;
     }
+    
+    public static int getDailyRewardPrize() {
+        String dailyRewardPrize = properties.getProperty("daily_reward_prize");
+        if (dailyRewardPrize != null && !dailyRewardPrize.isEmpty()) {
+            try {
+                int value = Integer.parseInt(dailyRewardPrize);
+                
+                if (value <= 0) {
+                    LoggerUtil.logWarning("Value for daily_reward_prize must be greater than zero: %s", dailyRewardPrize);
+                }
+    
+                return value;
+            } catch (NumberFormatException e) {
+                LoggerUtil.logError("Invalid format for daily_reward_prize: %s", e, dailyRewardPrize);
+            }
+        }
+        return 10;
+    }
 
 }

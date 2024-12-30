@@ -1,24 +1,14 @@
 package service;
 
 import repository.UserRepository;
+import repository.DailyRewardRepository;
 
-import java.awt.AWTException;
-import java.awt.Robot;
-import java.awt.Toolkit;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.StringSelection;
-import java.awt.event.KeyEvent;
-import java.time.Duration;
 import java.util.List;
 
 import utils.ConfigReader;
 import utils.LoggerUtil;
 
-import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.WebDriverWait;
 import app.App;
 import factory.WebDriverFactory;
 import model.CommandContext;
@@ -27,6 +17,7 @@ public class CommandService {
     
     private static WebDriver driver = WebDriverFactory.getDriver();
     private static String messageInputBoxCssSelector = ConfigReader.getMessageInputBoxCssSelector();
+    private static int dailyRewardPrize = ConfigReader.getDailyRewardPrize();
 
     public static void handleMoneyCommand(CommandContext context) {
         String userName = context.getUserName();
@@ -70,25 +61,25 @@ public class CommandService {
         MathQuestionService.handleMathAnswer(answer, context.getUserName());
     }
 
-public static void handleTransferCommand(CommandContext context) {
-    String amount = context.getFirstArgument();
-    List<String> receiverNameParts = context.getArguments().subList(1, context.getArguments().size());
-    String receiverFullName = String.join(" ", receiverNameParts);
-    String senderName = context.getUserName();
+    public static void handleTransferCommand(CommandContext context) {
+        String amount = context.getFirstArgument();
+        List<String> receiverNameParts = context.getArguments().subList(1, context.getArguments().size());
+        String receiverFullName = String.join(" ", receiverNameParts);
+        String senderName = context.getUserName();
 
-    boolean correctTransfer = UserRepository.handleTransfer(senderName, amount, receiverNameParts.toArray(new String[0]));
+        boolean correctTransfer = UserRepository.handleTransfer(senderName, amount, receiverNameParts.toArray(new String[0]));
 
-    if (correctTransfer) {
-        MessageService.sendMessage("Transferred %s coins to %s", amount, receiverFullName);
-    } else {
-        MessageService.sendMessage("Transfer failed");
-        LoggerUtil.logWarning("Transfer failed sender: %s, amount: %s, receiver: %s", senderName, amount, receiverFullName);
+        if (correctTransfer) {
+            MessageService.sendMessage("Transferred %s coins to %s", amount, receiverFullName);
+        } else {
+            MessageService.sendMessage("Transfer failed");
+            LoggerUtil.logWarning("Transfer failed sender: %s, amount: %s, receiver: %s", senderName, amount, receiverFullName);
+        }
     }
-}
 
     public static void handleRankCommand(CommandContext context) {
         String rankingString = UserRepository.getRanking();
-        pasteAndSend(rankingString);
+        MessageService.sendMessage(rankingString);
     }
 
     public static void handleHelpCommand(CommandContext context) {
@@ -111,39 +102,31 @@ public static void handleTransferCommand(CommandContext context) {
         };
 
         String helpMessageString = String.join("\n", helpMessages);
-        pasteAndSend(helpMessageString);
-
+        MessageService.sendMessage(helpMessageString);
     }
 
-    private static void pasteAndSend(String messageString){
-
-        copyToClipboard(messageString);
-    
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        WebElement inputBox = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(messageInputBoxCssSelector)));
-
-        inputBox.click();
-
-
-        Robot robot;
+    public static void handleDailyCommand(CommandContext context) {
+        String userName = context.getUserName();
+        
         try {
-            robot = new Robot();
-            robot.keyPress(KeyEvent.VK_CONTROL);
-            robot.keyPress(KeyEvent.VK_V);
-            robot.keyRelease(KeyEvent.VK_V);
-            robot.keyRelease(KeyEvent.VK_CONTROL);
+            if (DailyRewardRepository.hasReceivedDailyReward(userName)) {
+                MessageService.sendMessage("You have already claimed your daily reward.");
+                LoggerUtil.logInfo("User %s tried to claim daily reward but already received it.", userName);
+                return;
+            }
             
-            robot.keyPress(KeyEvent.VK_ENTER);
-            robot.keyRelease(KeyEvent.VK_ENTER);
-        } catch (AWTException e) {
-            MessageService.sendMessage(messageString);
-            LoggerUtil.logError("Failed to paste the message due to incorrect initialization of the Robot", e);
+            int currentBalance = UserRepository.getUserBalance(userName, true);
+            int newBalance = currentBalance + dailyRewardPrize;
+    
+            UserRepository.updateUserBalance(userName, newBalance);
+            DailyRewardRepository.updateDailyReward(userName);
+    
+            MessageService.sendMessage("%s has claimed the daily reward. Current balance: %d", userName, newBalance);
+            LoggerUtil.logInfo("User %s claimed daily reward. New balance: %d", userName, newBalance);
+        } catch (Exception e) {
+            LoggerUtil.logError("Error processing daily reward for user %s: %s", e, userName);
+            MessageService.sendMessage("An error occurred while claiming your daily reward. Please try again later.");
         }
     }
-
-    private static void copyToClipboard(String text) {
-        StringSelection stringSelection = new StringSelection(text);
-        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-        clipboard.setContents(stringSelection, null);
-    }
+    
 }
