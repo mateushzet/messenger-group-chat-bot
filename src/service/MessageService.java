@@ -44,7 +44,7 @@ public class MessageService {
         String text = message.getText();
     
         // check if message starts with /bot
-        if (!text.startsWith(botCommand)) {
+        if (!text.startsWith(botCommand.toLowerCase())) {
             return false;
         }
     
@@ -81,11 +81,11 @@ public class MessageService {
                 
                 for (WebElement message : messages) {
                     if (validateMessage(message)) {
-                        String userName = getSenderName(message);
+                        String userName = getSenderName(message).toLowerCase();
                         if(!userName.isEmpty()){
 
-                        String text = message.getText();
-                        if (text.startsWith(botCommand)) {
+                        String text = message.getText().toLowerCase();
+                        if (text.startsWith(botCommand.toLowerCase())) {
                             CommandController.processCommand(userName, text);
                         }
                     } else LoggerUtil.logWarning("Get sender name error or two messages from the same sender in a row");
