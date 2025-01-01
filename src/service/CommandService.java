@@ -4,6 +4,7 @@ import repository.UserRepository;
 import repository.DailyRewardRepository;
 
 import java.util.List;
+import java.util.Random;
 
 import utils.ConfigReader;
 import utils.LoggerUtil;
@@ -18,6 +19,9 @@ public class CommandService {
     private static WebDriver driver = WebDriverFactory.getDriver();
     private static String messageInputBoxCssSelector = ConfigReader.getMessageInputBoxCssSelector();
     private static int dailyRewardPrize = ConfigReader.getDailyRewardPrize();
+    private static int coinFlipAmount = 0;
+    private static String coinFlipCurrentPlayer = "";
+
 
     public static void handleMoneyCommand(CommandContext context) {
         String userName = context.getUserName();
@@ -128,5 +132,57 @@ public class CommandService {
             MessageService.sendMessage("An error occurred while claiming your daily reward. Please try again later.");
         }
     }
-    
+
+    public static void handleCoinflipCommand(CommandContext context) {
+        String command = context.getFirstArgument();
+        String username = context.getUserName();
+
+        if (command.equalsIgnoreCase("bet")) {
+            if (coinFlipCurrentPlayer.isEmpty()) {
+                try {
+                    coinFlipAmount = Integer.parseInt(context.getSecondArgument());
+                    coinFlipCurrentPlayer = username;
+                    MessageService.sendMessage("%s has started a coinflip with a bet of %d. Use /bot coinflip accept to join.", username, coinFlipAmount);
+                } catch (NumberFormatException e) {
+                    MessageService.sendMessage("Invalid bet amount. Please provide a valid number.");
+                }
+            } else {
+                MessageService.sendMessage("A coinflip is already in progress. Please wait for it to finish.");
+            }
+        } else if (command.equalsIgnoreCase("accept")) {
+            if (!coinFlipCurrentPlayer.isEmpty()) {
+                int result = new Random().nextInt(2); // 50% chance
+                int userBalance = UserRepository.getUserBalance(username, false);
+
+                if (result == 1) {
+                    MessageService.sendMessage("%s won %d coins!", username, coinFlipAmount);
+                    userBalance += coinFlipAmount;
+                    UserRepository.updateUserBalance(coinFlipCurrentPlayer, UserRepository.getUserBalance(coinFlipCurrentPlayer, false) - coinFlipAmount);
+                } else {
+                    MessageService.sendMessage("%s won %d coins!", coinFlipCurrentPlayer, coinFlipAmount);
+                    userBalance -= coinFlipAmount;
+                    UserRepository.updateUserBalance(coinFlipCurrentPlayer, UserRepository.getUserBalance(coinFlipCurrentPlayer, false) + coinFlipAmount);
+                }
+
+                UserRepository.updateUserBalance(username, userBalance);
+
+                // Reset game state
+                coinFlipCurrentPlayer = "";
+                coinFlipAmount = 0;
+            } else {
+                MessageService.sendMessage("No active coinflip game to join. Use /bot coinflip bet <amount> to start one.");
+            }
+        } else if (command.equalsIgnoreCase("cancel")) {
+            if (username.equals(coinFlipCurrentPlayer)) {
+                coinFlipAmount = 0;
+                coinFlipCurrentPlayer = "";
+                MessageService.sendMessage("%s canceled the coinflip game.", username);
+            } else {
+                MessageService.sendMessage("Only the player who started the coinflip can cancel it.");
+            }
+        } else {
+            MessageService.sendMessage("Invalid command. Use /bot coinflip bet <amount>, /bot coinflip accept, or /bot coinflip cancel.");
+        }
+    }
+
 }
