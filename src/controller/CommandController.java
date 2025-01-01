@@ -35,6 +35,7 @@ public class CommandController {
         commands.put("slots", SlotsService::handleSlotsCommand);
         commands.put("buy", SlotsService::handleBuySlotsCommand);        
         commands.put("daily", CommandService::handleDailyCommand); 
+        commands.put("coinflip", CommandService::handleCoinflipCommand); 
     }
 
     public static void processCommand(String userName, String message) {

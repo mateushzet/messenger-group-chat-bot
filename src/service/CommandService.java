@@ -9,15 +9,11 @@ import java.util.Random;
 import utils.ConfigReader;
 import utils.LoggerUtil;
 
-import org.openqa.selenium.WebDriver;
 import app.App;
-import factory.WebDriverFactory;
 import model.CommandContext;
 
 public class CommandService {
     
-    private static WebDriver driver = WebDriverFactory.getDriver();
-    private static String messageInputBoxCssSelector = ConfigReader.getMessageInputBoxCssSelector();
     private static int dailyRewardPrize = ConfigReader.getDailyRewardPrize();
     private static int coinFlipAmount = 0;
     private static String coinFlipCurrentPlayer = "";
@@ -141,6 +137,11 @@ public class CommandService {
             if (coinFlipCurrentPlayer.isEmpty()) {
                 try {
                     coinFlipAmount = Integer.parseInt(context.getSecondArgument());
+                    if(coinFlipAmount <= 0){
+                        coinFlipAmount = 0;
+                        MessageService.sendMessage("Invalid bet amount. Please provide a valid number.");
+                        return;
+                    }
                     coinFlipCurrentPlayer = username;
                     MessageService.sendMessage("%s has started a coinflip with a bet of %d. Use /bot coinflip accept to join.", username, coinFlipAmount);
                 } catch (NumberFormatException e) {
@@ -174,11 +175,18 @@ public class CommandService {
             }
         } else if (command.equalsIgnoreCase("cancel")) {
             if (username.equals(coinFlipCurrentPlayer)) {
+                UserRepository.updateUserBalance(coinFlipCurrentPlayer, UserRepository.getUserBalance(coinFlipCurrentPlayer, false) + coinFlipAmount);
                 coinFlipAmount = 0;
                 coinFlipCurrentPlayer = "";
                 MessageService.sendMessage("%s canceled the coinflip game.", username);
             } else {
                 MessageService.sendMessage("Only the player who started the coinflip can cancel it.");
+            }
+        } else if (command.equalsIgnoreCase("")) {
+            if (!coinFlipCurrentPlayer.isEmpty()) {
+                MessageService.sendMessage("Active coinflip: %s has bet %d coins.", coinFlipCurrentPlayer, coinFlipAmount);
+            } else {
+                MessageService.sendMessage("No active coinflip game at the moment.");
             }
         } else {
             MessageService.sendMessage("Invalid command. Use /bot coinflip bet <amount>, /bot coinflip accept, or /bot coinflip cancel.");
