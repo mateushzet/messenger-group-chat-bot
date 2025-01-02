@@ -12,4 +12,8 @@ ENV CHROME_DRIVER=/usr/bin/chromium-driver
 
 COPY ./MessengerGroupChatBot.jar /MessengerGroupChatBot.jar
 
+RUN mkdir -p /app/logs && touch /app/logs/application.log
+
+COPY ./src/resources/config.properties /app/src/resources/config.properties
+
 ENTRYPOINT ["java", "-jar", "/MessengerGroupChatBot.jar"]
