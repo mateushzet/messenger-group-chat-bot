@@ -22,4 +22,3 @@ src/drivers/LICENSE.chromedriver
 src/drivers/THIRD_PARTY_NOTICES.chromedriver
 lib/CHANGELOG
 src/repository/users_money.txt
-src/resources/config.properties
