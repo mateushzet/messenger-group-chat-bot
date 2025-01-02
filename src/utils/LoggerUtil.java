@@ -14,33 +14,39 @@ public class LoggerUtil {
 
     static {
         try {
+            if (logger.getHandlers().length == 0) {
+                ConsoleHandler consoleHandler = new ConsoleHandler();
+                consoleHandler.setLevel(Level.ALL);
+                consoleHandler.setFormatter(new SimpleFormatter());
+                logger.addHandler(consoleHandler);
+            }
 
-            ConsoleHandler consoleHandler = new ConsoleHandler();
-            consoleHandler.setLevel(Level.ALL);
-            consoleHandler.setFormatter(new SimpleFormatter());
-            logger.addHandler(consoleHandler);
+            String logPath = System.getenv("LOG_PATH");
+            if (logPath == null || logPath.isEmpty()) {
+                logPath = "logs/application.log";
+            }
 
             File logDirectory = new File("logs");
-            if (!logDirectory.exists()) {
-                logDirectory.mkdirs();
+            if (!logDirectory.exists() && !logDirectory.mkdirs()) {
+                throw new IOException("Failed to create logs directory.");
             }
 
-            File logFile = new File("logs/application.log");
-            if (logFile.exists()) {
-                FileHandler fileHandler = new FileHandler("logs/application.log", true);
-                fileHandler.setLevel(Level.ALL);
-                fileHandler.setFormatter(new SimpleFormatter());
-                logger.addHandler(fileHandler);
-            } else {
-                System.out.println("Log file does not exist, logging to console instead.");
+            File logFile = new File(logPath);
+            if (!logFile.exists() && !logFile.createNewFile()) {
+                throw new IOException("Failed to create log file.");
             }
+
+            FileHandler fileHandler = new FileHandler(logPath, true);
+            fileHandler.setLevel(Level.ALL);
+            fileHandler.setFormatter(new SimpleFormatter());
+            logger.addHandler(fileHandler);
 
             logger.setLevel(Level.ALL);
         } catch (IOException e) {
-            logger.log(Level.SEVERE, "Error occurred while setting up the logger", e);
+            System.err.println("Error occurred while setting up the logger: " + e.getMessage());
         }
     }
-
+    
     public static void logInfo(String message, Object... params) {
         try {
             logger.info(String.format(message, params));
