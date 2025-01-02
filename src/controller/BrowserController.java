@@ -51,7 +51,8 @@ public class BrowserController {
             e.printStackTrace();
         }
 
-        System.out.println(driver.getPageSource());
+        LoggerUtil.logInfo("trdt");
+        LoggerUtil.logInfo(driver.getPageSource());
     }
 
     //WebElement allowCookiesButton = driver.findElement(By.xpath("//span[text()='Allow all cookies']"));
