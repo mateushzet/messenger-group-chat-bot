@@ -41,6 +41,13 @@ public class BrowserController {
         //LoggerUtil.logInfo("Waiting for captcha resolution or further login prompts");
         //handleContinueAs(wait);
 
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
         WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[title*='SundayCasino']")));
         element.click();
     }
