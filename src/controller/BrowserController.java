@@ -41,8 +41,17 @@ public class BrowserController {
         //LoggerUtil.logInfo("Waiting for captcha resolution or further login prompts");
         //handleContinueAs(wait);
 
-        WebElement element = driver.findElement(By.cssSelector(".x1lliihq.x193iq5w.x6ikm8r.x10wlt62.xlyipyv.xuxw1ft"));
-        element.click();
+        //WebElement element = driver.findElement(By.cssSelector(".x1lliihq.x193iq5w.x6ikm8r.x10wlt62.xlyipyv.xuxw1ft"));
+        //element.click();
+
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        System.out.println(driver.getPageSource());
     }
 
     //WebElement allowCookiesButton = driver.findElement(By.xpath("//span[text()='Allow all cookies']"));
