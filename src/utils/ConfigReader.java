@@ -10,14 +10,14 @@ public class ConfigReader {
 
     static {
         try {
-            FileInputStream input = new FileInputStream("src/resources/config.properties");
+            FileInputStream input = new FileInputStream("/etc/secrets/config.propertis");
             properties = new Properties();
             properties.load(input);
             input.close();
         } catch (IOException e) {
     
             try {
-                FileInputStream input = new FileInputStream("/etc/secrets/config.properties");
+                FileInputStream input = new FileInputStream("src/resources/config.properties");
                 properties = new Properties();
                 properties.load(input);
                 input.close();
