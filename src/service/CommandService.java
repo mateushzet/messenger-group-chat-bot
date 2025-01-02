@@ -132,16 +132,23 @@ public class CommandService {
     public static void handleCoinflipCommand(CommandContext context) {
         String command = context.getFirstArgument();
         String username = context.getUserName();
-
+    
         if (command.equalsIgnoreCase("bet")) {
             if (coinFlipCurrentPlayer.isEmpty()) {
                 try {
                     coinFlipAmount = Integer.parseInt(context.getSecondArgument());
-                    if(coinFlipAmount <= 0){
+                    if (coinFlipAmount <= 0) {
                         coinFlipAmount = 0;
                         MessageService.sendMessage("Invalid bet amount. Please provide a valid number.");
                         return;
                     }
+    
+                    int userBalance = UserRepository.getUserBalance(username, false);
+                    if (userBalance < coinFlipAmount) {
+                        MessageService.sendMessage("Insufficient balance. You have %d coins, but your bet is %d.", userBalance, coinFlipAmount);
+                        return;
+                    }
+    
                     coinFlipCurrentPlayer = username;
                     MessageService.sendMessage("%s has started a coinflip with a bet of %d. Use /bot coinflip accept to join.", username, coinFlipAmount);
                 } catch (NumberFormatException e) {
@@ -154,7 +161,12 @@ public class CommandService {
             if (!coinFlipCurrentPlayer.isEmpty()) {
                 int result = new Random().nextInt(2); // 50% chance
                 int userBalance = UserRepository.getUserBalance(username, false);
-
+    
+                if (userBalance < coinFlipAmount) {
+                    MessageService.sendMessage("Insufficient balance to accept the coinflip. You need at least %d coins.", coinFlipAmount);
+                    return;
+                }
+    
                 if (result == 1) {
                     MessageService.sendMessage("%s won %d coins!", username, coinFlipAmount);
                     userBalance += coinFlipAmount;
@@ -164,9 +176,9 @@ public class CommandService {
                     userBalance -= coinFlipAmount;
                     UserRepository.updateUserBalance(coinFlipCurrentPlayer, UserRepository.getUserBalance(coinFlipCurrentPlayer, false) + coinFlipAmount);
                 }
-
+    
                 UserRepository.updateUserBalance(username, userBalance);
-
+    
                 // Reset game state
                 coinFlipCurrentPlayer = "";
                 coinFlipAmount = 0;
