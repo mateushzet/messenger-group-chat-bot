@@ -1,1 +1,9 @@
-user user: 2024-12-30
+tomek konieczny: 2025-01-02
+michał krupa: 2025-01-02
+emil leśniak: 2025-01-02
+miłosz kalinowski: 2025-01-02
+konrad piechowski: 2025-01-02
+kuba ślęczka: 2025-01-02
+mateusz zięcina: 2025-01-02
+konrad piwowarczyk: 2025-01-02
+dawid krupa: 2025-01-01

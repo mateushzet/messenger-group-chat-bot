@@ -40,6 +40,9 @@ public class BrowserController {
         //acceptSecondCookies(wait);
         //LoggerUtil.logInfo("Waiting for captcha resolution or further login prompts");
         //handleContinueAs(wait);
+
+        WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[contains(text(), 'SundayCasino')]")));
+        element.click();
     }
 
     //WebElement allowCookiesButton = driver.findElement(By.xpath("//span[text()='Allow all cookies']"));
