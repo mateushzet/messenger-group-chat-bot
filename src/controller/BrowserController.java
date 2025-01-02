@@ -41,7 +41,7 @@ public class BrowserController {
         //LoggerUtil.logInfo("Waiting for captcha resolution or further login prompts");
         //handleContinueAs(wait);
 
-        WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[contains(text(), 'SundayCasino')]")));
+        WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector("[title*='SundayCasino']")));
         element.click();
     }
 
