@@ -15,7 +15,7 @@ public class WebDriverFactory {
         System.setProperty("webdriver.chrome.driver", driverPath);
 
         ChromeOptions options = new ChromeOptions();
-        options.addArguments("--headless", "--no-sandbox", "--disable-dev-shm-usage");
+        options.addArguments("--no-sandbox", "--disable-dev-shm-usage");
 
         driver = new ChromeDriver(options);
         return driver;
