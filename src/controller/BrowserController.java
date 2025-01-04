@@ -50,6 +50,25 @@ public class BrowserController {
 
         JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
 
+
+        List<WebElement> iframes = driver.findElements(By.tagName("iframe"));
+        System.out.println("Liczba iframe'ów: " + iframes.size());
+
+        for (WebElement iframe : iframes) {
+            driver.switchTo().frame(iframe);
+            try {
+                WebElement button = driver.findElement(By.xpath("//button[text()='Alle Cookies erlauben']"));
+                if (button.isDisplayed()) {
+                    System.out.println("Znaleziono przycisk w iframe.");
+                    button.click();
+                    break;
+                }
+            } catch (Exception e) {
+                // Jeśli element nie istnieje w tym iframe, kontynuuj
+                driver.switchTo().defaultContent();
+            }
+        }
+        driver.switchTo().defaultContent(); // Powrót do głównego kontekstu
       
         jsExecutor.executeScript("document.body.style.zoom='50%'");  
 
@@ -58,59 +77,13 @@ public class BrowserController {
         System.out.println(screenshotBase64);
 
 
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-
-        try {
-            // Czekanie na przycisk
-            WebElement blueButton = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[contains(text(), 'Alle Cookies erlauben')]")));
-            blueButton.click();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        try {
-            // Czekanie na przycisk
-            WebElement blueButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(".classname-button")));
-            blueButton.click();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-                    try {
-                        WebElement button1 = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[text()='Alle Cookies erlauben']")));
-                        button1.click();
-                        System.out.println("Kliknięto przycisk za pomocą XPath: //button[text()='Alle Cookies erlauben']");
-                    } catch (Exception e) {
-                        System.out.println("Nie znaleziono elementu dla XPath: //button[text()='Alle Cookies erlauben']");
-                    }
-        
-                    try {
-                        WebElement button2 = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[contains(@aria-label, 'Alle Cookies erlauben')]")));
-                        button2.click();
-                        System.out.println("Kliknięto przycisk za pomocą XPath: //button[contains(@aria-label, 'Alle Cookies erlauben')]");
-                    } catch (Exception e) {
-                        System.out.println("Nie znaleziono elementu dla XPath: //button[contains(@aria-label, 'Alle Cookies erlauben')]");
-                    }
-
        
 
        // LoggerUtil.logInfo("Waiting for captcha resolution or further login prompts");
        // handleContinueAs(wait);
 
-       System.out.println("seconf screenshot");
-
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+       WebElement button = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[contains(., 'Cookies')]")));
+       button.click();
 
 
         
@@ -120,6 +93,18 @@ public class BrowserController {
  // WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[contains(text(), 'SundayCasino')]")));
     //    element.click();
 
+
+     button = driver.findElement(By.xpath("//button[contains(text(), 'Alle Cookies erlauben')]"));
+    ((JavascriptExecutor) driver).executeScript("arguments[0].click();", button);
+
+
+
+    screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
+    System.out.println(screenshotBase64);
+
+
+
+    System.out.println(driver.getPageSource());
 
 
     }
