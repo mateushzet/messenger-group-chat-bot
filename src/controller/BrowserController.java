@@ -35,7 +35,7 @@ public class BrowserController {
         LoggerUtil.logInfo("Starting login process...");
    
 
-        driver.get("https://www.messenger.com?locale=en_US");
+        driver.get("https://www.messenger.com/?locale=en_US");
 
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
@@ -67,20 +67,36 @@ public class BrowserController {
 
 
         try {
-
-            // Kliknij w niebieski przycisk
-            WebElement blueButton = driver.findElement(By.xpath("//button[contains(text(), 'Alle Cookies erlauben')]"));
+            // Czekanie na przycisk
+            WebElement blueButton = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[contains(text(), 'Alle Cookies erlauben')]")));
             blueButton.click();
-
-            // Kliknij w jasno-niebieski przycisk (na przykład "Weiter")
-            WebElement lightBlueButton = driver.findElement(By.xpath("//button[contains(text(), 'Weiter')]"));
-            lightBlueButton.click();
-
-            System.out.println("Kliknięcia zakończone sukcesem!");
         } catch (Exception e) {
             e.printStackTrace();
         }
 
+        try {
+            // Czekanie na przycisk
+            WebElement blueButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector(".classname-button")));
+            blueButton.click();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+                    try {
+                        WebElement button1 = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[text()='Alle Cookies erlauben']")));
+                        button1.click();
+                        System.out.println("Kliknięto przycisk za pomocą XPath: //button[text()='Alle Cookies erlauben']");
+                    } catch (Exception e) {
+                        System.out.println("Nie znaleziono elementu dla XPath: //button[text()='Alle Cookies erlauben']");
+                    }
+        
+                    try {
+                        WebElement button2 = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[contains(@aria-label, 'Alle Cookies erlauben')]")));
+                        button2.click();
+                        System.out.println("Kliknięto przycisk za pomocą XPath: //button[contains(@aria-label, 'Alle Cookies erlauben')]");
+                    } catch (Exception e) {
+                        System.out.println("Nie znaleziono elementu dla XPath: //button[contains(@aria-label, 'Alle Cookies erlauben')]");
+                    }
 
        
 
