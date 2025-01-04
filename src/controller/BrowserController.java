@@ -35,7 +35,7 @@ public class BrowserController {
         LoggerUtil.logInfo("Starting login process...");
    
 
-        driver.get("https://www.messenger.com");
+        driver.get("https://www.messenger.com?locale=en_US");
 
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
@@ -47,6 +47,12 @@ public class BrowserController {
         performLogin(wait);
 
         System.out.println("first screenshot");
+
+        JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
+
+      
+        jsExecutor.executeScript("document.body.style.zoom='50%'");  
+
 
         String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
         System.out.println(screenshotBase64);
