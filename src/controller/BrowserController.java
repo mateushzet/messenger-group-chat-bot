@@ -49,8 +49,8 @@ public class BrowserController {
         performLogin(wait);
 
 
-        WebElement cookies_ablehnen_button = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("div[aria-label='Cookies ablehnen']")));
-        cookies_ablehnen_button.click();
+        WebElement cookiesButton = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//div[@aria-label='Cookies ablehnen']")));
+        cookiesButton.click();
 
         System.out.println("first screenshot");
 
@@ -59,7 +59,7 @@ public class BrowserController {
         
         String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
         System.out.println(screenshotBase64);
-  
+
 
     //System.out.println(driver.getPageSource());
 
