@@ -48,7 +48,7 @@ public class BrowserController {
 
         performLogin(wait);
 
-
+        acceptSecondCookies(wait);
 
         System.out.println("first screenshot");
 
@@ -59,7 +59,7 @@ public class BrowserController {
         System.out.println(screenshotBase64);
   
 
-    System.out.println(driver.getPageSource());
+    //System.out.println(driver.getPageSource());
 
 
     }
