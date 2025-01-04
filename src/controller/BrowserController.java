@@ -7,6 +7,7 @@ import java.time.Duration;
 import java.util.List;
 
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
@@ -52,7 +53,7 @@ public class BrowserController {
 
 
         try {
-            Thread.sleep(10000);
+            Thread.sleep(3000);
         } catch (InterruptedException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -95,7 +96,16 @@ public class BrowserController {
         }
  
 
+   JavascriptExecutor js = (JavascriptExecutor) driver;
+            js.executeScript("window.scrollTo(0, document.body.scrollHeight);"); // Przewiń na dół
 
+            // Czekaj na załadowanie treści (opcjonalnie)
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } // 2 sekundy
 
         // Handle potential re-authentication scenarios
         acceptSecondCookies(wait);
