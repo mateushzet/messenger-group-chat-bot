@@ -42,15 +42,7 @@ public class BrowserController {
         performLogin(wait);
 
 
-        System.out.println("seconf screenshot");
-
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
+ 
 
 
 
@@ -66,6 +58,16 @@ public class BrowserController {
        // LoggerUtil.logInfo("Waiting for captcha resolution or further login prompts");
        // handleContinueAs(wait);
 
+       System.out.println("seconf screenshot");
+
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+
         
         screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
         System.out.println(screenshotBase64);
@@ -73,14 +75,6 @@ public class BrowserController {
  // WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[contains(text(), 'SundayCasino')]")));
     //    element.click();
 
-        try {
-
-            WebElement usernameField = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id(loginInputId)));
-            usernameField.sendKeys(username);
-            
-        } catch (Exception e) {
-            System.out.println("login button not found"+e.getMessage());
-        }
 
 
     }
@@ -116,7 +110,7 @@ public class BrowserController {
 
     private static void acceptSecondCookies(WebDriverWait wait) {
         try {
-            WebElement cookiesButton = driver.findElement(By.xpath(firstCookiesButtonId));
+            WebElement cookiesButton = driver.findElement(By.xpath(ConfigReader.getSecondCookiesButtonXpath()));
             new Actions(driver).moveToElement(cookiesButton).click().perform();
 
             LoggerUtil.logInfo("Second cookies accepted.");
