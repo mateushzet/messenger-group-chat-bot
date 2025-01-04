@@ -41,59 +41,26 @@ public class BrowserController {
 
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
+        // Accept cookies and perform the login
+        acceptFirstCookies(wait);
 
         System.out.println("first screenshot");
 
         JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
         jsExecutor.executeScript("document.body.style.zoom='50%'");  
-
-
+        
         String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
         System.out.println(screenshotBase64);
 
-        // Accept cookies and perform the login
-        acceptFirstCookies(wait);
-
-        screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
-        System.out.println(screenshotBase64);
-
-        
         performLogin(wait);
 
-       
-        
-        System.out.println("start");
-
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-
-                try {
-                String pageSource = driver.getPageSource();
-                FileWriter writer = new FileWriter("page_source.html");
-                writer.write(pageSource);
-                writer.close();
-                System.out.println("Zawartość strony została zapisana do pliku page_source.html");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-       // LoggerUtil.logInfo("Waiting for captcha resolution or further login prompts");
-       // handleContinueAs(wait);
 
 
 
-    screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
-    System.out.println(screenshotBase64);
-
-
+  
 
     System.out.println(driver.getPageSource());
 
-    System.out.println("end");
 
     }
 
