@@ -41,12 +41,6 @@ public class BrowserController {
 
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
-        // Accept cookies and perform the login
-        acceptFirstCookies(wait);
-
-
-        
-        performLogin(wait);
 
         System.out.println("first screenshot");
 
@@ -56,6 +50,17 @@ public class BrowserController {
 
         String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
         System.out.println(screenshotBase64);
+
+        // Accept cookies and perform the login
+        acceptFirstCookies(wait);
+
+        screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
+        System.out.println(screenshotBase64);
+
+        
+        performLogin(wait);
+
+       
         
         System.out.println("start");
 
