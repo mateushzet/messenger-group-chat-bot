@@ -3,6 +3,8 @@ package controller;
 import utils.LoggerUtil;
 import utils.ConfigReader;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 
@@ -49,53 +51,33 @@ public class BrowserController {
         System.out.println("first screenshot");
 
         JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
-
-
-        List<WebElement> iframes = driver.findElements(By.tagName("iframe"));
-        System.out.println("Liczba iframe'ów: " + iframes.size());
-
-        for (WebElement iframe : iframes) {
-            driver.switchTo().frame(iframe);
-            try {
-                WebElement button = driver.findElement(By.xpath("//button[text()='Alle Cookies erlauben']"));
-                if (button.isDisplayed()) {
-                    System.out.println("Znaleziono przycisk w iframe.");
-                    button.click();
-                    break;
-                }
-            } catch (Exception e) {
-                // Jeśli element nie istnieje w tym iframe, kontynuuj
-                driver.switchTo().defaultContent();
-            }
-        }
-        driver.switchTo().defaultContent(); // Powrót do głównego kontekstu
-      
         jsExecutor.executeScript("document.body.style.zoom='50%'");  
 
 
         String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
         System.out.println(screenshotBase64);
+        
+        System.out.println("start");
 
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
 
-       
+                try {
+                String pageSource = driver.getPageSource();
+                FileWriter writer = new FileWriter("page_source.html");
+                writer.write(pageSource);
+                writer.close();
+                System.out.println("Zawartość strony została zapisana do pliku page_source.html");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
        // LoggerUtil.logInfo("Waiting for captcha resolution or further login prompts");
        // handleContinueAs(wait);
-
-       WebElement button = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[contains(., 'Cookies')]")));
-       button.click();
-
-
-        
-        screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
-        System.out.println(screenshotBase64);
-
- // WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[contains(text(), 'SundayCasino')]")));
-    //    element.click();
-
-
-     button = driver.findElement(By.xpath("//button[contains(text(), 'Alle Cookies erlauben')]"));
-    ((JavascriptExecutor) driver).executeScript("arguments[0].click();", button);
 
 
 
@@ -106,6 +88,7 @@ public class BrowserController {
 
     System.out.println(driver.getPageSource());
 
+    System.out.println("end");
 
     }
 
