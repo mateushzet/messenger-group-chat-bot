@@ -32,17 +32,31 @@ public class BrowserController {
 
     public static void loginToMessenger() {
         LoggerUtil.logInfo("Starting login process...");
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+   
 
         driver.get("https://www.messenger.com");
 
-        
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
 
         // Accept cookies and perform the login
         acceptFirstCookies(wait);
+
+
+        
         performLogin(wait);
 
+        System.out.println("first screenshot");
 
+        String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
+        System.out.println(screenshotBase64);
+
+
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
 
           try {
 
@@ -78,20 +92,16 @@ public class BrowserController {
             e.printStackTrace();
         } finally {
             // Zamknij przeglądarkę
-            driver.quit();
         }
  
 
 
 
-      //   Handle potential re-authentication scenarios
-      //  acceptSecondCookies(wait);
+        // Handle potential re-authentication scenarios
+        acceptSecondCookies(wait);
 
 
-        System.out.println("first screenshot");
-
-        String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
-        System.out.println(screenshotBase64);
+       
 
        // LoggerUtil.logInfo("Waiting for captcha resolution or further login prompts");
        // handleContinueAs(wait);
@@ -137,7 +147,7 @@ public class BrowserController {
             passwordField.sendKeys(password);
             WebElement loginButton = wait.until(ExpectedConditions.elementToBeClickable(By.id(loginButtonId)));
             LoggerUtil.logInfo("Waiting 10 seconds in login page to ommit the captcha");
-            Thread.sleep(10000);
+            Thread.sleep(20000);
             loginButton.click();
             LoggerUtil.logInfo("Login submitted with username: %s", username);
 
