@@ -59,8 +59,14 @@ public class BrowserController {
 
 
         try {
-            // Otwórz stronę
-            driver.get("URL strony"); // Podmień URL na odpowiedni
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+
+        try {
 
             // Kliknij w niebieski przycisk
             WebElement blueButton = driver.findElement(By.xpath("//button[contains(text(), 'Alle Cookies erlauben')]"));
