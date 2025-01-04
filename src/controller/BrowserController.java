@@ -6,6 +6,8 @@ import utils.ConfigReader;
 import java.time.Duration;
 
 import org.openqa.selenium.By;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -32,9 +34,27 @@ public class BrowserController {
 
         driver.get("https://www.messenger.com");
 
+        System.out.println("first screenshot");
+
+        String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
+        System.out.println(screenshotBase64);
+
         // Accept cookies and perform the login
         acceptFirstCookies(wait);
         performLogin(wait);
+
+
+        System.out.println("seconf screenshot");
+
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
+        System.out.println(screenshotBase64);
 
         // Handle potential re-authentication scenarios
         //acceptSecondCookies(wait);
