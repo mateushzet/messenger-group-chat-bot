@@ -49,8 +49,8 @@ public class BrowserController {
         performLogin(wait);
 
 
-  WebElement cookies_ablehnen_button = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("div[aria-label='Cookies ablehnen']")));
-        cookies_ablehnen_button.click();
+  //WebElement cookies_ablehnen_button = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("div[aria-label='Cookies ablehnen']")));
+   //     cookies_ablehnen_button.click();
 
 
         System.out.println("first screenshot");
