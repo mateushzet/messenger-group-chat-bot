@@ -53,6 +53,13 @@ public class BrowserController {
    //     cookies_ablehnen_button.click();
 
 
+   WebElement allowAllCookiesButton = wait.until(ExpectedConditions.elementToBeClickable(
+    By.xpath("//div[@role='none' and contains(@class, 'x1ja2u2z') and .//span[text()='Alle Cookies erlauben']]")
+));
+
+// Kliknij w przycisk
+allowAllCookiesButton.click();
+
         System.out.println("first screenshot");
 
         JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
@@ -62,7 +69,10 @@ public class BrowserController {
         System.out.println(screenshotBase64);
 
 
-    System.out.println(driver.getPageSource());
+
+        
+         screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
+        System.out.println(screenshotBase64);
 
 
     }
