@@ -4,7 +4,10 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 
+import utils.ConfigReader;
+
 public class WebDriverFactory {
+
     private static WebDriver driver;
 
     public static WebDriver initializeDriver() {
@@ -15,7 +18,7 @@ public class WebDriverFactory {
         System.setProperty("webdriver.chrome.driver", driverPath);
 
         ChromeOptions options = new ChromeOptions();
-        options.addArguments("--no-sandbox", "--disable-dev-shm-usage");
+        options.addArguments("--headless", "--no-sandbox", "--disable-dev-shm-usage");
 
         driver = new ChromeDriver(options);
         return driver;
@@ -34,4 +37,5 @@ public class WebDriverFactory {
             driver = null;
         }
     }
+
 }
