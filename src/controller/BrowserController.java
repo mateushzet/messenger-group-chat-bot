@@ -49,16 +49,13 @@ public class BrowserController {
         performLogin(wait);
 
 
-  //WebElement cookies_ablehnen_button = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("div[aria-label='Cookies ablehnen']")));
-   //     cookies_ablehnen_button.click();
 
+        WebElement acceptAllCookiesButton = wait.until(ExpectedConditions.elementToBeClickable(
+            By.cssSelector("div[aria-label='Alle Cookies erlauben'][role='button']")
+        ));
 
-   WebElement allowAllCookiesButton = wait.until(ExpectedConditions.elementToBeClickable(
-    By.xpath("//div[@role='none' and contains(@class, 'x1ja2u2z') and .//span[text()='Alle Cookies erlauben']]")
-));
+        acceptAllCookiesButton.click();
 
-// Kliknij w przycisk
-allowAllCookiesButton.click();
 
         System.out.println("first screenshot");
 
@@ -69,10 +66,7 @@ allowAllCookiesButton.click();
         System.out.println(screenshotBase64);
 
 
-
-        
-         screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
-        System.out.println(screenshotBase64);
+        System.out.println(driver.getPageSource());
 
 
     }
