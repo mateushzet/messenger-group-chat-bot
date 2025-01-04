@@ -49,8 +49,9 @@ public class BrowserController {
         performLogin(wait);
 
 
-        WebElement cookiesButton = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//div[@aria-label='Cookies ablehnen']")));
-        cookiesButton.click();
+  WebElement cookies_ablehnen_button = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("div[aria-label='Cookies ablehnen']")));
+        cookies_ablehnen_button.click();
+
 
         System.out.println("first screenshot");
 
@@ -61,7 +62,7 @@ public class BrowserController {
         System.out.println(screenshotBase64);
 
 
-    //System.out.println(driver.getPageSource());
+    System.out.println(driver.getPageSource());
 
 
     }
