@@ -10,6 +10,7 @@ import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 //import org.openqa.selenium.interactions.Actions;
@@ -34,10 +35,7 @@ public class BrowserController {
 
         driver.get("https://www.messenger.com");
 
-        System.out.println("first screenshot");
-
-        String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
-        System.out.println(screenshotBase64);
+        
 
         // Accept cookies and perform the login
         acceptFirstCookies(wait);
@@ -53,13 +51,24 @@ public class BrowserController {
             e.printStackTrace();
         }
 
-        screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
+
+
+
+      //   Handle potential re-authentication scenarios
+        acceptSecondCookies(wait);
+
+
+        System.out.println("first screenshot");
+
+        String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
         System.out.println(screenshotBase64);
 
-        // Handle potential re-authentication scenarios
-        //acceptSecondCookies(wait);
-        //LoggerUtil.logInfo("Waiting for captcha resolution or further login prompts");
-        //handleContinueAs(wait);
+       // LoggerUtil.logInfo("Waiting for captcha resolution or further login prompts");
+       // handleContinueAs(wait);
+
+        
+        screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
+        System.out.println(screenshotBase64);
 
  // WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[contains(text(), 'SundayCasino')]")));
     //    element.click();
@@ -105,29 +114,29 @@ public class BrowserController {
         }
     }
 
-//    private static void acceptSecondCookies(WebDriverWait wait) {
-//        try {
-//            WebElement cookiesButton = driver.findElement(By.xpath(secondCookiesButtonXpath));
-//            new Actions(driver).moveToElement(cookiesButton).click().perform();
-//
-//            LoggerUtil.logInfo("Second cookies accepted.");
-//        } catch (Exception e) {
-//            LoggerUtil.logWarning("Second cookies button not found or not clickable.");
-//        }
-//    }
+    private static void acceptSecondCookies(WebDriverWait wait) {
+        try {
+            WebElement cookiesButton = driver.findElement(By.xpath(firstCookiesButtonId));
+            new Actions(driver).moveToElement(cookiesButton).click().perform();
 
-//   private static void handleContinueAs(WebDriverWait wait) {
-//        try {
-//            WebElement continueAsButton = wait.until(ExpectedConditions.visibilityOfElementLocated(
-//            By.cssSelector(continueLoginButtonCssSelector)
-//            ));
-//            continueAsButton.click();
-//            LoggerUtil.logInfo("Clicked 'Continue as' button.");
-//        } catch (Exception e) {
-//            LoggerUtil.logWarning("No 'Continue as' button found.");
-//            // In case no 'Continue as' button appears, we attempt to log in again
-//            performLogin(wait);
-//        }
-//    }
+            LoggerUtil.logInfo("Second cookies accepted.");
+        } catch (Exception e) {
+            LoggerUtil.logWarning("Second cookies button not found or not clickable.");
+        }
+    }
+
+  // private static void handleContinueAs(WebDriverWait wait) {
+   //     try {
+     //       WebElement continueAsButton = wait.until(ExpectedConditions.visibilityOfElementLocated(
+       //     By.cssSelector(continueLoginButtonCssSelector)
+         //   ));
+         //   continueAsButton.click();
+           // LoggerUtil.logInfo("Clicked 'Continue as' button.");
+      //  } catch (Exception e) {
+        //    LoggerUtil.logWarning("No 'Continue as' button found.");
+            // In case no 'Continue as' button appears, we attempt to log in again
+          //  performLogin(wait);
+       // }
+ //   }
 
 }
