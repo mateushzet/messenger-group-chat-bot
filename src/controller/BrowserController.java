@@ -59,62 +59,21 @@ public class BrowserController {
 
 
         try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+            // Otwórz stronę
+            driver.get("URL strony"); // Podmień URL na odpowiedni
 
-          try {
+            // Kliknij w niebieski przycisk
+            WebElement blueButton = driver.findElement(By.xpath("//button[contains(text(), 'Alle Cookies erlauben')]"));
+            blueButton.click();
 
-            // Znajdź wszystkie elementy typu button
-            List<WebElement> buttons = driver.findElements(By.tagName("button"));
+            // Kliknij w jasno-niebieski przycisk (na przykład "Weiter")
+            WebElement lightBlueButton = driver.findElement(By.xpath("//button[contains(text(), 'Weiter')]"));
+            lightBlueButton.click();
 
-            // Wypisz szczegóły każdego przycisku
-            System.out.println("Liczba znalezionych przycisków: " + buttons.size());
-            for (int i = 0; i < buttons.size(); i++) {
-                WebElement button = buttons.get(i);
-                System.out.println("Przycisk " + (i + 1) + ":");
-                System.out.println("Tekst: " + button.getText());
-                System.out.println("ID: " + button.getAttribute("id"));
-                System.out.println("Klasy: " + button.getAttribute("class"));
-                System.out.println("HTML: " + button.getAttribute("outerHTML"));
-                System.out.println("-------------------------");
-            }
-
-            // Dodatkowo, znajdź inne potencjalne przyciski, np. input type="submit"
-            List<WebElement> inputs = driver.findElements(By.cssSelector("input[type='submit']"));
-            System.out.println("Liczba znalezionych input[type='submit']: " + inputs.size());
-            for (int i = 0; i < inputs.size(); i++) {
-                WebElement input = inputs.get(i);
-                System.out.println("Input " + (i + 1) + ":");
-                System.out.println("Tekst: " + input.getAttribute("value"));
-                System.out.println("ID: " + input.getAttribute("id"));
-                System.out.println("Klasy: " + input.getAttribute("class"));
-                System.out.println("HTML: " + input.getAttribute("outerHTML"));
-                System.out.println("-------------------------");
-            }
-
+            System.out.println("Kliknięcia zakończone sukcesem!");
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            // Zamknij przeglądarkę
         }
- 
-
-   JavascriptExecutor js = (JavascriptExecutor) driver;
-            js.executeScript("window.scrollTo(0, document.body.scrollHeight);"); // Przewiń na dół
-
-            // Czekaj na załadowanie treści (opcjonalnie)
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            } // 2 sekundy
-
-        // Handle potential re-authentication scenarios
-        acceptSecondCookies(wait);
 
 
        
