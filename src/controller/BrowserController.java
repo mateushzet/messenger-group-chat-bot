@@ -48,36 +48,21 @@ public class BrowserController {
 
         performLogin(wait);
 
-  System.out.println("clicking the cookies");
-       
-  try {
 
-        // Zdefiniowanie współrzędnych
-        int x = 450;  // Współrzędna X na zrzucie ekranu
-        int y = 240;  // Współrzędna Y na zrzucie ekranu
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
 
-        // Przewiń stronę, jeśli to konieczne (w przypadku, gdy przycisk znajduje się poza widocznością)
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        js.executeScript("window.scrollTo(0, 0);");
+            // Znajdź wszystkie przyciski
+            List<WebElement> buttons = driver.findElements(By.tagName("button"));
 
-        // Utwórz obiekt Actions do symulowania kliknięcia
-        Actions actions = new Actions(driver);
-
-        // Kliknięcie w podane współrzędne
-        actions.moveByOffset(x, y).click().perform();
-  } catch (Exception e) {
-    System.out.println("failed"+e.getMessage());
-  }
-
-
-        System.out.println("first screenshot");
-
-        JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
-        jsExecutor.executeScript("document.body.style.zoom='50%'");  
-        
-        String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
-        System.out.println(screenshotBase64);
-
+            // Wyświetl tekst każdego przycisku
+            for (WebElement button : buttons) {
+                System.out.println("Button text: " + button.getText());
+            }
 
     //System.out.println(driver.getPageSource());
 
