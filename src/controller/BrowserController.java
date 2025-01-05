@@ -44,6 +44,9 @@ public class BrowserController {
         // Accept cookies and perform the login
         acceptFirstCookies(wait);
 
+        performLogin(wait);
+
+
         System.out.println("first screenshot");
 
         JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
@@ -51,9 +54,6 @@ public class BrowserController {
         
         String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
         System.out.println(screenshotBase64);
-
-        performLogin(wait);
-
 
         try {
             Thread.sleep(3000);
