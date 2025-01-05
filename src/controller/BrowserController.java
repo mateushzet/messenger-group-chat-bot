@@ -51,8 +51,16 @@ public class BrowserController {
   System.out.println("clicking the cookies");
        
   try {
-    WebElement cookiesButton = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//div[@aria-label='Alle Cookies erlauben']")));
-    cookiesButton.click();
+
+        // Tworzenie instancji WebDriverWait (czekanie maksymalnie 10 sekund na element)
+         wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+
+        // Czekanie na element, aż będzie klikniewalny
+        WebElement cookieButton = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//div[@aria-label='Alle Cookies erlauben']")));
+
+        // Użycie JavaScript do kliknięcia, jeśli element nie jest bezpośrednio klikalny
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        js.executeScript("arguments[0].click();", cookieButton);
   } catch (Exception e) {
     System.out.println("failed"+e.getMessage());
   }
