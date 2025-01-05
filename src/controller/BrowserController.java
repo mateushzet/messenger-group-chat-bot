@@ -52,11 +52,19 @@ public class BrowserController {
        
   try {
 
-          // Czekanie na element zawierający tekst "Alle Cookies erlauben"
-          WebElement cookieButton = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//span[text()='Alle Cookies erlauben']")));
+        // Zdefiniowanie współrzędnych
+        int x = 450;  // Współrzędna X na zrzucie ekranu
+        int y = 240;  // Współrzędna Y na zrzucie ekranu
 
-          // Kliknięcie w element
-          cookieButton.click();
+        // Przewiń stronę, jeśli to konieczne (w przypadku, gdy przycisk znajduje się poza widocznością)
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        js.executeScript("window.scrollTo(0, 0);");
+
+        // Utwórz obiekt Actions do symulowania kliknięcia
+        Actions actions = new Actions(driver);
+
+        // Kliknięcie w podane współrzędne
+        actions.moveByOffset(x, y).click().perform();
   } catch (Exception e) {
     System.out.println("failed"+e.getMessage());
   }
