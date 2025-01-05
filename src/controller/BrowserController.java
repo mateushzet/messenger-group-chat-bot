@@ -59,12 +59,21 @@ public class BrowserController {
             // Znajdź wszystkie przyciski
             List<WebElement> buttons = driver.findElements(By.tagName("button"));
 
-            // Wyświetl tekst każdego przycisku
             for (WebElement button : buttons) {
                 System.out.println("Button text: " + button.getText());
+                System.out.println("Tag name: " + button.getTagName());
+                System.out.println("Attributes:");
+                // Pobieranie atrybutów
+                for (String attribute : new String[]{"id", "class", "name", "type"}) {
+                    String value = button.getAttribute(attribute);
+                    if (value != null && !value.isEmpty()) {
+                        System.out.println("  " + attribute + ": " + value);
+                    }
+                }
+                System.out.println("====================================");
             }
 
-            WebElement continueButton = wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//button[text()='Continue']")));
+            WebElement continueButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("//button[text()='Continue']")));
             continueButton.click(); // Kliknij przycisk
             System.out.println("Clicked the 'Continue' button.");
 
