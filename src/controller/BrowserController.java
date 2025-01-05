@@ -48,7 +48,9 @@ public class BrowserController {
 
         performLogin(wait);
 
-
+        JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
+        jsExecutor.executeScript("document.body.style.zoom='50%'");  
+        
 
         WebElement acceptAllCookiesButton = wait.until(ExpectedConditions.elementToBeClickable(
             By.cssSelector("div[aria-label='Alle Cookies erlauben'][role='button']")
@@ -59,9 +61,7 @@ public class BrowserController {
 
         System.out.println("first screenshot");
 
-        JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
-        jsExecutor.executeScript("document.body.style.zoom='50%'");  
-        
+
         String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
         System.out.println(screenshotBase64);
 
