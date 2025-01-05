@@ -44,7 +44,13 @@ public class BrowserController {
         // Accept cookies and perform the login
         acceptFirstCookies(wait);
 
+        System.out.println("first screenshot");
 
+        JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
+        jsExecutor.executeScript("document.body.style.zoom='50%'");  
+        
+        String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
+        System.out.println(screenshotBase64);
 
         performLogin(wait);
 
@@ -73,20 +79,20 @@ public class BrowserController {
                 System.out.println("====================================");
             }
 
-            System.out.println("first screenshot");
+          
+            System.out.println("second screenshot");
 
-            JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
-            jsExecutor.executeScript("document.body.style.zoom='50%'");  
             
-            String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
-            System.out.println(screenshotBase64);
+            screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
+           System.out.println(screenshotBase64);
+
 
             WebElement continueButton = driver.findElement(By.id("loginbutton"));
             continueButton.click(); // Kliknij przycisk
             System.out.println("Clicked the 'Continue' button.");
 
 
-            System.out.println("second screenshot");
+            System.out.println("third screenshot");
 
             
              screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
