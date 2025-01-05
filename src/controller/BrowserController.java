@@ -73,17 +73,23 @@ public class BrowserController {
                 System.out.println("====================================");
             }
 
-            WebElement continueButton = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("//button[text()='Continue']")));
-            continueButton.click(); // Kliknij przycisk
-            System.out.println("Clicked the 'Continue' button.");
-
-
             System.out.println("first screenshot");
 
             JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
             jsExecutor.executeScript("document.body.style.zoom='50%'");  
             
             String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
+            System.out.println(screenshotBase64);
+
+            WebElement continueButton = driver.findElement(By.id("loginbutton"));
+            continueButton.click(); // Kliknij przycisk
+            System.out.println("Clicked the 'Continue' button.");
+
+
+            System.out.println("second screenshot");
+
+            
+             screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
             System.out.println(screenshotBase64);
 
 
