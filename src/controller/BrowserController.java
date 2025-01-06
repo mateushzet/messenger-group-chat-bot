@@ -106,6 +106,10 @@ public class BrowserController {
             System.out.println(screenshotBase64);
 
 
+
+     WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[contains(text(), 'SundayCasino')]")));
+        element.click();
+
     //System.out.println(driver.getPageSource());
 
 
