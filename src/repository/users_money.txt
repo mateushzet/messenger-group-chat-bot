@@ -1,2 +1,14 @@
-Example User: 100
-Example User2: 0
+michał krupa: 10
+miłosz kalinowski: 0
+konrad piechowski: 0
+kuba ślęczka: 0
+mateusz zięcina: 1986
+szymon mazurek: 175
+sebastian wołek: 0
+jakub konarski: 115
+dawid krupa: 515
+emil leśniak: 31
+tomek konieczny: 360
+kamil płaneta: 150
+konrad piwowarczyk: 6928
+Matthew Frost: 100
