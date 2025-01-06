@@ -79,6 +79,13 @@ public class ConfigReader {
                 : "pass";
     }
 
+    public static String getGroupChatName() {
+        String groupChatName = properties.getProperty("group_chat_name");
+        return (groupChatName != null && !groupChatName.isEmpty())
+                ? groupChatName
+                : "name";
+    }
+
     public static String getLoginButtonId() {
         String loginButtonId = properties.getProperty("login_button_id");
         return (loginButtonId != null && !loginButtonId.isEmpty())

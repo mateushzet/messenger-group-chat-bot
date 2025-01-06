@@ -7,7 +7,6 @@ RUN apt-get update && apt-get install -y \
     chromium \
     chromium-driver
 
-    # Zainstaluj zależności i pobierz ChromeDriver
 RUN apt-get update && apt-get install -y wget unzip chromium && \
 wget https://chromedriver.storage.googleapis.com/$(curl -s https://chromedriver.storage.googleapis.com/LATEST_RELEASE)/chromedriver_linux64.zip && \
 unzip chromedriver_linux64.zip && \

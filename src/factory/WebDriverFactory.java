@@ -13,7 +13,7 @@ public class WebDriverFactory {
     public static WebDriver initializeDriver() {
         String driverPath = System.getenv("CHROMEDRIVER_PATH");
         if (driverPath == null || driverPath.isEmpty()) {
-            driverPath = "chromedriver";
+            driverPath = ConfigReader.getWebDriverPath();
         }
         System.setProperty("webdriver.chrome.driver", driverPath);
 
@@ -29,7 +29,7 @@ public class WebDriverFactory {
             driver = initializeDriver();
         }
         return driver;
-    }
+    }    
 
     public static void quitDriver() {
         if (driver != null) {

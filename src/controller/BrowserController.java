@@ -3,21 +3,13 @@ package controller;
 import utils.LoggerUtil;
 import utils.ConfigReader;
 
-import java.io.FileWriter;
-import java.io.IOException;
 import java.time.Duration;
-import java.util.List;
 
 import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.OutputType;
-import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-//import org.openqa.selenium.interactions.Actions;
 
 import factory.WebDriverFactory;
 
@@ -30,8 +22,7 @@ public class BrowserController {
     private static String loginInputId = ConfigReader.getLoginInputId();
     private static String passwordInputId = ConfigReader.getPasswordInputId();
     private static String loginButtonId = ConfigReader.getLoginButtonId();
-    //private static String secondCookiesButtonXpath = ConfigReader.getSecondCookiesButtonXpath();
-    //private static String continueLoginButtonCssSelector = ConfigReader.getContinueLoginButtonCssSelector();
+    private static String groupChatName = ConfigReader.getGroupChatName();
 
     public static void loginToMessenger() {
         LoggerUtil.logInfo("Starting login process...");
@@ -46,78 +37,15 @@ public class BrowserController {
 
         performLogin(wait);
 
-
-        System.out.println("first screenshot");
-
-        JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
-        jsExecutor.executeScript("document.body.style.zoom='50%'");  
-        
-        String screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
-        System.out.println(screenshotBase64);
-
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+        try{
+            WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[contains(text(), '"+groupChatName+"')]")));
+            element.click();
+        } catch(Exception e){
+            System.out.println(e);
         }
 
-            // Znajdź wszystkie przyciski
-            List<WebElement> buttons = driver.findElements(By.tagName("button"));
-
-            for (WebElement button : buttons) {
-                System.out.println("Button text: " + button.getText());
-                System.out.println("Tag name: " + button.getTagName());
-                System.out.println("Attributes:");
-                // Pobieranie atrybutów
-                for (String attribute : new String[]{"id", "class", "name", "type"}) {
-                    String value = button.getAttribute(attribute);
-                    if (value != null && !value.isEmpty()) {
-                        System.out.println("  " + attribute + ": " + value);
-                    }
-                }
-                System.out.println("====================================");
-            }
-
-          
-            try {
-                Thread.sleep(3000);
-            } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-    
-
-            System.out.println("second screenshot");
-
-            
-            screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
-           System.out.println(screenshotBase64);
-
-
-       
-           jsExecutor.executeScript("document.body.style.zoom='100%'");  
-
-
-            System.out.println("third screenshot");
-
-            
-             screenshotBase64 = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BASE64);
-            System.out.println(screenshotBase64);
-
-
-try{
-     WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[contains(text(), 'SundayCasino')]")));
-        element.click();
-} catch(Exception e){
- System.out.println(e);
 }
-    //System.out.println(driver.getPageSource());
 
-
-    }
-
-    //WebElement allowCookiesButton = driver.findElement(By.xpath("//span[text()='Allow all cookies']"));
     private static void acceptFirstCookies(WebDriverWait wait) {
         try {
             WebElement cookiesButton = wait.until(ExpectedConditions.elementToBeClickable(By.id(firstCookiesButtonId)));
@@ -145,30 +73,5 @@ try{
             LoggerUtil.logError("Error while performing login", e);
         }
     }
-
-    private static void acceptSecondCookies(WebDriverWait wait) {
-        try {
-            WebElement cookiesButton = driver.findElement(By.xpath(ConfigReader.getSecondCookiesButtonXpath()));
-            new Actions(driver).moveToElement(cookiesButton).click().perform();
-
-            LoggerUtil.logInfo("Second cookies accepted.");
-        } catch (Exception e) {
-            LoggerUtil.logWarning("Second cookies button not found or not clickable.");
-        }
-    }
-
-  // private static void handleContinueAs(WebDriverWait wait) {
-   //     try {
-     //       WebElement continueAsButton = wait.until(ExpectedConditions.visibilityOfElementLocated(
-       //     By.cssSelector(continueLoginButtonCssSelector)
-         //   ));
-         //   continueAsButton.click();
-           // LoggerUtil.logInfo("Clicked 'Continue as' button.");
-      //  } catch (Exception e) {
-        //    LoggerUtil.logWarning("No 'Continue as' button found.");
-            // In case no 'Continue as' button appears, we attempt to log in again
-          //  performLogin(wait);
-       // }
- //   }
 
 }
