@@ -24,4 +24,11 @@ RUN mkdir -p /app/logs && touch /app/logs/application.log
 
 COPY ./src/resources/config.properties /app/src/resources/config.properties
 
+RUN mkdir -p src/repository
+
+COPY ./src/repository/*.txt /app/src/repository/
+
+RUN chmod -R 755 src
+
+
 ENTRYPOINT ["java", "-jar", "/MessengerGroupChatBot.jar"]
