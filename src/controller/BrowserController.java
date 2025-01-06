@@ -80,6 +80,14 @@ public class BrowserController {
             }
 
           
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+    
+
             System.out.println("second screenshot");
 
             
@@ -87,9 +95,8 @@ public class BrowserController {
            System.out.println(screenshotBase64);
 
 
-            WebElement continueButton = driver.findElement(By.id("loginbutton"));
-            continueButton.click(); // Kliknij przycisk
-            System.out.println("Clicked the 'Continue' button.");
+       
+           jsExecutor.executeScript("document.body.style.zoom='100%'");  
 
 
             System.out.println("third screenshot");
