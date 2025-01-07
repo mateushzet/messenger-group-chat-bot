@@ -71,6 +71,26 @@ public class MessageService {
         LoggerUtil.logInfo("Message sent: %s", formattedMessage);
     }
 
+    public static void sendMessageFromClipboard() {
+        String messageInputBoxCssSelector = ConfigReader.getMessageInputBoxCssSelector();
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebElement inputBox = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(messageInputBoxCssSelector)));
+    
+        inputBox.click();
+    
+        Actions actions = new Actions(driver);
+        actions.keyDown(Keys.CONTROL)
+        .sendKeys("v")
+        .keyUp(Keys.CONTROL)
+        .perform();
+    
+        actions.sendKeys(Keys.RETURN).perform();
+    
+       // Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(""), null);
+
+        LoggerUtil.logInfo("Message sent from clipboard.");
+    }
+
     public static void processMessages() throws InterruptedException {
         while (true) {
             try {

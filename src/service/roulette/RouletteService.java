@@ -5,6 +5,7 @@ import repository.UserRepository;
 import service.MessageService;
 import utils.ConfigReader;
 import utils.LoggerUtil;
+import utils.RouletteImageGenerator;
 import model.CommandContext;
 
 import java.util.ArrayList;
@@ -15,23 +16,23 @@ import java.util.Random;
 
 public class RouletteService {
 
-    private static final Queue<Integer> rouletteHistory = new LinkedList<>(); // last five colors
+    private static final Queue<Integer> rouletteHistory = new LinkedList<>();
 
     public static void handleRouletteCommand(CommandContext context) {
         String userName = context.getUserName();
         String amount = context.getFirstArgument();
         String field = context.getSecondArgument();
 
-        if (amount.equalsIgnoreCase("history")) {
-            int colorCount = 5;
-            try {
-                colorCount = Integer.parseInt(field.trim());
-                showHistory(colorCount);
-            } catch (Exception e) {
-                showHistory(colorCount);
-            }
-            return;
-        }
+    //    if (amount.equalsIgnoreCase("history")) {
+    //        int colorCount = 5;
+    //        try {
+    //            colorCount = Integer.parseInt(field.trim());
+    //            showHistory(colorCount);
+    //        } catch (Exception e) {
+    //            showHistory(colorCount);
+    //        }
+    //        return;
+    //    }
 
         LoggerUtil.logInfo("%s bet: %s on %s", userName, amount, field);
 
@@ -63,20 +64,25 @@ public class RouletteService {
             return;
         }
 
+        storeRouletteColor(randomNumber);
+
         processRouletteOutcome(fieldParsed, randomNumber, amountInteger, userBalance, userName);
     }
 
     public static void processRouletteOutcome(int field, int randomNumber, int amount, int userBalance, String userName) {
-        String resultMessage = RouletteResultProcessor.generateResultMessage(field, randomNumber, amount);
-        int updatedBalance = RouletteResultProcessor.calculateBalanceChange(field, randomNumber, amount) + userBalance;
+        //String resultMessage = RouletteResultProcessor.generateResultMessage(field, randomNumber, amount);
+        int winAmount = RouletteResultProcessor.calculateBalanceChange(field, randomNumber, amount);
+        int updatedBalance = winAmount + userBalance;
         
-        resultMessage = userName + resultMessage + " Balance: " + updatedBalance;
+        //resultMessage = userName + resultMessage + " Balance: " + updatedBalance;
 
-        storeRouletteColor(getColorNumber(randomNumber));
-        handleEmoji(randomNumber);
-
-        MessageService.sendMessage(resultMessage);
         UserRepository.updateUserBalance(userName, updatedBalance);
+
+        RouletteImageGenerator.generateImage(randomNumber, winAmount, updatedBalance, userName, rouletteHistory);
+        MessageService.sendMessageFromClipboard();
+
+        //MessageService.sendMessage(resultMessage);
+
     }
 
     private static void showHistory(int numberOfColors) {
@@ -101,7 +107,7 @@ public class RouletteService {
     }
 
     private static void storeRouletteColor(int colorNumber) {
-        if (rouletteHistory.size() >= 10) {
+        if (rouletteHistory.size() >= 13) {
             rouletteHistory.poll();
         }
         rouletteHistory.offer(colorNumber);

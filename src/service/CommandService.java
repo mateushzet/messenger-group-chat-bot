@@ -4,11 +4,12 @@ import repository.UserRepository;
 import repository.DailyRewardRepository;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import utils.ConfigReader;
 import utils.LoggerUtil;
-
+import utils.RankingImageGenerator;
 import app.App;
 import model.CommandContext;
 
@@ -78,8 +79,9 @@ public class CommandService {
     }
 
     public static void handleRankCommand(CommandContext context) {
-        String rankingString = UserRepository.getRanking();
-        MessageService.sendMessage(rankingString);
+        List<Map.Entry<String, Integer>> rankingString = UserRepository.getRanking();
+        RankingImageGenerator.generateRankingImage(rankingString);
+        MessageService.sendMessageFromClipboard();
     }
 
     public static void handleHelpCommand(CommandContext context) {
