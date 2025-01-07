@@ -16,23 +16,23 @@ import java.util.Random;
 
 public class RouletteService {
 
-    private static final Queue<Integer> rouletteHistory = new LinkedList<>(); // last five colors
+    private static final Queue<Integer> rouletteHistory = new LinkedList<>();
 
     public static void handleRouletteCommand(CommandContext context) {
         String userName = context.getUserName();
         String amount = context.getFirstArgument();
         String field = context.getSecondArgument();
 
-        if (amount.equalsIgnoreCase("history")) {
-            int colorCount = 5;
-            try {
-                colorCount = Integer.parseInt(field.trim());
-                showHistory(colorCount);
-            } catch (Exception e) {
-                showHistory(colorCount);
-            }
-            return;
-        }
+    //    if (amount.equalsIgnoreCase("history")) {
+    //        int colorCount = 5;
+    //        try {
+    //            colorCount = Integer.parseInt(field.trim());
+    //            showHistory(colorCount);
+    //        } catch (Exception e) {
+    //            showHistory(colorCount);
+    //        }
+    //        return;
+    //    }
 
         LoggerUtil.logInfo("%s bet: %s on %s", userName, amount, field);
 
@@ -64,6 +64,8 @@ public class RouletteService {
             return;
         }
 
+        storeRouletteColor(randomNumber);
+
         processRouletteOutcome(fieldParsed, randomNumber, amountInteger, userBalance, userName);
     }
 
@@ -76,7 +78,7 @@ public class RouletteService {
 
         UserRepository.updateUserBalance(userName, updatedBalance);
 
-        RouletteImageGenerator.generateImage(randomNumber, winAmount, updatedBalance, userName);
+        RouletteImageGenerator.generateImage(randomNumber, winAmount, updatedBalance, userName, rouletteHistory);
         MessageService.sendMessageFromClipboard();
 
         //MessageService.sendMessage(resultMessage);
@@ -105,7 +107,7 @@ public class RouletteService {
     }
 
     private static void storeRouletteColor(int colorNumber) {
-        if (rouletteHistory.size() >= 10) {
+        if (rouletteHistory.size() >= 13) {
             rouletteHistory.poll();
         }
         rouletteHistory.offer(colorNumber);

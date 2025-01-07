@@ -138,19 +138,13 @@ public class UserRepository {
         LoggerUtil.logInfo("Added user: %s with balance: %d", userName, balance);
     }
 
-    public static String getRanking() {
+    public static List<Map.Entry<String, Integer>> getRanking() {
         Map<String, Integer> userBalances = getAllUsers();
         List<Map.Entry<String, Integer>> sortedUsers = new ArrayList<>(userBalances.entrySet());
+        sortedUsers.removeIf(entry -> entry.getValue() == 0);
         sortedUsers.sort((entry1, entry2) -> Integer.compare(entry2.getValue(), entry1.getValue()));
-
-        StringBuilder ranking = new StringBuilder("Ranking of Users:\n");
-        for (int i = 0; i < sortedUsers.size(); i++) {
-            Map.Entry<String, Integer> entry = sortedUsers.get(i);
-            ranking.append(i + 1).append(". ").append(entry.getKey()).append(" - ").append(entry.getValue()).append(" coins\n");
-        }
-
-        LoggerUtil.logInfo(ranking.toString());
-        return ranking.toString();
+    
+        return sortedUsers;
     }
 
     private static List<String> readFile(String filePath) {

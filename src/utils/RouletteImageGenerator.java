@@ -1,8 +1,8 @@
 package utils;
 
+import java.util.Queue;
+import java.util.LinkedList;
 import java.io.IOException;
-
-
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;
@@ -15,9 +15,9 @@ import java.awt.image.BufferedImage;
 
 public class RouletteImageGenerator  {
 
-public static void generateImage(int result, int winnings, int balance, String username) {
+public static void generateImage(int result, int winnings, int balance, String username, Queue<Integer> rouletteHistory) {
 
-    BufferedImage image = new BufferedImage(600, 600, BufferedImage.TYPE_INT_RGB);
+    BufferedImage image = new BufferedImage(600, 646, BufferedImage.TYPE_INT_RGB);
     Graphics2D g = image.createGraphics();
 
     g.setColor(Color.DARK_GRAY);
@@ -41,6 +41,8 @@ public static void generateImage(int result, int winnings, int balance, String u
     g.setColor(Color.LIGHT_GRAY);
     g.setFont(new Font("Arial", Font.PLAIN, 32));
     g.drawString(username, 330, 590);
+
+    drawHistory(g, rouletteHistory);
 
     g.dispose();
 
@@ -94,6 +96,62 @@ private static void drawRouletteWheel(Graphics2D g, int centerX, int centerY, in
     int ballY = centerY - (int) (Math.sin(theta) * (radius - 130));
     g.setColor(Color.WHITE);
     g.fill(new Ellipse2D.Double(ballX - 25, ballY - 25, 50, 50));
+}
+
+private static void drawHistory(Graphics2D g, Queue<Integer> rouletteHistory) {
+    int maxHistorySize = 13;
+    int squareSize = 45;
+    int padding = 2;
+    int historyStartX = 600 - (maxHistorySize * (squareSize + padding));
+    int historyStartY = 600;
+
+
+    LinkedList<Integer> paddedHistory = new LinkedList<>(rouletteHistory);
+    while (paddedHistory.size() < maxHistorySize) {
+        paddedHistory.addFirst(null);
+    }
+
+
+    g.setColor(Color.WHITE);
+    g.fillRect(historyStartX - 5, historyStartY - 1, maxHistorySize * (squareSize + padding), squareSize + 10);
+
+
+    int index = 0;
+    for (Integer number : paddedHistory) {
+        int x = historyStartX + index * (squareSize + padding);
+
+
+        Color color;
+        if (number == null) {
+            color = Color.GRAY;
+        } else if (number == 0) {
+            color = Color.GREEN;
+        } else if (number % 2 == 0) {
+            color = Color.BLACK;
+        } else {
+            color = Color.RED;
+        }
+
+        g.setColor(color);
+        g.fillRect(x, historyStartY, squareSize, squareSize);
+        
+        if (index == maxHistorySize - 1) {
+            g.setColor(Color.YELLOW);
+            g.setStroke(new BasicStroke(4));
+            g.drawRect(x - 1, historyStartY - 1, squareSize + 2, squareSize + 2);
+        }
+
+        if (number != null) {
+            g.setColor(Color.WHITE);
+            String text = String.valueOf(number);
+            int textWidth = g.getFontMetrics().stringWidth(text);
+            int textX = x + (squareSize - textWidth) / 2;
+            int textY = historyStartY + (squareSize + g.getFontMetrics().getAscent()) / 2 - 5;
+            g.drawString(text, textX, textY);
+        }
+
+        index++;
+    }
 }
 
 public static void setClipboardImage(final BufferedImage image) {

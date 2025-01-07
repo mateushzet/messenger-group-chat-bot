@@ -5,8 +5,6 @@ import factory.WebDriverFactory;
 import utils.ConfigReader;
 import utils.LoggerUtil;
 
-import java.awt.Toolkit;
-import java.awt.datatransfer.StringSelection;
 import java.time.Duration;
 import java.util.List;
 
@@ -88,7 +86,7 @@ public class MessageService {
     
         actions.sendKeys(Keys.RETURN).perform();
     
-        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(""), null);
+       // Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(""), null);
 
         LoggerUtil.logInfo("Message sent from clipboard.");
     }
