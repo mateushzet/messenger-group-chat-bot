@@ -5,6 +5,7 @@ import java.util.Random;
 import model.CommandContext;
 import utils.ConfigReader;
 import utils.LoggerUtil;
+import utils.SlotsImageGenerator;
 import repository.SlotsRepository;
 import repository.UserRepository;
 import repository.JackpotRepository;
@@ -12,15 +13,15 @@ import repository.JackpotRepository;
 public class SlotsService {
 
     private static final int slotsAccessCost = ConfigReader.getSlotsAccessCost();
-    private static final String[] symbols = {
-        ConfigReader.getCherryEmojiUrl(),
-        ConfigReader.getLemonEmojiUrl(),
-        ConfigReader.getOrangeEmojiUrl(),
-        ConfigReader.getLobsterEmojiUrl(),
-        ConfigReader.getWatermelonEmojiUrl(),
-        ConfigReader.getAppleEmojiUrl(),
-        ConfigReader.getSlotMachineEmojiUrl()
-    };
+    //private static final String[] symbols = {
+    //    ConfigReader.getCherryEmojiUrl(),
+    //    ConfigReader.getLemonEmojiUrl(),
+    //    ConfigReader.getOrangeEmojiUrl(),
+    //    ConfigReader.getLobsterEmojiUrl(),
+    //    ConfigReader.getWatermelonEmojiUrl(),
+    //    ConfigReader.getAppleEmojiUrl(),
+    //    ConfigReader.getSlotMachineEmojiUrl()
+    //};
 
     public static void handleSlotsCommand(CommandContext context) {
         String playerName = context.getUserName();
@@ -103,10 +104,10 @@ public class SlotsService {
         UserRepository.updateUserBalance(playerName, newBalance);
         LoggerUtil.logInfo("%s placed a bet of %d coins. New balance: %d", playerName, betAmount, newBalance);
 
-        String[] result = spinSlotsWithWildcard();
-        MessageService.clickEmoji(result[0], result[0] == symbols[3] ? "lobster" : "fruit");
-        MessageService.clickEmoji(result[1], result[1] == symbols[3] ? "lobster" : "fruit");
-        MessageService.clickEmoji(result[2], result[2] == symbols[3] ? "lobster" : "fruit");
+        int[] result = spinSlotsWithWildcard();
+        //MessageService.clickEmoji(result[0], result[0] == symbols[3] ? "lobster" : "fruit");
+        //MessageService.clickEmoji(result[1], result[1] == symbols[3] ? "lobster" : "fruit");
+        //MessageService.clickEmoji(result[2], result[2] == symbols[3] ? "lobster" : "fruit");
         LoggerUtil.logInfo("%s spun the slots", playerName);
 
         double multiplier = getMultiplier(result);
@@ -116,60 +117,68 @@ public class SlotsService {
         else winnings = (int) ((betAmount * 5) + multiplier);
 
         newBalance += winnings;
+        if(winnings == 0) winnings = betAmount * -1;
+
         UserRepository.updateUserBalance(playerName, newBalance);
 
         if (winnings > 0) {
-            MessageService.sendMessage(playerName + " won " + winnings + " coins! New balance: " + newBalance);
+            //MessageService.sendMessage(playerName + " won " + winnings + " coins! New balance: " + newBalance);
             LoggerUtil.logInfo("%s won %d coins. New balance: %d", playerName, winnings, newBalance);
         } else {
             JackpotRepository.addToJackpotPool(betAmount);
-            MessageService.sendMessage(playerName + " lost the bet. New balance: " + newBalance);
+            JackpotRepository.saveJackpot();
+            //MessageService.sendMessage(playerName + " lost the bet. New balance: " + newBalance);
             LoggerUtil.logInfo("%s lost the bet. New balance: %d", playerName, newBalance);
         }
+
+        int jackpotAmount = JackpotRepository.getJackpot();
+
+        SlotsImageGenerator.generateSlotsResultImage(result, playerName, winnings, newBalance, jackpotAmount);
+        MessageService.sendMessageFromClipboard();
     }
 
-    private static double getMultiplier(String[] result) {
+    private static double getMultiplier(int[] result) {
         if (isJackpot(result)) {
             double jackpotMultiplier = JackpotRepository.getJackpotMultiplier();
             JackpotRepository.resetJackpot();
             return jackpotMultiplier;
         }
 
-        if (result[0].equals(result[1]) && result[1].equals(result[2])) {
+        if (result[0] == (result[1]) && result[1]==(result[2])) {
             return 5;
         }
 
-        if (result[0].equals(result[1]) && result[2].equals(symbols[3])
-            || result[1].equals(result[2]) && result[0].equals(symbols[3])
-            || result[0].equals(result[2]) && result[1].equals(symbols[3])) {
+        if (result[0] == (result[1]) && result[2] == (3)
+            || result[1] == (result[2]) && result[0] == (3)
+            || result[0] == (result[2]) && result[1] == (3)) {
             return 2;
         }
 
-        if((result[0].equals(symbols[3]) && result[1].equals(symbols[3])) 
-            || (result[1].equals(symbols[3]) && result[2].equals(symbols[3]))    
-            || (result[0].equals(symbols[3]) && result[2].equals(symbols[3]))) {
+        if((result[0] == (3) && result[1] == (3)) 
+            || (result[1] == (3) && result[2] == (3))    
+            || (result[0] == (3) && result[2] == (3))) {
             return 2;
         }
 
-        if (result[0].equals(result[1]) || result[1].equals(result[2]) || result[0].equals(result[2])) {
+        if (result[0] == (result[1]) || result[1] == (result[2]) || result[0] == (result[2])) {
             return 1.5;
-        } else if ((result[0].equals(symbols[3]) || result[1].equals(symbols[3]) || result[2].equals(symbols[3]))) {
+        } else if ((result[0] == (3) || result[1] == (3) || result[2] == (3))) {
             return 1.2;
         }
 
         return 0;
     }
 
-    private static boolean isJackpot(String[] result) {
-        return result[0].equals(symbols[6]) && result[1].equals(symbols[6]) && result[2].equals(symbols[6]);
+    private static boolean isJackpot(int[] result) {
+        return result[0] == (6) && result[1] == (6) && result[2] == (6);
     }
 
-    private static String[] spinSlotsWithWildcard() {
+    private static int[] spinSlotsWithWildcard() {
         Random rand = new Random();
-        String[] result = new String[3];
+        int[] result = new int[3];
 
         for (int i = 0; i < 3; i++) {
-            result[i] = symbols[rand.nextInt(symbols.length)];
+            result[i] = rand.nextInt(7);
         }
         return result;
     }
