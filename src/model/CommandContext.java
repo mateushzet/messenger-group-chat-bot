@@ -45,6 +45,23 @@ public class CommandContext {
         }
     }
 
+    public String getFourthArgument() {
+        try {
+            return this.arguments.get(3);
+        } catch (IndexOutOfBoundsException e) {
+            return "";
+        }
+    }
+
+
+    public String getFifthArgument() {
+        try {
+            return this.arguments.get(3);
+        } catch (IndexOutOfBoundsException e) {
+            return "";
+        }
+    }
+
     public String getUserName() {
         return this.userName;
     }

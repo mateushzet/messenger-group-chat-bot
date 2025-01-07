@@ -327,7 +327,19 @@ public class ConfigReader {
                 LoggerUtil.logError("Invalid slots access cost: %s. Using default value of 500.", e, slotsAccessCost);
             }
         }
-        return 500;
+        return 200;
+    }
+
+    public static int getColorsAccessCost() {
+        String colorsAccessCost = properties.getProperty("colors_access_cost");
+        if (colorsAccessCost != null && !colorsAccessCost.isEmpty()) {
+            try {
+                return Integer.parseInt(colorsAccessCost);
+            } catch (NumberFormatException e) {
+                LoggerUtil.logError("Invalid colors access cost: %s. Using default value of 500.", e, colorsAccessCost);
+            }
+        }
+        return 1000;
     }
 
     public static String getCherryEmojiUrl() {

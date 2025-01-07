@@ -6,6 +6,7 @@ import service.SlotsService;
 import service.roulette.RouletteService;
 import utils.ConfigReader;
 import utils.LoggerUtil;
+import service.ColorsService;
 import service.CommandService;
 
 import java.util.ArrayList;
@@ -33,9 +34,10 @@ public class CommandController {
         commands.put("rank", CommandService::handleRankCommand);
         commands.put("help", CommandService::handleHelpCommand);
         commands.put("slots", SlotsService::handleSlotsCommand);
-        commands.put("buy", SlotsService::handleBuySlotsCommand);        
+        commands.put("buy", CommandController::handleBuyCommand);        
         commands.put("daily", CommandService::handleDailyCommand); 
-        commands.put("coinflip", CommandService::handleCoinflipCommand); 
+        commands.put("coinflip", CommandService::handleCoinflipCommand);
+        commands.put("colors", ColorsService::handleColorsCommand);
     }
 
     public static void processCommand(String userName, String message) {
@@ -72,6 +74,15 @@ public class CommandController {
         }
 
         return new CommandContext(command, arguments, userName);
+    }
+
+    private static void handleBuyCommand(CommandContext context){
+        if(context.getSecondArgument().equals("slots")){
+            SlotsService.handleBuySlotsCommand(context);
+        } else {
+            ColorsService.handleBuyColorsCommand(context);
+        }
+
     }
 
 }
