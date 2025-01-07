@@ -5,6 +5,7 @@ import repository.UserRepository;
 import service.MessageService;
 import utils.ConfigReader;
 import utils.LoggerUtil;
+import utils.RouletteImageGenerator;
 import model.CommandContext;
 
 import java.util.ArrayList;
@@ -67,16 +68,19 @@ public class RouletteService {
     }
 
     public static void processRouletteOutcome(int field, int randomNumber, int amount, int userBalance, String userName) {
-        String resultMessage = RouletteResultProcessor.generateResultMessage(field, randomNumber, amount);
-        int updatedBalance = RouletteResultProcessor.calculateBalanceChange(field, randomNumber, amount) + userBalance;
+        //String resultMessage = RouletteResultProcessor.generateResultMessage(field, randomNumber, amount);
+        int winAmount = RouletteResultProcessor.calculateBalanceChange(field, randomNumber, amount);
+        int updatedBalance = winAmount + userBalance;
         
-        resultMessage = userName + resultMessage + " Balance: " + updatedBalance;
+        //resultMessage = userName + resultMessage + " Balance: " + updatedBalance;
 
-        storeRouletteColor(getColorNumber(randomNumber));
-        handleEmoji(randomNumber);
-
-        MessageService.sendMessage(resultMessage);
         UserRepository.updateUserBalance(userName, updatedBalance);
+
+        RouletteImageGenerator.generateImage(randomNumber, winAmount, updatedBalance, userName);
+        MessageService.sendMessageFromClipboard();
+
+        //MessageService.sendMessage(resultMessage);
+
     }
 
     private static void showHistory(int numberOfColors) {
