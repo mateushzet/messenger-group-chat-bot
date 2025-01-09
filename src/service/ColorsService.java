@@ -15,82 +15,106 @@ public class ColorsService {
 
     public static void handleColorsCommand(CommandContext context) {
         String playerName = context.getUserName();
-        String betAmount = context.getFirstArgument();
         String betColor = context.getSecondArgument();
         int currentBalance = UserRepository.getUserBalance(playerName, false);
-        int betAmountParsed;
-
-        if(!ColorsRepository.hasColorsAccess(playerName)){
+    
+        if (!ColorsRepository.hasColorsAccess(playerName)) {
             MessageService.sendMessage("You need to purchase access to play colors. Cost: %d coins. /bot buy colors", colorsAccessCost);
             return;
         }
-
+    
         Random random = new Random();
         int result = random.nextInt(53) + 1;
         int resultColorNumber = getResult(result);
         int winnings = 0;
-        int balanceChange = 0;
-        
+        int[] betResult;
+        int balanceChange;
         if (isMultiColorBet(betColor)) {
-            String blackBet = context.getFirstArgument();
-            String redBet = context.getSecondArgument();
-            String blueBet = context.getThirdArgument();
-            String goldBet = context.getFourthArgument();
-
-            int blackBetParsed, redBetParsed, blueBetParsed, goldBetParsed;
-            try {
-                blackBetParsed = Integer.parseInt(blackBet);
-                redBetParsed = Integer.parseInt(redBet);
-                blueBetParsed = Integer.parseInt(blueBet);
-                goldBetParsed = Integer.parseInt(goldBet);
-
-                if (blackBetParsed < 0 || redBetParsed < 0 || blueBetParsed < 0 || goldBetParsed < 0) {
-                    throw new NumberFormatException("Bet amounts must be non-negative");
-                }
-
-                if (blackBetParsed + redBetParsed + blueBetParsed + goldBetParsed == 0) {
-                    throw new NumberFormatException("Bet amounts must be greater than 0");
-                }
-
-            } catch (NumberFormatException e) {
-                MessageService.sendMessage("Invalid bet amount. Please enter a valid number. /bot colors amount (black,red,blue,gold) or /bot colors amountBlack amountRed amountBlue amountGold");
-                return;
-            }
-
-            if(currentBalance < (blackBetParsed + redBetParsed + blueBetParsed + goldBetParsed)){
-                MessageService.sendMessage("You can't afford the bet, current balance: %d", currentBalance);
-                return;
-            }
-
-            winnings = calculateMultiColorWinnings(resultColorNumber, blackBetParsed, redBetParsed, blueBetParsed, goldBetParsed);
-            balanceChange = winnings - (blackBetParsed + redBetParsed + blueBetParsed + goldBetParsed);
-
+            betResult = handleMultiColorBet(context, currentBalance, resultColorNumber);
         } else {
-
-            try {
-                betAmountParsed = Integer.parseInt(betAmount);
-                if (betAmountParsed <= 0) {
-                    throw new NumberFormatException("Bet amount must be greater than 0");
-                }
-            } catch (NumberFormatException e) {
-                MessageService.sendMessage("Invalid bet amount. Please enter a valid number greater than 0. /bot colors amount (black,red,blue,gold) or /bot colors amountBlack amountRed amountBlue amountGold");
-                return;
-            }
-
-            if(currentBalance < betAmountParsed){
-                MessageService.sendMessage("You can't afford the bet, current balance: %d", currentBalance);
-                return;
-            }
-
-            winnings = calculateSingleColorWinnings(betColor, resultColorNumber, betAmountParsed);
-            balanceChange = winnings - betAmountParsed;
+            betResult = handleSingleColorBet(context, currentBalance, resultColorNumber, betColor);
         }
 
-        int updatedBalance = currentBalance + balanceChange;
-        UserRepository.updateUserBalance(playerName, updatedBalance);
+        winnings = betResult[0];
+        balanceChange = betResult[1];
+    
+            int updatedBalance = currentBalance + balanceChange;
+            UserRepository.updateUserBalance(playerName, updatedBalance);
+    
+            if (winnings <= 0) winnings = balanceChange;
+            ColorsImageGenerator.generateColorsImage(winnings, playerName, updatedBalance, result);
+            MessageService.sendMessageFromClipboard();
+    }
+    
+    private static int[] handleMultiColorBet(CommandContext context, int currentBalance, int resultColorNumber) {
+        String blackBet = context.getFirstArgument();
+        String redBet = context.getSecondArgument();
+        String blueBet = context.getThirdArgument();
+        String goldBet = context.getFourthArgument();
 
-        ColorsImageGenerator.generateColorsImage(winnings, playerName, updatedBalance, result);
-        MessageService.sendMessageFromClipboard();
+        System.out.println(blackBet+"-"+redBet+"-"+blueBet+"-"+goldBet+"-" );
+    
+        int blackBetParsed = parseBetAmount(blackBet);
+        int redBetParsed = parseBetAmount(redBet);
+        int blueBetParsed = parseBetAmount(blueBet);
+        int goldBetParsed = parseBetAmount(goldBet);
+
+        System.out.println(blackBet+"-"+redBet+"-"+blueBet+"-"+goldBet+"-" );
+    
+        if (blackBetParsed == Integer.MIN_VALUE || redBetParsed == Integer.MIN_VALUE || blueBetParsed == Integer.MIN_VALUE || goldBetParsed == Integer.MIN_VALUE) {
+            MessageService.sendMessage("Invalid bet amount. Please enter valid numbers. /bot colors amountBlack amountRed amountBlue amountGold");
+            return new int[]{0, 0};
+        }
+    
+        int totalBetAmount = blackBetParsed + redBetParsed + blueBetParsed + goldBetParsed;
+        if (totalBetAmount == 0) {
+            MessageService.sendMessage("Bet amounts must be greater than 0");
+            return new int[]{0, 0};
+        }
+    
+        if (currentBalance < totalBetAmount) {
+            MessageService.sendMessage("You can't afford the bet, current balance: %d", currentBalance);
+            return new int[]{0, 0};
+        }
+    
+        int winnings = calculateMultiColorWinnings(resultColorNumber, blackBetParsed, redBetParsed, blueBetParsed, goldBetParsed);
+        
+        int balanceChange = winnings - totalBetAmount;
+    
+        return new int[]{winnings, balanceChange};
+    }
+    
+    private static int[] handleSingleColorBet(CommandContext context, int currentBalance, int resultColorNumber, String betColor) {
+        String betAmount = context.getFirstArgument();
+    
+        int betAmountParsed = parseBetAmount(betAmount);
+        if (betAmountParsed == Integer.MIN_VALUE || betAmountParsed <= 0) {
+            MessageService.sendMessage("Invalid bet amount. Please enter a valid number greater than 0. /bot colors amountColor");
+            return new int[]{0, 0}; 
+        }
+    
+        if (currentBalance < betAmountParsed) {
+            MessageService.sendMessage("You can't afford the bet, current balance: %d", currentBalance);
+            return new int[]{0, 0};
+        }
+    
+        int winnings = calculateSingleColorWinnings(betColor, resultColorNumber, betAmountParsed);
+    
+        int balanceChange = winnings - betAmountParsed;
+    
+        return new int[]{winnings, balanceChange};
+    }
+    
+    private static int parseBetAmount(String betAmount) {
+        try {
+            int parsedAmount = Integer.parseInt(betAmount);
+            if (parsedAmount < 0) {
+                throw new NumberFormatException("Bet amount must be greater than 0");
+            }
+            return parsedAmount;
+        } catch (NumberFormatException e) {
+            return Integer.MIN_VALUE;
+        }
     }
 
     private static boolean isMultiColorBet(String betColor) {
