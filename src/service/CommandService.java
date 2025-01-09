@@ -3,9 +3,12 @@ package service;
 import repository.UserRepository;
 import repository.DailyRewardRepository;
 
+import java.time.LocalTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Iterator;
 
 import utils.ConfigReader;
 import utils.LoggerUtil;
@@ -18,7 +21,7 @@ public class CommandService {
     private static int dailyRewardPrize = ConfigReader.getDailyRewardPrize();
     private static int coinFlipAmount = 0;
     private static String coinFlipCurrentPlayer = "";
-
+    private static HashMap <String,Integer> hourlyRewardClaims = new HashMap<String,Integer>();
 
     public static void handleMoneyCommand(CommandContext context) {
         String userName = context.getUserName();
@@ -128,6 +131,47 @@ public class CommandService {
         } catch (Exception e) {
             LoggerUtil.logError("Error processing daily reward for user %s: %s", e, userName);
             MessageService.sendMessage("An error occurred while claiming your daily reward. Please try again later.");
+        }
+    }
+
+ public static void handleHourlyCommand(CommandContext context) {
+        String userName = context.getUserName();
+        LocalTime now = LocalTime.now();
+        int currentHour = now.getHour();
+        int currentMinute = now.getMinute();
+
+        if (currentMinute != 0) {
+            MessageService.sendMessage("Command can only be used at the start of an hour.");
+            return;
+        }
+
+        Iterator<Map.Entry<String, Integer>> iterator = hourlyRewardClaims.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<String, Integer> entry = iterator.next();
+            if (entry.getValue() != currentHour) {
+                iterator.remove();
+            }
+        }
+
+        if (hourlyRewardClaims.containsKey(userName) && hourlyRewardClaims.get(userName) == currentHour) {
+            MessageService.sendMessage("%s, you have already claimed your reward for this hour.", userName);
+            return;
+        }
+
+        hourlyRewardClaims.put(userName, currentHour);
+
+        try {
+            int currentBalance = UserRepository.getUserBalance(userName, true);
+            int hourlyRewardPrize = 5;
+            int newBalance = currentBalance + hourlyRewardPrize;
+
+            UserRepository.updateUserBalance(userName, newBalance);
+
+            MessageService.sendMessage("%s has claimed the hourly reward %d coins. Current balance: %d", hourlyRewardPrize, userName, newBalance);
+            LoggerUtil.logInfo("User %s claimed hourly reward. New balance: %d", userName, newBalance);
+        } catch (Exception e) {
+            LoggerUtil.logError("Error processing hourly reward for user %s: %s", e, userName);
+            MessageService.sendMessage("An error occurred while claiming your hourly reward. Please try again later.");
         }
     }
 

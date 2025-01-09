@@ -36,6 +36,7 @@ public class CommandController {
         commands.put("slots", SlotsService::handleSlotsCommand);
         commands.put("buy", CommandController::handleBuyCommand);        
         commands.put("daily", CommandService::handleDailyCommand); 
+        commands.put("hourly", CommandService::handleHourlyCommand); 
         commands.put("coinflip", CommandService::handleCoinflipCommand);
         commands.put("colors", ColorsService::handleColorsCommand);
     }
@@ -77,7 +78,7 @@ public class CommandController {
     }
 
     private static void handleBuyCommand(CommandContext context){
-        if(context.getSecondArgument().equals("slots")){
+        if(context.getFirstArgument().equals("slots")){
             SlotsService.handleBuySlotsCommand(context);
         } else {
             ColorsService.handleBuyColorsCommand(context);

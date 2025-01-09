@@ -29,6 +29,7 @@ public class ColorsService {
         int result = random.nextInt(53) + 1;
         int resultColorNumber = getResult(result);
         int winnings = 0;
+        int balanceChange = 0;
         
         if (isMultiColorBet(betColor)) {
             String blackBet = context.getFirstArgument();
@@ -62,7 +63,7 @@ public class ColorsService {
             }
 
             winnings = calculateMultiColorWinnings(resultColorNumber, blackBetParsed, redBetParsed, blueBetParsed, goldBetParsed);
-            winnings -= (blackBetParsed + redBetParsed + blueBetParsed + goldBetParsed);
+            balanceChange = winnings - (blackBetParsed + redBetParsed + blueBetParsed + goldBetParsed);
 
         } else {
 
@@ -82,10 +83,10 @@ public class ColorsService {
             }
 
             winnings = calculateSingleColorWinnings(betColor, resultColorNumber, betAmountParsed);
-            winnings -= betAmountParsed;
+            balanceChange = winnings - betAmountParsed;
         }
 
-        int updatedBalance = currentBalance + winnings;
+        int updatedBalance = currentBalance + balanceChange;
         UserRepository.updateUserBalance(playerName, updatedBalance);
 
         ColorsImageGenerator.generateColorsImage(winnings, playerName, updatedBalance, result);

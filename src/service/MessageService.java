@@ -6,6 +6,7 @@ import utils.ConfigReader;
 import utils.LoggerUtil;
 
 import java.time.Duration;
+import java.time.LocalTime;
 import java.util.List;
 
 import org.openqa.selenium.By;
@@ -30,8 +31,8 @@ public class MessageService {
     private static final String messageReceivedReactionsHeartCssSelector = ConfigReader.getMessageReceivedReactionsHeartCssSelector();
     private static final String messageHeartReactionCssSelector = ConfigReader.getMessageHeartReactionCssSelector();
     private static final String messageReactButtonCssSelector = ConfigReader.getMessageReactButtonCssSelector();
-    
-
+    private static int counter = 0;
+    private static LocalTime lastHour = java.time.LocalTime.now();
 
     public static boolean validateMessage(WebElement message) {
         // Check if message has profile picture
@@ -78,13 +79,21 @@ public class MessageService {
     
         inputBox.click();
     
+
+
         Actions actions = new Actions(driver);
         actions.keyDown(Keys.CONTROL)
         .sendKeys("v")
         .keyUp(Keys.CONTROL)
         .perform();
     
-        actions.sendKeys(Keys.RETURN).perform();
+        counter++;
+
+        if(counter==5) {
+            actions.sendKeys(Keys.RETURN).perform();
+            lastHour = java.time.LocalTime.now();
+            counter = 0;
+        }
     
        // Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(""), null);
 
@@ -95,19 +104,32 @@ public class MessageService {
         while (true) {
             try {
                 
+                if((Duration.between(lastHour, java.time.LocalTime.now()).getSeconds() > 10) && counter != 0) {
+                    Actions actions = new Actions(driver);
+                    actions.sendKeys(Keys.RETURN).perform();
+                    lastHour = java.time.LocalTime.now();
+                    counter = 0;
+                }
+
                 MathQuestionService.checkAndSendMathQuestion();
                 
                 List<WebElement> messages = driver.findElements(By.cssSelector(messageCssSelector));
                 
                 for (WebElement message : messages) {
                     if (validateMessage(message)) {
-                        String userName = getSenderName(message).toLowerCase();
+                        String userName;
+
+                        try{
+                            userName = getSenderName(message).toLowerCase();
+                        }catch(Exception e){
+                            continue;
+                        }
                         if(!userName.isEmpty()){
 
-                        String text = message.getText().toLowerCase();
-                        if (text.startsWith(botCommand.toLowerCase())) {
-                            CommandController.processCommand(userName, text);
-                        }
+                            String text = message.getText().toLowerCase();
+                            if (text.startsWith(botCommand.toLowerCase())) {
+                                CommandController.processCommand(userName, text);
+                            }
                     } else LoggerUtil.logWarning("Get sender name error or two messages from the same sender in a row");
                     }
                  }
