@@ -16,6 +16,28 @@ public class App {
     public static int running = 1;
 
     public static void main(String[] args) {
+        startApp();
+    }
+
+    private static void initializeBrowser() throws Exception {
+        BrowserController.loginToMessenger();
+        LoggerUtil.logInfo("Browser initialized and logged into Messenger");
+    }
+
+    private static void processMessages() throws Exception {
+        MessageService.processMessages();
+    }
+
+    private static void shutdownBrowser() {
+            try {
+                WebDriverFactory.quitDriver();
+                LoggerUtil.logInfo("Web browser closed");
+            } catch (Exception e) {
+                LoggerUtil.logWarning("Failed to close the browser cleanly");
+            }
+    }
+
+    public static void startApp() {
         LoggerUtil.logInfo("App started");
         
         boolean enableManualLogin = ConfigReader.getEnableManualLogin();
@@ -35,25 +57,8 @@ public class App {
             LoggerUtil.logError("Unexpected error occurred", e);
         } finally {
             shutdownBrowser();
+            startApp();
         }
-    }
-
-    private static void initializeBrowser() throws Exception {
-        BrowserController.loginToMessenger();
-        LoggerUtil.logInfo("Browser initialized and logged into Messenger");
-    }
-
-    private static void processMessages() throws Exception {
-        MessageService.processMessages();
-    }
-
-    private static void shutdownBrowser() {
-            try {
-                WebDriverFactory.quitDriver();
-                LoggerUtil.logInfo("Web browser closed");
-            } catch (Exception e) {
-                LoggerUtil.logWarning("Failed to close the browser cleanly");
-            }
     }
 
 }
