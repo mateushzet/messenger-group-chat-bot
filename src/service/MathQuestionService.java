@@ -1,7 +1,7 @@
 package service;
 
 import repository.UserRepository;
-import utils.LoggerUtil;
+import utils.Logger;
 
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -32,15 +32,15 @@ public class MathQuestionService {
 
                 } else {
                     MessageService.sendMessage("%s incorrect answer!", userName);
-                    LoggerUtil.logInfo("%s incorrect answer: %s", userName, answer);
+                    Logger.logInfo("%s incorrect answer: %s", "MathQuestionService.handleMathAnswer()", userName, answer);
                 }
             } catch (NumberFormatException e) {
                 MessageService.sendMessage("Invalid answer arguments!");
-                LoggerUtil.logInfo("%s incorrect command: %s", userName, answer);
+                Logger.logInfo("%s incorrect command: %s", "MathQuestionService.handleMathAnswer()", userName, answer);
             }
         } else {
             MessageService.sendMessage("The last task was solved. Please wait for the next one.");
-            LoggerUtil.logInfo("%s tried to solve old question: %s",userName, answer);
+            Logger.logInfo("%s tried to solve old question: %s", "MathQuestionService.handleMathAnswer()", userName, answer);
         }
     }
 
@@ -56,14 +56,14 @@ public class MathQuestionService {
                     mathQuestionRandomMinute = setRandomMinute();
                     isQuestionSolved = false;
                     lastHour = currentHour;
-                    LoggerUtil.logInfo("Math question sent at random minute: %d", currentMinute);
+                    Logger.logInfo("Math question sent at random minute: %d", "MathQuestionService.checkAndSendMathQuestion()", currentMinute);
                 }
             } else {
                 // full hour
                 sendMathQuestion();
                 isQuestionSolved = false;
                 lastHour = currentHour;
-                LoggerUtil.logInfo("Math question sent on the hour: %d", currentHour);
+                Logger.logInfo("Math question sent on the hour: %d", "MathQuestionService.checkAndSendMathQuestion()", currentHour);
             }
         }
     }
@@ -72,34 +72,33 @@ public class MathQuestionService {
         int userBalance = UserRepository.getUserBalance(userName, true);
         UserRepository.updateUserBalance(userName, userBalance + mathQuestionPrize);
         MessageService.sendMessage("%s correct answer! You earn %d coins! Current balance: %d", userName, mathQuestionPrize, (userBalance + mathQuestionPrize));
-        LoggerUtil.logInfo("%s solved math question and earned %d coins, previous balance: %d", userName, mathQuestionPrize, userBalance);
+        Logger.logInfo("%s solved math question and earned %d coins, previous balance: %d", "MathQuestionService.rewardUser()", userName, mathQuestionPrize, userBalance);
     }
 
     private static void sendMathQuestion(){
         MathQuestion question = new MathQuestion();
         currentMathQuestion = question.generateQuestion();
         currentAnswer = question.calculateAnswer();
-        LoggerUtil.logInfo("Current math question: %s current answer: %d", currentMathQuestion, currentAnswer);
+        Logger.logInfo("Current math question: %s current answer: %d", "MathQuestionService.sendMathQuestion()", currentMathQuestion, currentAnswer);
 
         isQuestionSolved = false;
-        MessageService.sendMessage("Math question (/bot answer <number>): %s", currentMathQuestion);
-        LoggerUtil.logInfo("Math question (/bot answer <number>): %s", currentMathQuestion);
+        MessageService.sendMessage("Math question (/bot answer): %s", currentMathQuestion);
     }
 
     public static int setRandomMinute() {
         if (mathQuestionRandomMinuteStart == -1 || mathQuestionRandomMinuteEnd == -1) {
             mathQuestionRandomMinuteStart = 0;
             mathQuestionRandomMinuteEnd = 59;
-            LoggerUtil.logWarning("Random time math question: invalid time configuration. Set to 0-59 by default.");
+            Logger.logWarning("Random time math question: invalid time configuration. Set to 0-59 by default.", "MathQuestionService.setRandomMinute()");
         } else if (mathQuestionRandomMinuteStart >= mathQuestionRandomMinuteEnd) {
 
-            LoggerUtil.logWarning("Invalid time configuration: start minute must be less than end minute. Set to 0-59 by default.");
+            Logger.logWarning("Invalid time configuration: start minute must be less than end minute. Set to 0-59 by default.", "MathQuestionService.setRandomMinute()");
             mathQuestionRandomMinuteStart = 0;
             mathQuestionRandomMinuteEnd = 59;
         }
         
         int randomMinute = ThreadLocalRandom.current().nextInt(mathQuestionRandomMinuteStart, mathQuestionRandomMinuteEnd);
-        LoggerUtil.logInfo("Time range: %d - %d, random minute set to = %d", mathQuestionRandomMinuteStart, mathQuestionRandomMinuteEnd, randomMinute);
+        Logger.logInfo("Time range: %d - %d, random minute set to = %d", "MathQuestionService.setRandomMinute()", mathQuestionRandomMinuteStart, mathQuestionRandomMinuteEnd, randomMinute);
         return randomMinute;
     }
 }
