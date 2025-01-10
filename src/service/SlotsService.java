@@ -133,7 +133,7 @@ public class SlotsService {
 
         int jackpotAmount = JackpotRepository.getJackpot();
 
-        SlotsImageGenerator.generateSlotsResultImage(result, playerName, winnings, newBalance, jackpotAmount);
+        SlotsImageGenerator.generateSlotsResultImage(result, playerName, winnings, newBalance, betAmount, jackpotAmount);
         MessageService.sendMessageFromClipboard();
     }
 

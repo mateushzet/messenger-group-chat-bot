@@ -25,20 +25,29 @@ public class SlotsImageGenerator {
         "https://cdn-icons-png.flaticon.com/128/10646/10646590.png"
     };
 
-    public static void generateSlotsResultImage(int[] result, String playerName, int amount, int totalBalance, int jackpotAmount) {
+    private static final Color RED_COLOR = new Color(200, 50, 50);
+    private static final Color GREEN_COLOR = new Color(50, 200, 50);
+    private static final Color DARK_GRAY = new Color(25, 25, 25);
+    
+    public static void generateSlotsResultImage(int[] result, String playerName, int amount, int totalBalance, int betAmount, int jackpotAmount) {
         String[] resultsImages = {symbols[result[0]], symbols[result[1]], symbols[result[2]]};
 
+        Color color1 = generateColorFromUsername(playerName, 1);
+        Color color2 = generateColorFromUsername(playerName, 2);
+    
+        GradientPaint gradient = new GradientPaint(0, 0, color1, 600, 646, color2);
+        
         int width = 300;
         int height = 330;
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
     
-        g.setColor(new Color(240, 240, 240));
-        g.fillRect(0, 0, width, height);
-    
         int symbolWidth = width / 3;
         int symbolHeight = width / 3;
     
+        g.setColor(new Color(230,230,230));
+        g.fillRect(0, 0, 300, 300);
+
         String[] topRow = spinSlotsWithWildcard();
         for (int i = 0; i < 3; i++) {
             try {
@@ -85,20 +94,23 @@ public class SlotsImageGenerator {
                 e.printStackTrace();
             }
         }
-    
-        g.setColor(Color.RED);
+        
+        g.setColor(DARK_GRAY);
         g.setStroke(new BasicStroke(10));
         g.drawRect(0, 0, width - 1, height - 1 - (symbolHeight / 2) - 80);
     
         g.setColor(Color.DARK_GRAY);
-        g.setFont(new Font("Arial", Font.BOLD, 28));
+        g.setFont(new Font("Arial", Font.BOLD, 24));
         g.fillRect(0, 202, 300, 130);
-        
+
+        g.setPaint(gradient);
+        g.fillRect(0, 200, 300, 200);
+
         if (amount > 0) {
-            g.setColor(Color.GREEN);
+            g.setColor(GREEN_COLOR);
             g.drawString("WIN " + amount, 10, 230);
         } else {
-            g.setColor(Color.RED);
+            g.setColor(RED_COLOR);
             g.drawString("LOSE " + amount, 10, 230);
         }
 
@@ -106,7 +118,11 @@ public class SlotsImageGenerator {
         g.drawString(playerName, 10, 260);
         g.drawString("Total: " + totalBalance, 10, 290);
         g.drawString("Jackpot: " + jackpotAmount, 10, 320);
-    
+
+        g.setFont(new Font("Arial", Font.BOLD, 14));
+
+        g.drawString("Bet: " + betAmount, 200, 320);
+        
         g.dispose();
     
         setClipboardImage(image);;
@@ -153,4 +169,34 @@ public class SlotsImageGenerator {
             return image;
         }
     }
+
+    private static Color generateColorFromUsername(String username, int seed) {
+
+        int hash = (username + seed).hashCode();
+        int colorComponent1 = (hash >>> 16) & 0xFF;
+        int colorComponent2 = (hash >>> 8) & 0xFF;
+        int colorComponent3 = (hash) & 0xFF;
+    
+        int red1 = (colorComponent1 * 2) % 256;
+        int green1 = (colorComponent2 * 2) % 256;
+        int blue1 = (colorComponent3 * 2) % 256;
+    
+        int red2 = (colorComponent1 + 50) % 256;
+        int green2 = (colorComponent2 + 100) % 256;
+        int blue2 = (colorComponent3 + 150) % 256;
+    
+        red1 = red1 / 2;
+        green1 = green1 / 2;
+        blue1 = blue1 / 2;
+    
+        red2 = red2 / 2;
+        green2 = green2 / 2;
+        blue2 = blue2 / 2;
+    
+        Color color1 = new Color(red1, green1, blue1);
+        Color color2 = new Color(red2, green2, blue2);
+    
+        return seed == 1 ? color1 : color2;
+    }
+
 }
