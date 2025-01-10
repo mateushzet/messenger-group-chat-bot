@@ -52,12 +52,11 @@ public class App {
             processMessages();
         } catch (WebDriverException e) {
             Logger.logError("Critical error with WebDriver", "App.startApp()", e);
+            shutdownBrowser();
         } catch (Exception e) {
             Logger.logError("Unexpected error occurred", "App.startApp()", e);
-        } finally {
             shutdownBrowser();
-            startApp();
-        }
+        } 
     }
 
 }

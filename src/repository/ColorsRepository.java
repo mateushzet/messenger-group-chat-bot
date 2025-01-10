@@ -1,39 +1,50 @@
 package repository;
 
-import java.io.*;
-import java.util.Scanner;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import utils.Logger;
+import database.DatabaseConnectionManager;
 
 public class ColorsRepository {
 
-    private static final String ACCESS_FILE = "src" + File.separator + "repository" + File.separator + "colors_access.txt";
+    public static boolean giveColorsAccess(String userName) {
+        String query = "UPDATE users SET access_to_colors = 1 WHERE username = ?";
 
-    public static boolean addUserToColorsFile(String userName) {
-        File file = new File(ACCESS_FILE);
-
-        if (!file.exists()) {
-           //LoggerUtil.logInfo("Missing users access file");
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            
+            statement.setString(1, userName);
+            int rowsAffected = statement.executeUpdate();
+            
+            if (rowsAffected == 0) {
+                Logger.logWarning("Error adding user colors access, can't find user: %s", "ColorsRepository.giveColorsAccess()", userName);
+                return false;
+            }
+            return true;
+        } catch (SQLException e) {
+            Logger.logError("Error adding user colors access for user: %s", "ColorsRepository.giveColorsAccess()", e, userName);
+            e.printStackTrace();
             return false;
         }
-
-        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file, true), "UTF-8"))) {
-            writer.write(userName + "\n");
-        } catch (IOException e) {
-            //LoggerUtil.logError("Error adding user %s to colors access file: %s", e, userName);
-            return false;
-        }
-        return true;
     }
 
     public static boolean hasColorsAccess(String playerName) {
-        try (Scanner scanner = new Scanner(new InputStreamReader(new FileInputStream(ACCESS_FILE), "UTF-8"))) {
-            while (scanner.hasNextLine()) {
-                String line = scanner.nextLine();
-                if (line.equals(playerName)) {
-                    return true;
-                }
+        String query = "SELECT access_to_colors FROM users WHERE username = ?";
+
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            
+            statement.setString(1, playerName);
+            ResultSet resultSet = statement.executeQuery();
+            
+            if (resultSet.next()) {
+                int access = resultSet.getInt("access_to_colors");
+                return access == 1;
             }
-        } catch (IOException e) {
-            //LoggerUtil.logError("Error reading colors access file: %s", e);
+        } catch (SQLException e) {
+            Logger.logError("Error reading colors access from database for user: %s", "ColorsRepository.hasColorsAccess()", e, playerName);
         }
         return false;
     }

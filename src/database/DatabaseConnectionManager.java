@@ -11,7 +11,7 @@ public class DatabaseConnectionManager {
 
     private static String databasePath = "src" + File.separator + "database" + File.separator + "mydatabase.db";
     private static final String DATABASE_URL = "jdbc:sqlite:" + databasePath;
-    
+
     private DatabaseConnectionManager() {
     }
 

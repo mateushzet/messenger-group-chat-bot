@@ -4,31 +4,9 @@ import java.awt.geom.Arc2D;
 import java.awt.image.BufferedImage;
 import java.awt.datatransfer.*;
 import java.io.IOException;
-import java.util.LinkedList;
 import java.util.Queue;
 
 public class ColorsImageGenerator {
-
-
-
-    public static void main(String[] args) {
-        Queue<Integer> colorHistory = new LinkedList<>();
-       
-       
-               colorHistory.add(1);
-               colorHistory.add(1);
-               colorHistory.add(2);
-               colorHistory.add(1);
-               colorHistory.add(1);
-               colorHistory.add(1);
-               colorHistory.add(1);
-               colorHistory.add(0);
-               colorHistory.add(1);
-               colorHistory.add(1);
-       
-       
-               generateColorsImage(1, "aaa", 12, 2, 2, colorHistory);
-           }
 
     public static void generateColorsImage(int winAmount, String userName, int currentBalance, int shift, int betAmount, Queue<Integer> history){
 

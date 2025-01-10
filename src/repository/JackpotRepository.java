@@ -1,52 +1,55 @@
 package repository;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Scanner;
+import java.sql.*;
+
+import database.DatabaseConnectionManager;
+import utils.Logger;
 
 public class JackpotRepository {
 
-    private static final String JACKPOT_FILE = "src" + File.separator + "repository" + File.separator + "jackpot.txt";
-    private static int jackpotPool = 0;
-
-    public static void loadJackpot() {
-        File jackpotFile = new File(JACKPOT_FILE);
-        if (jackpotFile.exists()) {
-            try (Scanner scanner = new Scanner(jackpotFile)) {
-                jackpotPool = Integer.parseInt(scanner.nextLine());
-            } catch (IOException | NumberFormatException e) {
-                //LoggerUtil.logError("Error loading jackpot state", e);
-            }
-        }
-    }
-
-    public static void saveJackpot() {
-        try (FileWriter writer = new FileWriter(JACKPOT_FILE)) {
-            writer.write(Integer.toString(jackpotPool));
-        } catch (IOException e) {
-            //LoggerUtil.logError("Error saving jackpot state", e);
-        }
-    }
-
     public static int getJackpot() {
-        loadJackpot();
-        return jackpotPool;
+        String query = "SELECT amount FROM jackpot LIMIT 1";
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(query)) {
+            
+            if (resultSet.next()) {
+                return resultSet.getInt("amount");
+            }
+        } catch (SQLException e) {
+             Logger.logError("Error while geting jackpot amount", "DailyRewardRepository.getJackpot()", e);
+
+        }
+        return 0;
     }
 
     public static void addToJackpotPool(int betAmount) {
-        loadJackpot();
-        jackpotPool += (int) (betAmount * 0.1);
-    }
+        int jackpotPool = getJackpot();
+        jackpotPool += betAmount * 0.1;
 
-    public static double getJackpotMultiplier() {
-        loadJackpot();
-        return jackpotPool;
+        String query = "UPDATE jackpot SET amount = ?, last_updated = CURRENT_TIMESTAMP";
+
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            
+            statement.setInt(1, jackpotPool);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            Logger.logError("Error while updating jackpot amount", "DailyRewardRepository.addToJackpotPool()", e);
+        }
     }
 
     public static void resetJackpot() {
-        jackpotPool = 0;
-        saveJackpot();
+        String query = "UPDATE jackpot SET amount = 0, last_updated = CURRENT_TIMESTAMP, reset_at = CURRENT_TIMESTAMP";
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            
+            statement.setInt(1, 0);
+            statement.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
+            statement.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            Logger.logError("Error while reseting jackpot amount", "DailyRewardRepository.resetJackpot()", e);
+        }
     }
-
 }

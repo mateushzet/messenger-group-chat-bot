@@ -179,7 +179,7 @@ public class ColorsService {
         int newBalance = balance - colorsAccessCost;
         UserRepository.updateUserBalance(userName, newBalance);
 
-        if (ColorsRepository.addUserToColorsFile(userName)) {
+        if (ColorsRepository.giveColorsAccess(userName)) {
             MessageService.sendMessage("%s has successfully bought access to colors for %d coins. New balance: %d", userName, colorsAccessCost, newBalance);
             Logger.logInfo("%s purchased colors access. New balance: %d", "ColorsService.buyColorsAccess()", userName, newBalance);
         }

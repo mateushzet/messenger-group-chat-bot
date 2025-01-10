@@ -6,6 +6,7 @@ import service.SlotsService;
 import service.roulette.RouletteService;
 import utils.ConfigReader;
 import utils.Logger;
+import service.CoinflipService;
 import service.ColorsService;
 import service.CommandService;
 
@@ -37,7 +38,7 @@ public class CommandController {
         commands.put("buy", CommandController::handleBuyCommand);        
         commands.put("daily", CommandService::handleDailyCommand); 
         commands.put("hourly", CommandService::handleHourlyCommand); 
-        commands.put("coinflip", CommandService::handleCoinflipCommand);
+        commands.put("coinflip", CoinflipService::handleCoinflipCommand);
         commands.put("colors", ColorsService::handleColorsCommand);
     }
 

@@ -92,7 +92,7 @@ public class SlotsService {
         int newBalance = balance - slotsAccessCost;
         UserRepository.updateUserBalance(userName, newBalance);
 
-        if (SlotsRepository.addUserToSlotsFile(userName)) {
+        if (SlotsRepository.giveSlotsAccess(userName)) {
             MessageService.sendMessage("%s has successfully bought access to slots for %d coins. New balance: %d", userName, slotsAccessCost, newBalance);
             Logger.logInfo("%s purchased slots access. New balance: %d", "SlotsService.buySlotsAccess()", userName, newBalance);
         }
@@ -124,7 +124,6 @@ public class SlotsService {
             Logger.logInfo("%s won %d coins. New balance: %d", "SlotsService.playSlots()", playerName, winnings, newBalance);
         } else {
             JackpotRepository.addToJackpotPool(betAmount);
-            JackpotRepository.saveJackpot();
             //MessageService.sendMessage(playerName + " lost the bet. New balance: " + newBalance);
             Logger.logInfo("%s lost the bet. New balance: %d", "SlotsService.playSlots()", playerName, newBalance);
         }
@@ -137,7 +136,7 @@ public class SlotsService {
 
     private static double getMultiplier(int[] result) {
         if (isJackpot(result)) {
-            double jackpotMultiplier = JackpotRepository.getJackpotMultiplier();
+            double jackpotMultiplier = JackpotRepository.getJackpot();
             JackpotRepository.resetJackpot();
             return jackpotMultiplier;
         }

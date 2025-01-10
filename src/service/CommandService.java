@@ -1,14 +1,12 @@
 package service;
 
 import repository.UserRepository;
-import repository.DailyRewardRepository;
+import repository.RewardsRepository;
 
 import java.time.LocalTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Iterator;
 
 import utils.ConfigReader;
 import utils.Logger;
@@ -21,7 +19,6 @@ public class CommandService {
     private static int dailyRewardPrize = ConfigReader.getDailyRewardPrize();
     private static int coinFlipAmount = 0;
     private static String coinFlipCurrentPlayer = "";
-    private static HashMap <String,Integer> hourlyRewardClaims = new HashMap<String,Integer>();
 
     public static void handleMoneyCommand(CommandContext context) {
         String userName = context.getUserName();
@@ -68,10 +65,11 @@ public class CommandService {
     public static void handleTransferCommand(CommandContext context) {
         String amount = context.getFirstArgument();
         List<String> receiverNameParts = context.getArguments().subList(1, context.getArguments().size());
+        String receiverName =  String.join(" ", receiverNameParts);
         String receiverFullName = String.join(" ", receiverNameParts);
         String senderName = context.getUserName();
 
-        boolean correctTransfer = UserRepository.handleTransfer(senderName, amount, receiverNameParts.toArray(new String[0]));
+        boolean correctTransfer = UserRepository.handleTransfer(senderName, amount, receiverName);
 
         if (correctTransfer) {
             MessageService.sendMessage("Transferred %s coins to %s", amount, receiverFullName);
@@ -114,9 +112,9 @@ public class CommandService {
         String userName = context.getUserName();
         
         try {
-            if (DailyRewardRepository.hasReceivedDailyReward(userName)) {
+            if (RewardsRepository.hasReceivedDailyReward(userName)) {
                 MessageService.sendMessage("You have already claimed your daily reward.");
-                Logger.logInfo("User %s tried to claim daily reward but already received it.","CommandService.handleTransferCommand()" , userName);
+                Logger.logInfo("User %s tried to claim daily reward but already received it.","CommandService.handleDailyCommand()" , userName);
                 return;
             }
             
@@ -124,12 +122,12 @@ public class CommandService {
             int newBalance = currentBalance + dailyRewardPrize;
     
             UserRepository.updateUserBalance(userName, newBalance);
-            DailyRewardRepository.updateDailyReward(userName);
+            RewardsRepository.updateDailyReward(userName);
     
             MessageService.sendMessage("%s has claimed the daily reward. Current balance: %d", userName, newBalance);
-            Logger.logInfo("User %s claimed daily reward. New balance: %d", "CommandService.handleTransferCommand()", userName, newBalance);
+            Logger.logInfo("User %s claimed daily reward. New balance: %d", "CommandService.handleDailyCommand()", userName, newBalance);
         } catch (Exception e) {
-            Logger.logError("Error processing daily reward for user %s: %s", "CommandService.handleTransferCommand()", e, userName);
+            Logger.logError("Error processing daily reward for user %s: %s", "CommandService.handleDailyCommand()", e, userName);
             MessageService.sendMessage("An error occurred while claiming your daily reward. Please try again later.");
         }
     }
@@ -137,7 +135,6 @@ public class CommandService {
  public static void handleHourlyCommand(CommandContext context) {
         String userName = context.getUserName();
         LocalTime now = LocalTime.now();
-        int currentHour = now.getHour();
         int currentMinute = now.getMinute();
 
         if (currentMinute != 0) {
@@ -145,20 +142,15 @@ public class CommandService {
             return;
         }
 
-        Iterator<Map.Entry<String, Integer>> iterator = hourlyRewardClaims.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, Integer> entry = iterator.next();
-            if (entry.getValue() != currentHour) {
-                iterator.remove();
-            }
-        }
+        
+        RewardsRepository.updateHourlyReward(userName);
 
-        if (hourlyRewardClaims.containsKey(userName) && hourlyRewardClaims.get(userName) == currentHour) {
+        if (RewardsRepository.hasReceivedHourlyReward(userName)) {
             MessageService.sendMessage("%s, you have already claimed your reward for this hour.", userName);
             return;
         }
 
-        hourlyRewardClaims.put(userName, currentHour);
+        RewardsRepository.updateHourlyReward(userName);
 
         try {
             int currentBalance = UserRepository.getUserBalance(userName, true);
