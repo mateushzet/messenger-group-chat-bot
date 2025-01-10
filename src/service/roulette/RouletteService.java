@@ -23,16 +23,16 @@ public class RouletteService {
         String amount = context.getFirstArgument();
         String field = context.getSecondArgument();
 
-    //    if (amount.equalsIgnoreCase("history")) {
-    //        int colorCount = 5;
-    //        try {
-    //            colorCount = Integer.parseInt(field.trim());
-    //            showHistory(colorCount);
-    //        } catch (Exception e) {
-    //            showHistory(colorCount);
-    //        }
-    //        return;
-    //    }
+        if (amount.equalsIgnoreCase("history")) {
+           int colorCount = 5;
+            try {
+                colorCount = Integer.parseInt(field.trim());
+                showHistory(colorCount);
+            } catch (Exception e) {
+                showHistory(colorCount);
+            }
+            return;
+        }
 
         LoggerUtil.logInfo("%s bet: %s on %s", userName, amount, field);
 
@@ -64,7 +64,7 @@ public class RouletteService {
             return;
         }
 
-        storeRouletteColor(randomNumber);
+        storeNumberColor(randomNumber);
 
         processRouletteOutcome(fieldParsed, randomNumber, amountInteger, userBalance, userName);
     }
@@ -78,7 +78,7 @@ public class RouletteService {
 
         UserRepository.updateUserBalance(userName, updatedBalance);
 
-        RouletteImageGenerator.generateImage(randomNumber, winAmount, updatedBalance, userName, rouletteHistory);
+        RouletteImageGenerator.generateImage(randomNumber, winAmount, updatedBalance, userName, amount, rouletteHistory);
         MessageService.sendMessageFromClipboard();
 
         //MessageService.sendMessage(resultMessage);
@@ -106,7 +106,7 @@ public class RouletteService {
             MessageService.sendMessage(""); 
     }
 
-    private static void storeRouletteColor(int colorNumber) {
+    private static void storeNumberColor(int colorNumber) {
         if (rouletteHistory.size() >= 13) {
             rouletteHistory.poll();
         }
