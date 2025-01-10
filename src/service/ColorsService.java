@@ -1,5 +1,7 @@
 package service;
 
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Random;
 
 import model.CommandContext;
@@ -12,6 +14,7 @@ import utils.LoggerUtil;
 public class ColorsService {
 
     private static final int colorsAccessCost = ConfigReader.getColorsAccessCost();
+    private static final Queue<Integer> colorsHistory = new LinkedList<>();
 
     public static void handleColorsCommand(CommandContext context) {
         String playerName = context.getUserName();
@@ -29,6 +32,7 @@ public class ColorsService {
         int winnings = 0;
         int[] betResult;
         int balanceChange;
+        int betAmount;
         if (isMultiColorBet(betColor)) {
             betResult = handleMultiColorBet(context, currentBalance, resultColorNumber);
         } else {
@@ -37,12 +41,15 @@ public class ColorsService {
 
         winnings = betResult[0];
         balanceChange = betResult[1];
+        betAmount = betResult[2];
     
             int updatedBalance = currentBalance + balanceChange;
             UserRepository.updateUserBalance(playerName, updatedBalance);
     
+            storeColorsColor(resultColorNumber);
+
             if (winnings <= 0) winnings = balanceChange;
-            ColorsImageGenerator.generateColorsImage(winnings, playerName, updatedBalance, result);
+            ColorsImageGenerator.generateColorsImage(winnings, playerName, updatedBalance, result, betAmount, colorsHistory);
             MessageService.sendMessageFromClipboard();
     }
     
@@ -81,7 +88,7 @@ public class ColorsService {
         
         int balanceChange = winnings - totalBetAmount;
     
-        return new int[]{winnings, balanceChange};
+        return new int[]{winnings, balanceChange, totalBetAmount};
     }
     
     private static int[] handleSingleColorBet(CommandContext context, int currentBalance, int resultColorNumber, String betColor) {
@@ -90,19 +97,19 @@ public class ColorsService {
         int betAmountParsed = parseBetAmount(betAmount);
         if (betAmountParsed == Integer.MIN_VALUE || betAmountParsed <= 0) {
             MessageService.sendMessage("Invalid bet amount. Please enter a valid number greater than 0. /bot colors amountColor");
-            return new int[]{0, 0}; 
+            return new int[]{0, 0, 0}; 
         }
     
         if (currentBalance < betAmountParsed) {
             MessageService.sendMessage("You can't afford the bet, current balance: %d", currentBalance);
-            return new int[]{0, 0};
+            return new int[]{0, 0, 0};
         }
     
         int winnings = calculateSingleColorWinnings(betColor, resultColorNumber, betAmountParsed);
     
         int balanceChange = winnings - betAmountParsed;
     
-        return new int[]{winnings, balanceChange};
+        return new int[]{winnings, balanceChange, betAmountParsed};
     }
     
     private static int parseBetAmount(String betAmount) {
@@ -175,5 +182,12 @@ public class ColorsService {
             MessageService.sendMessage("%s has successfully bought access to colors for %d coins. New balance: %d", userName, colorsAccessCost, newBalance);
             LoggerUtil.logInfo("%s purchased colors access. New balance: %d", userName, newBalance);
         }
+    }
+
+    private static void storeColorsColor(int colorNumber) {
+        if (colorsHistory.size() >= 17) {
+            colorsHistory.poll();
+        }
+        colorsHistory.offer(colorNumber);
     }
 }
