@@ -27,7 +27,7 @@ public class RouletteImageGenerator  {
     private static final Color RED_COLOR = new Color(200, 50, 50);
     private static final Color HIGHLIGHT_COLOR = new Color(255, 215, 0);
 
-public static void generateImage(int result, int winnings, int balance, String username, Queue<Integer> rouletteHistory) {
+public static void generateImage(int result, int winnings, int balance, String username, int betAmount ,Queue<Integer> rouletteHistory) {
 
     BufferedImage image = new BufferedImage(600, 646, BufferedImage.TYPE_INT_RGB);
     Graphics2D g = image.createGraphics();
@@ -44,11 +44,17 @@ public static void generateImage(int result, int winnings, int balance, String u
     int centerX = 300, centerY = 300, radius = 250;
     drawRouletteWheel(g, centerX, centerY, radius, result);
 
-    g.setFont(new Font("Arial", Font.BOLD, 55));
+    g.setFont(new Font("Arial", Font.BOLD, 50));
 
     g.setColor(winnings <= 0 ? LOSE_COLOR : WIN_COLOR);
     String winLoseText = winnings <= 0 ? "LOSE " + winnings : "WIN " + winnings;
     g.drawString(winLoseText, 15, 50);
+    
+    g.setFont(new Font("Arial", Font.BOLD, 30));
+
+    g.setColor(TEXT_COLOR);
+    String betAmountText = "Bet: " + betAmount;
+    g.drawString(betAmountText, 400, 30);
 
     g.setFont(new Font("Arial", Font.BOLD, 50));
 
@@ -206,14 +212,6 @@ private static class TransferableImage implements Transferable {
         }
         return image;
     }
-}
-
-private static Color generateDarkColor() {
-
-    int red = (int) (Math.random() * 128);
-    int green = (int) (Math.random() * 128);
-    int blue = (int) (Math.random() * 128);
-    return new Color(red, green, blue);
 }
 
 private static Color generateColorFromUsername(String username, int seed) {
