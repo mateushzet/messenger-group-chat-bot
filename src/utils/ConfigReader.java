@@ -42,7 +42,11 @@ public class ConfigReader {
                 properties = loadProperties("src/resources/config.properties");
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            try{
+                properties = loadProperties("src/resources/config.properties");
+            } catch (Exception e2){
+                Logger.logError("Can't find properties file", "ConfigReader", e2);
+            }
         }
     }
 

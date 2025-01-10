@@ -39,6 +39,8 @@ public class ColorsService {
             betResult = handleSingleColorBet(context, currentBalance, resultColorNumber, betColor);
         }
 
+        if(betResult == null) return;
+
         winnings = betResult[0];
         balanceChange = betResult[1];
         betAmount = betResult[2];
@@ -70,18 +72,18 @@ public class ColorsService {
     
         if (blackBetParsed == Integer.MIN_VALUE || redBetParsed == Integer.MIN_VALUE || blueBetParsed == Integer.MIN_VALUE || goldBetParsed == Integer.MIN_VALUE) {
             MessageService.sendMessage("Invalid bet amount. Please enter valid numbers. /bot colors amountBlack amountRed amountBlue amountGold");
-            return new int[]{0, 0};
+            return null;
         }
     
         int totalBetAmount = blackBetParsed + redBetParsed + blueBetParsed + goldBetParsed;
         if (totalBetAmount == 0) {
             MessageService.sendMessage("Bet amounts must be greater than 0");
-            return new int[]{0, 0};
+            return null;
         }
     
         if (currentBalance < totalBetAmount) {
             MessageService.sendMessage("You can't afford the bet, current balance: %d", currentBalance);
-            return new int[]{0, 0};
+            return null;
         }
     
         int winnings = calculateMultiColorWinnings(resultColorNumber, blackBetParsed, redBetParsed, blueBetParsed, goldBetParsed);
@@ -97,12 +99,12 @@ public class ColorsService {
         int betAmountParsed = parseBetAmount(betAmount);
         if (betAmountParsed == Integer.MIN_VALUE || betAmountParsed <= 0) {
             MessageService.sendMessage("Invalid bet amount. Please enter a valid number greater than 0. /bot colors amountColor");
-            return new int[]{0, 0, 0}; 
+            return null; 
         }
     
         if (currentBalance < betAmountParsed) {
             MessageService.sendMessage("You can't afford the bet, current balance: %d", currentBalance);
-            return new int[]{0, 0, 0};
+            return null;
         }
     
         int winnings = calculateSingleColorWinnings(betColor, resultColorNumber, betAmountParsed);
