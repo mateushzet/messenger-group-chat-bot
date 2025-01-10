@@ -217,4 +217,12 @@ public class ConfigReader {
         return getProperty("numbers_emojis_name", "number");
     }
 
+    public static boolean getEnableGui() {
+        return Boolean.parseBoolean(getProperty("enable_gui", "true"));
+    }
+
+    public static boolean getMathQuestionSkipFirstHourAfterRestart() {
+        return Boolean.parseBoolean(getProperty("math_question_skip_first_hour_after_restart", "false"));
+    }
+
 }

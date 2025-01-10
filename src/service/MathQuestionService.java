@@ -10,7 +10,7 @@ import utils.ConfigReader;
 
 public class MathQuestionService {
 
-    private static int lastHour = java.time.LocalTime.now().getHour(); // The last hour when the question was sent, change to -1 to trigger the question when runing the app. 
+    private static int lastHour = ConfigReader.getMathQuestionSkipFirstHourAfterRestart() ? java.time.LocalTime.now().getHour() : -1; // The last hour when the question was sent, -1 won't skip question when restarting the app. 
     private static boolean isQuestionSolved = true;
     private static String currentMathQuestion = "";
     private static int currentAnswer = 0;
