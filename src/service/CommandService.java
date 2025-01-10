@@ -83,7 +83,7 @@ public class CommandService {
 
     public static void handleRankCommand(CommandContext context) {
         List<Map.Entry<String, Integer>> rankingString = UserRepository.getRanking();
-        RankingImageGenerator.generateRankingImage(rankingString);
+        RankingImageGenerator.generateRankingImage(rankingString, context.getUserName());
         MessageService.sendMessageFromClipboard();
     }
 
@@ -167,10 +167,10 @@ public class CommandService {
 
             UserRepository.updateUserBalance(userName, newBalance);
 
-            MessageService.sendMessage("%s has claimed the hourly reward %d coins. Current balance: %d", hourlyRewardPrize, userName, newBalance);
+            MessageService.sendMessage("%s has claimed the hourly reward %d coins. Current balance: %d", userName, hourlyRewardPrize, newBalance);
             LoggerUtil.logInfo("User %s claimed hourly reward. New balance: %d", userName, newBalance);
         } catch (Exception e) {
-            LoggerUtil.logError("Error processing hourly reward for user %s: %s", e, userName);
+            LoggerUtil.logError("Error processing hourly reward for user %s", e, userName);
             MessageService.sendMessage("An error occurred while claiming your hourly reward. Please try again later.");
         }
     }
