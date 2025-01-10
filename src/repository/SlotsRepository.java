@@ -3,8 +3,6 @@ package repository;
 import java.io.*;
 import java.util.Scanner;
 
-import utils.LoggerUtil;
-
 public class SlotsRepository {
 
     private static final String ACCESS_FILE = "src" + File.separator + "repository" + File.separator + "slots_access.txt";
@@ -13,14 +11,14 @@ public class SlotsRepository {
         File file = new File(ACCESS_FILE);
 
         if (!file.exists()) {
-            LoggerUtil.logInfo("Missing users access file");
+            //LoggerUtil.logInfo("Missing users access file");
             return false;
         }
 
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file, true), "UTF-8"))) {
             writer.write(userName + "\n");
         } catch (IOException e) {
-            LoggerUtil.logError("Error adding user %s to slots access file: %s", e, userName);
+            //LoggerUtil.logError("Error adding user %s to slots access file: %s", e, userName);
             return false;
         }
         return true;
@@ -35,7 +33,7 @@ public class SlotsRepository {
                 }
             }
         } catch (IOException e) {
-            LoggerUtil.logError("Error reading slots access file: %s", e);
+            //LoggerUtil.logError("Error reading slots access file: %s", e);
         }
         return false;
     }

@@ -5,8 +5,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Scanner;
 
-import utils.LoggerUtil;
-
 public class JackpotRepository {
 
     private static final String JACKPOT_FILE = "src" + File.separator + "repository" + File.separator + "jackpot.txt";
@@ -18,7 +16,7 @@ public class JackpotRepository {
             try (Scanner scanner = new Scanner(jackpotFile)) {
                 jackpotPool = Integer.parseInt(scanner.nextLine());
             } catch (IOException | NumberFormatException e) {
-                LoggerUtil.logError("Error loading jackpot state", e);
+                //LoggerUtil.logError("Error loading jackpot state", e);
             }
         }
     }
@@ -27,7 +25,7 @@ public class JackpotRepository {
         try (FileWriter writer = new FileWriter(JACKPOT_FILE)) {
             writer.write(Integer.toString(jackpotPool));
         } catch (IOException e) {
-            LoggerUtil.logError("Error saving jackpot state", e);
+            //LoggerUtil.logError("Error saving jackpot state", e);
         }
     }
 

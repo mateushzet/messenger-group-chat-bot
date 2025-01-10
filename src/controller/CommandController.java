@@ -5,7 +5,7 @@ import service.MessageService;
 import service.SlotsService;
 import service.roulette.RouletteService;
 import utils.ConfigReader;
-import utils.LoggerUtil;
+import utils.Logger;
 import service.ColorsService;
 import service.CommandService;
 
@@ -49,7 +49,7 @@ public class CommandController {
             commandHandler.accept(context);
         } else {
             MessageService.sendMessage("Unknown command: %s", context.getCommand());
-            LoggerUtil.logWarning("Unknown command: %s", context.getCommand());
+            Logger.logInfo("%s used unknown command: %s", "CommandController.processCommand()", userName, context.getCommand());
         }
     }
 
@@ -59,7 +59,7 @@ public class CommandController {
                 commandAndArgs = message.substring(botCommand.length()+1).trim();
             } else {
                 commandAndArgs = "";
-                LoggerUtil.logWarning("Missing command");
+                Logger.logInfo("%s used empty command", "CommandController.processCommand()", userName);
             }
 
         String[] parts = commandAndArgs.split(" ", 2);

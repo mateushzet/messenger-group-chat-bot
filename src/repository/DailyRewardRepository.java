@@ -1,7 +1,5 @@
 package repository;
 
-import utils.LoggerUtil;
-
 import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -30,7 +28,7 @@ public class DailyRewardRepository {
         String lastReceivedDate = dailyRewards.get(userName);
     
         if (lastReceivedDate == null) {
-            LoggerUtil.logInfo("User %s has no record of claiming daily rewards.", userName);
+            //LoggerUtil.logInfo("User %s has no record of claiming daily rewards.", userName);
             return false;
         }
     
@@ -43,7 +41,7 @@ public class DailyRewardRepository {
         dailyRewards.put(userName, getCurrentDate());
         writeRewardsToFile(dailyRewards);
 
-        LoggerUtil.logInfo("Updated daily reward date for user: %s", userName);
+        //LoggerUtil.logInfo("Updated daily reward date for user: %s", userName);
     }
 
     private static String getCurrentDate() {
@@ -59,7 +57,7 @@ public class DailyRewardRepository {
                 lines.add(line);
             }
         } catch (IOException e) {
-            LoggerUtil.logError("Error reading file: %s", e, filePath);
+            //LoggerUtil.logError("Error reading file: %s", e, filePath);
         }
         return lines;
     }
@@ -71,7 +69,7 @@ public class DailyRewardRepository {
                 writer.newLine();
             }
         } catch (IOException e) {
-            LoggerUtil.logError("Error writing rewards to file.", e);
+            //LoggerUtil.logError("Error writing rewards to file.", e);
         }
     }
 }

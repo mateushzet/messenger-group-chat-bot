@@ -1,13 +1,13 @@
 package service.roulette;
 
 import service.MessageService;
-import utils.LoggerUtil;
+import utils.Logger;
 
 public class BetValidator {
 
     public static boolean validateBetArguments(String amount, String field, String userName) {
         if (amount == null || field == null) {
-            LoggerUtil.logWarning("%s amount or field is null: %s, %s", userName, amount, field);
+            Logger.logWarning("%s amount or field is null: %s, %s", "BetValidator.validateBetArguments()" ,userName, amount, field);
             MessageService.sendMessage("param1 or param2 is empty");
             return false;
         }
@@ -17,20 +17,20 @@ public class BetValidator {
             amountInteger = Integer.parseInt(amount.trim());
         } catch (NumberFormatException e) {
             MessageService.sendMessage("param1 is not a valid number");
-            LoggerUtil.logWarning("%s amount is not a valid number: %s", userName, amount);
+            Logger.logWarning("%s amount is not a valid number: %s", "BetValidator.validateBetArguments()", userName, amount);
             return false;
         }
 
         if (amountInteger <= 0) {
             MessageService.sendMessage("Bet must be greater than 0. Please place a valid bet.");
-            LoggerUtil.logWarning("%s placed an invalid bet: %d", userName, amountInteger);
+            Logger.logWarning("%s placed an invalid bet: %d", "BetValidator.validateBetArguments()", userName, amountInteger);
             return false;
         }
 
         int fieldParsed = parseFieldArgument(field);
         if (fieldParsed == BetType.INVALID.getCode()) {
             MessageService.sendMessage("param2 is not a valid color or number");
-            LoggerUtil.logWarning("%s fieldParsed is not a valid color or number: %s", userName, field);
+            Logger.logWarning("%s fieldParsed is not a valid color or number: %s", "BetValidator.validateBetArguments()", userName, field);
             return false;
         }
 

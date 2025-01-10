@@ -1,7 +1,7 @@
 package app;
 
 import utils.ConfigReader;
-import utils.LoggerUtil;
+import utils.Logger;
 import controller.BrowserController;
 import service.MessageService;
 
@@ -21,7 +21,7 @@ public class App {
 
     private static void initializeBrowser() throws Exception {
         BrowserController.loginToMessenger();
-        LoggerUtil.logInfo("Browser initialized and logged into Messenger");
+        Logger.logToConsole("INFO", "Browser initialized and logged into Messenger", "App.initializeBrowser()");
     }
 
     private static void processMessages() throws Exception {
@@ -31,30 +31,29 @@ public class App {
     private static void shutdownBrowser() {
             try {
                 WebDriverFactory.quitDriver();
-                LoggerUtil.logInfo("Web browser closed");
+                Logger.logInfo("Web browser closed", "App.shutdownBrowser()");
             } catch (Exception e) {
-                LoggerUtil.logWarning("Failed to close the browser cleanly");
+                Logger.logWarning("Failed to close the browser cleanly", "App.shutdownBrowser()");
             }
     }
 
     public static void startApp() {
-        LoggerUtil.logInfo("App started");
+        Logger.logToConsole("INFO", "App started", "App.startApp()");
         
         boolean enableManualLogin = ConfigReader.getEnableManualLogin();
 
         try {
             if (enableManualLogin) {
-                    LoggerUtil.logInfo("Manual login is enabled. Please log in manually.");
+                System.out.println("Manual login is enabled. Please log in manually.");
                } else {
                    initializeBrowser();
                }
-
-            LoggerUtil.logInfo("The application has started listening for messages and processing them.");
+            Logger.logInfo("The application has started listening for messages and processing them.", "App.startApp()");
             processMessages();
         } catch (WebDriverException e) {
-            LoggerUtil.logError("Critical error with WebDriver", e);
+            Logger.logError("Critical error with WebDriver", "App.startApp()", e);
         } catch (Exception e) {
-            LoggerUtil.logError("Unexpected error occurred", e);
+            Logger.logError("Unexpected error occurred", "App.startApp()", e);
         } finally {
             shutdownBrowser();
             startApp();

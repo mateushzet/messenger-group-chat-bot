@@ -4,7 +4,7 @@ import service.EmojiService;
 import repository.UserRepository;
 import service.MessageService;
 import utils.ConfigReader;
-import utils.LoggerUtil;
+import utils.Logger;
 import utils.RouletteImageGenerator;
 import model.CommandContext;
 
@@ -34,25 +34,20 @@ public class RouletteService {
             return;
         }
 
-        LoggerUtil.logInfo("%s bet: %s on %s", userName, amount, field);
+        Logger.logInfo("%s bet: %s on %s", "RouletteService.handleRouletteCommand()", userName, amount, field);
 
         if (!BetValidator.validateBetArguments(amount, field, userName)) {
             return;
         }
 
         int userBalance = UserRepository.getUserBalance(userName, true);
-        if (userBalance == 0) {
-            MessageService.sendMessage("You are broke!");
-            LoggerUtil.logInfo("%s tried to bet: %s but has balance equal to %d", userName, amount, userBalance);
-            return;
-        }
 
         int amountInteger = Integer.parseInt(amount.trim());
         int fieldParsed = parseFieldArgument(field);
 
         if (userBalance < amountInteger) {
             MessageService.sendMessage("You can't afford it, your balance is: %d", userBalance);
-            LoggerUtil.logInfo("%s tried to bet: %d but has balance equal to %d", userName, amountInteger, userBalance);
+            Logger.logInfo("%s tried to bet: %d but has balance equal to %d", "RouletteService.handleRouletteCommand()", userName, amountInteger, userBalance);
             return;
         }
 
@@ -60,7 +55,7 @@ public class RouletteService {
 
         if (!BetValidator.isValidBet(fieldParsed)) {
             MessageService.sendMessage("You placed a bet on an invalid field. Bet on a number from 0 to 12 or red, black, or green!");
-            LoggerUtil.logWarning("%s placed invalid bet: parsed field = %d, field = %s", userName, fieldParsed, field);
+            Logger.logWarning("%s placed invalid bet: parsed field = %d, field = %s", "RouletteService.handleRouletteCommand()", userName, fieldParsed, field);
             return;
         }
 

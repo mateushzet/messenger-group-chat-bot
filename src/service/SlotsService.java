@@ -4,7 +4,7 @@ import java.util.Random;
 
 import model.CommandContext;
 import utils.ConfigReader;
-import utils.LoggerUtil;
+import utils.Logger;
 import utils.SlotsImageGenerator;
 import repository.SlotsRepository;
 import repository.UserRepository;
@@ -43,7 +43,7 @@ public class SlotsService {
     private static boolean validateSlotsGame(String playerName, String betAmount, int currentBalance) {
         if (!SlotsRepository.hasSlotsAccess(playerName)) {
             MessageService.sendMessage("You need to purchase access to play slots. Cost: %d coins. /bot buy slots", slotsAccessCost);
-            LoggerUtil.logInfo("%s attempted to play slots without access.", playerName);
+            Logger.logInfo("%s attempted to play slots without access.", "SlotsService.validateSlotsGame()", playerName);
             return false;
         }
 
@@ -51,19 +51,19 @@ public class SlotsService {
             int betAmountInt = Integer.parseInt(betAmount);
             if (currentBalance < betAmountInt) {
                 MessageService.sendMessage("You can't afford it, your balance is: %d", currentBalance);
-                LoggerUtil.logInfo("Player %s can't afford the bet. Current balance: %d", playerName, currentBalance);
+                Logger.logInfo("Player %s can't afford the bet. Current balance: %d", "SlotsService.validateSlotsGame()", playerName, currentBalance);
                 return false;
             }
 
             if (betAmountInt < 10) {
                 MessageService.sendMessage("Your bet amount must be at least 10 coins. Your current balance is: %d", currentBalance);
-                LoggerUtil.logInfo("Player %s attempted to place a bet of %d coins, which is less than the minimum required bet of 10 coins. Current balance: %d", playerName, betAmountInt, currentBalance);
+                Logger.logInfo("Player %s attempted to place a bet of %d coins, which is less than the minimum required bet of 10 coins. Current balance: %d", "SlotsService.validateSlotsGame()", playerName, betAmountInt, currentBalance);
                 return false;
             }
 
         } catch (NumberFormatException e) {
             MessageService.sendMessage("Invalid bet amount. Please enter a valid number.");
-            LoggerUtil.logError("Failed to parse bet amount: %s", e, betAmount);
+            Logger.logError("Failed to parse bet amount: %s", "SlotsService.validateSlotsGame()", e, betAmount);
             return false;
         }
 
@@ -81,34 +81,32 @@ public class SlotsService {
 
     private static void buySlotsAccess(String userName) {
         int balance = UserRepository.getUserBalance(userName, true);
-        LoggerUtil.logInfo("%s is attempting to buy slots.", userName);
+        Logger.logInfo("%s is attempting to buy slots.", "SlotsService.buySlotsAccess()", userName);
 
         if (balance < slotsAccessCost) {
             MessageService.sendMessage("%s, you don't have enough coins to buy access to slots. You need %d coins.", userName, slotsAccessCost);
-            LoggerUtil.logInfo("%s doesn't have enough coins to buy slots. Current balance: %d", userName, balance);
+            Logger.logInfo("%s doesn't have enough coins to buy slots. Current balance: %d", "SlotsService.buySlotsAccess()", userName, balance);
             return;
         }
 
         int newBalance = balance - slotsAccessCost;
         UserRepository.updateUserBalance(userName, newBalance);
-        LoggerUtil.logInfo("%s purchased slots access. New balance: %d", userName, newBalance);
 
         if (SlotsRepository.addUserToSlotsFile(userName)) {
             MessageService.sendMessage("%s has successfully bought access to slots for %d coins. New balance: %d", userName, slotsAccessCost, newBalance);
-            LoggerUtil.logInfo("%s purchased slots access. New balance: %d", userName, newBalance);
+            Logger.logInfo("%s purchased slots access. New balance: %d", "SlotsService.buySlotsAccess()", userName, newBalance);
         }
     }
 
     private static void playSlots(String playerName, int betAmount, int currentBalance) {
         int newBalance = currentBalance - betAmount;
         UserRepository.updateUserBalance(playerName, newBalance);
-        LoggerUtil.logInfo("%s placed a bet of %d coins. New balance: %d", playerName, betAmount, newBalance);
+        Logger.logInfo("%s placed a bet of %d coins. New balance: %d", "SlotsService.playSlots()", playerName, betAmount, newBalance);
 
         int[] result = spinSlotsWithWildcard();
         //MessageService.clickEmoji(result[0], result[0] == symbols[3] ? "lobster" : "fruit");
         //MessageService.clickEmoji(result[1], result[1] == symbols[3] ? "lobster" : "fruit");
         //MessageService.clickEmoji(result[2], result[2] == symbols[3] ? "lobster" : "fruit");
-        LoggerUtil.logInfo("%s spun the slots", playerName);
 
         double multiplier = getMultiplier(result);
 
@@ -123,12 +121,12 @@ public class SlotsService {
 
         if (winnings > 0) {
             //MessageService.sendMessage(playerName + " won " + winnings + " coins! New balance: " + newBalance);
-            LoggerUtil.logInfo("%s won %d coins. New balance: %d", playerName, winnings, newBalance);
+            Logger.logInfo("%s won %d coins. New balance: %d", "SlotsService.playSlots()", playerName, winnings, newBalance);
         } else {
             JackpotRepository.addToJackpotPool(betAmount);
             JackpotRepository.saveJackpot();
             //MessageService.sendMessage(playerName + " lost the bet. New balance: " + newBalance);
-            LoggerUtil.logInfo("%s lost the bet. New balance: %d", playerName, newBalance);
+            Logger.logInfo("%s lost the bet. New balance: %d", "SlotsService.playSlots()", playerName, newBalance);
         }
 
         int jackpotAmount = JackpotRepository.getJackpot();
@@ -186,7 +184,7 @@ public class SlotsService {
     public static void handleSlotsJackpotCommand() {
         int currentJackpot = JackpotRepository.getJackpot();
         MessageService.sendMessage("Current Jackpot is: %d", currentJackpot);
-        LoggerUtil.logInfo("Current Jackpot is: %d", currentJackpot);
+        Logger.logInfo("Current Jackpot is: %d", "SlotsService.handleSlotsJackpotCommand()", currentJackpot);
     }
 
 }

@@ -9,7 +9,7 @@ import repository.ColorsRepository;
 import repository.UserRepository;
 import utils.ColorsImageGenerator;
 import utils.ConfigReader;
-import utils.LoggerUtil;
+import utils.Logger;
 
 public class ColorsService {
 
@@ -166,21 +166,20 @@ public class ColorsService {
 
     private static void buyColorsAccess(String userName) {
         int balance = UserRepository.getUserBalance(userName, true);
-        LoggerUtil.logInfo("%s is attempting to buy colors.", userName);
+        Logger.logToConsole("INFO", userName + " is attempting to buy colors.", "ColorsService.buyColorsAccess()");
 
         if (balance < colorsAccessCost) {
             MessageService.sendMessage("%s, you don't have enough coins to buy access to colors. You need %d coins.", userName, colorsAccessCost);
-            LoggerUtil.logInfo("%s doesn't have enough coins to buy colors. Current balance: %d", userName, balance);
+            Logger.logToConsole("INFO", userName + " doesn't have enough coins to buy colors. Current balance: " + balance,  "ColorsService.buyColorsAccess()");
             return;
         }
 
         int newBalance = balance - colorsAccessCost;
         UserRepository.updateUserBalance(userName, newBalance);
-        LoggerUtil.logInfo("%s purchased colors access. New balance: %d", userName, newBalance);
 
         if (ColorsRepository.addUserToColorsFile(userName)) {
             MessageService.sendMessage("%s has successfully bought access to colors for %d coins. New balance: %d", userName, colorsAccessCost, newBalance);
-            LoggerUtil.logInfo("%s purchased colors access. New balance: %d", userName, newBalance);
+            Logger.logInfo("%s purchased colors access. New balance: %d", "ColorsService.buyColorsAccess()", userName, newBalance);
         }
     }
 

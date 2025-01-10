@@ -7,22 +7,22 @@ import java.util.Map;
 public class EmojiService {
 
     private static final Map<Integer, String> colorEmojiMap = Map.of(
-        0, ConfigReader.getRedHeartEmojiUrl(),
-        1, ConfigReader.getBlackHeartEmojiUrl(),
-        2, ConfigReader.getGreenHeartEmojiUrl()
+        0, ConfigReader.getEmojiUrl("red_heart"),
+        1, ConfigReader.getEmojiUrl("black_heart"),
+        2, ConfigReader.getEmojiUrl("green_heart")
     );
 
     private static final String[] numberEmojiUrls = {
-        ConfigReader.getNumberEmojiUrl0(),
-        ConfigReader.getNumberEmojiUrl1(),
-        ConfigReader.getNumberEmojiUrl2(),
-        ConfigReader.getNumberEmojiUrl3(),
-        ConfigReader.getNumberEmojiUrl4(),
-        ConfigReader.getNumberEmojiUrl5(),
-        ConfigReader.getNumberEmojiUrl6(),
-        ConfigReader.getNumberEmojiUrl7(),
-        ConfigReader.getNumberEmojiUrl8(),
-        ConfigReader.getNumberEmojiUrl9()
+        ConfigReader.getEmojiUrl("number_0"),
+        ConfigReader.getEmojiUrl("number_1"),
+        ConfigReader.getEmojiUrl("number_2"),
+        ConfigReader.getEmojiUrl("number_3"),
+        ConfigReader.getEmojiUrl("number_4"),
+        ConfigReader.getEmojiUrl("number_5"),
+        ConfigReader.getEmojiUrl("number_6"),
+        ConfigReader.getEmojiUrl("number_7"),
+        ConfigReader.getEmojiUrl("number_8"),
+        ConfigReader.getEmojiUrl("number_9")
     };
 
     public static void sendRouletteResultEmojis(int randomNumber) {

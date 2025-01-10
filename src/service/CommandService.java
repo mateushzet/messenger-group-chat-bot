@@ -11,7 +11,7 @@ import java.util.Random;
 import java.util.Iterator;
 
 import utils.ConfigReader;
-import utils.LoggerUtil;
+import utils.Logger;
 import utils.RankingImageGenerator;
 import app.App;
 import model.CommandContext;
@@ -27,7 +27,7 @@ public class CommandService {
         String userName = context.getUserName();
         int balance = UserRepository.getUserBalance(userName, true);
         MessageService.sendMessage("%s, current balance: %d", userName ,balance);
-        LoggerUtil.logInfo("%s, current balance: %d",userName, balance);
+        Logger.logInfo("%s, current balance: %d","CommandService.handleMoneyCommand()", userName, balance);
     }
 
     public static void handleTimeCommand(CommandContext context) {
@@ -36,7 +36,7 @@ public class CommandService {
 
     public static void handleKillCommand(CommandContext context) {
         MessageService.sendMessage("Shutting down the bot");
-        LoggerUtil.logInfo("Shutting down the bot at the request of %s", context.getUserName());
+        Logger.logInfo("Shutting down the bot at the request of %s", "CommandService.handleKillCommand()", context.getUserName());
         System.exit(0);
     }
 
@@ -77,7 +77,7 @@ public class CommandService {
             MessageService.sendMessage("Transferred %s coins to %s", amount, receiverFullName);
         } else {
             MessageService.sendMessage("Transfer failed");
-            LoggerUtil.logWarning("Transfer failed sender: %s, amount: %s, receiver: %s", senderName, amount, receiverFullName);
+            Logger.logWarning("Transfer failed sender: %s, amount: %s, receiver: %s", "CommandService.handleTransferCommand()" , senderName, amount, receiverFullName);
         }
     }
 
@@ -116,7 +116,7 @@ public class CommandService {
         try {
             if (DailyRewardRepository.hasReceivedDailyReward(userName)) {
                 MessageService.sendMessage("You have already claimed your daily reward.");
-                LoggerUtil.logInfo("User %s tried to claim daily reward but already received it.", userName);
+                Logger.logInfo("User %s tried to claim daily reward but already received it.","CommandService.handleTransferCommand()" , userName);
                 return;
             }
             
@@ -127,9 +127,9 @@ public class CommandService {
             DailyRewardRepository.updateDailyReward(userName);
     
             MessageService.sendMessage("%s has claimed the daily reward. Current balance: %d", userName, newBalance);
-            LoggerUtil.logInfo("User %s claimed daily reward. New balance: %d", userName, newBalance);
+            Logger.logInfo("User %s claimed daily reward. New balance: %d", "CommandService.handleTransferCommand()", userName, newBalance);
         } catch (Exception e) {
-            LoggerUtil.logError("Error processing daily reward for user %s: %s", e, userName);
+            Logger.logError("Error processing daily reward for user %s: %s", "CommandService.handleTransferCommand()", e, userName);
             MessageService.sendMessage("An error occurred while claiming your daily reward. Please try again later.");
         }
     }
@@ -168,9 +168,9 @@ public class CommandService {
             UserRepository.updateUserBalance(userName, newBalance);
 
             MessageService.sendMessage("%s has claimed the hourly reward %d coins. Current balance: %d", userName, hourlyRewardPrize, newBalance);
-            LoggerUtil.logInfo("User %s claimed hourly reward. New balance: %d", userName, newBalance);
+            Logger.logInfo("User %s claimed hourly reward. New balance: %d","CommandService.handleHourlyCommand()", userName, newBalance);
         } catch (Exception e) {
-            LoggerUtil.logError("Error processing hourly reward for user %s", e, userName);
+            Logger.logError("Error processing hourly reward for user %s", "CommandService.handleHourlyCommand()", e, userName);
             MessageService.sendMessage("An error occurred while claiming your hourly reward. Please try again later.");
         }
     }

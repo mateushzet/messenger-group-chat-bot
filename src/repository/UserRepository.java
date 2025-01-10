@@ -2,7 +2,6 @@ package repository;
 
 import app.App;
 import service.MessageService;
-import utils.LoggerUtil;
 
 import java.io.*;
 import java.util.*;
@@ -46,7 +45,7 @@ public class UserRepository {
 
     private static boolean validateTransferParams(String amount, String... receiverNameParts) {
         if (amount == null || receiverNameParts == null || amount.trim().isEmpty() || Arrays.stream(receiverNameParts).anyMatch(String::isEmpty)) {
-            LoggerUtil.logWarning("Invalid parameters: amount = %s, receiverNameParts = %s", amount, Arrays.toString(receiverNameParts));
+            //LoggerUtil.logWarning("Invalid parameters: amount = %s, receiverNameParts = %s", amount, Arrays.toString(receiverNameParts));
             MessageService.sendMessage("Invalid transfer parameters.");
             return false;
         }
@@ -57,7 +56,7 @@ public class UserRepository {
         try {
             return Integer.parseInt(amount.trim());
         } catch (NumberFormatException e) {
-            LoggerUtil.logWarning("Invalid transfer amount: %s", amount);
+            //LoggerUtil.logWarning("Invalid transfer amount: %s", amount);
             MessageService.sendMessage("Invalid transfer amount.");
             return -1;
         }
@@ -83,13 +82,13 @@ public class UserRepository {
     private static void addUserIfNotExists(String userName) {
         if (!doesUserExist(userName)) {
             addUserToFile(userName, 0);
-            LoggerUtil.logInfo("Added user to file: %s", userName);
+            //LoggerUtil.logInfo("Added user to file: %s", userName);
         }
     }
 
     private static boolean processTransaction(String senderName, String receiverName, int balanceSender, int balanceReceiver, int transferAmount) {
         if (transferAmount <= 0 || balanceSender < transferAmount) {
-            LoggerUtil.logWarning("Insufficient balance or invalid transfer amount.");
+            //LoggerUtil.logWarning("Insufficient balance or invalid transfer amount.");
             MessageService.sendMessage("Insufficient balance or invalid transfer amount.");
             return false;
         }
@@ -97,17 +96,17 @@ public class UserRepository {
         updateUserBalance(senderName, balanceSender - transferAmount);
         updateUserBalance(receiverName, balanceReceiver + transferAmount);
 
-        LoggerUtil.logInfo("Transaction successful: %s -> %s, Amount: %d", senderName, receiverName, transferAmount);
+        //LoggerUtil.logInfo("Transaction successful: %s -> %s, Amount: %d", senderName, receiverName, transferAmount);
         return true;
     }
 
     private static void notifyInvalidReceiver(String receiverName) {
-        LoggerUtil.logWarning("Receiver not found or incorrect name: %s", receiverName);
+        //LoggerUtil.logWarning("Receiver not found or incorrect name: %s", receiverName);
         MessageService.sendMessage("The recipient has not activated their balance or the name is incorrect.");
     }
 
     private static void notifySameSenderAndReceiver(String senderName, String receiverName) {
-        LoggerUtil.logWarning("Sender and receiver are the same: %s = %s", senderName, receiverName);
+        //LoggerUtil.logWarning("Sender and receiver are the same: %s = %s", senderName, receiverName);
     }
 
     public static int getUserBalance(String userName, boolean createNewUser) {
@@ -118,7 +117,7 @@ public class UserRepository {
 
         if (createNewUser) {
             addUserToFile(userName, 0);
-            LoggerUtil.logInfo("Created new user: %s", userName);
+            //LoggerUtil.logInfo("Created new user: %s", userName);
             return 0;
         }
         return -1;
@@ -128,14 +127,14 @@ public class UserRepository {
         Map<String, Integer> userBalances = getAllUsers();
         userBalances.put(userName, newBalance);
         writeBalancesToFile(userBalances);
-        LoggerUtil.logInfo("User balance updated: %s = %d", userName, newBalance);
+        //LoggerUtil.logInfo("User balance updated: %s = %d", userName, newBalance);
     }
 
     public static void addUserToFile(String userName, int balance) {
         Map<String, Integer> userBalances = getAllUsers();
         userBalances.put(userName, balance);
         writeBalancesToFile(userBalances);
-        LoggerUtil.logInfo("Added user: %s with balance: %d", userName, balance);
+        //LoggerUtil.logInfo("Added user: %s with balance: %d", userName, balance);
     }
 
     public static List<Map.Entry<String, Integer>> getRanking() {
@@ -155,7 +154,7 @@ public class UserRepository {
                 lines.add(line);
             }
         } catch (IOException e) {
-            LoggerUtil.logError("Error reading file: %s", e, filePath);
+            //LoggerUtil.logError("Error reading file: %s", e, filePath);
         }
         return lines;
     }
@@ -167,7 +166,7 @@ public class UserRepository {
                 writer.newLine();
             }
         } catch (IOException e) {
-            LoggerUtil.logError("Error writing balances to file.", e);
+            //LoggerUtil.logError("Error writing balances to file.", e);
         }
     }
 }

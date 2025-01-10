@@ -3,7 +3,7 @@ package service;
 import controller.CommandController;
 import factory.WebDriverFactory;
 import utils.ConfigReader;
-import utils.LoggerUtil;
+import utils.Logger;
 
 import java.time.Duration;
 import java.time.LocalTime;
@@ -69,7 +69,7 @@ public class MessageService {
         String formattedMessage = String.format(message, params);
         inputBox.sendKeys(formattedMessage);
         inputBox.sendKeys(Keys.RETURN);
-        LoggerUtil.logInfo("Message sent: %s", formattedMessage);
+        Logger.logInfo("Message sent: %s", "MessageService.sendMessage()", formattedMessage);
     }
 
     public static void sendMessageFromClipboard() {
@@ -97,7 +97,7 @@ public class MessageService {
     
        // Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(""), null);
 
-        LoggerUtil.logInfo("Message sent from clipboard.");
+        Logger.logToConsole("INFO", "Message sent from clipboard.", "MessageService.sendMessage()");
     }
 
     public static void processMessages() throws InterruptedException {
@@ -130,7 +130,7 @@ public class MessageService {
                             if (text.startsWith(botCommand.toLowerCase())) {
                                 CommandController.processCommand(userName, text);
                             }
-                    } else LoggerUtil.logWarning("Get sender name error or two messages from the same sender in a row");
+                    }  //else Get sender name error or two messages from the same sender in a row
                     }
                  }
             } catch (StaleElementReferenceException e) {
@@ -144,13 +144,13 @@ public class MessageService {
         try {
             name = message.findElement(By.cssSelector(messageUserAvatarCssSelector)).getAttribute("alt");
        
-            if (name == null || name.trim().isEmpty()) {
-                LoggerUtil.logWarning("Sender name is null or empty in message: %s", message);
-            } else {
-                LoggerUtil.logInfo("Checked message sender name: %s", name);
-            }
+            //if (name == null || name.trim().isEmpty()) {
+            //  Sender name is null or empty in message
+            //} else {
+            //  Checked message sender name
+            //}
         } catch (Exception e) {
-            LoggerUtil.logError("Failed to get sender name", e);
+            Logger.logError("Failed to get sender name", "MessageService.getSenderName()", e);
         }
         return name;
     }
@@ -166,7 +166,7 @@ public class MessageService {
         try {
          Thread.sleep(500);
         } catch (InterruptedException e) {
-            LoggerUtil.logError("clickEmoji: Thread.sleep failure", e);
+            Logger.logError("clickEmoji: Thread.sleep failure", "MessageService.clickEmoji()", e);
     }
 
     // find emoji search input and type emoji name, than click on the emoji based on src url
@@ -213,14 +213,12 @@ public class MessageService {
                 // Find the heart emoji and click it
                 WebElement heartEmoticon = driver.findElement(By.cssSelector(messageHeartReactionCssSelector));
                 heartEmoticon.click();
-                LoggerUtil.logInfo("Added heart reaction to message: %s", message.getText());
+                Logger.logInfo("Added heart reaction to message: %s", "MessageService.addEmoji()", message.getText());
             } catch (Exception e) {
-                LoggerUtil.logError("Failed to add heart reaction to message: %s", e, message.getText());
+                Logger.logError("Failed to add heart reaction to message: %s", "MessageService.addEmoji()", e, message.getText());
             }
 
             hasEmoji = hasEmoji(message);
         }
-
     }
-
 }
