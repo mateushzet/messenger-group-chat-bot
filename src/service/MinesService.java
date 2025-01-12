@@ -211,7 +211,7 @@ public class MinesService {
                 int userBalance = UserRepository.getUserBalance(userName, true);
                 int totalAmount = (int) Math.round(game.getBetAmount() * calculateMultiplier(game));
                 UserRepository.updateUserBalance(userName, userBalance + totalAmount);
-                MessageService.sendMessage(userName + " has cashed out! You won " + totalAmount + "!" + " Current balance: " + (userBalance + totalAmount));
+                MessageService.sendMessage(userName + " has cashed out " + totalAmount + "!" + " Current balance: " + (userBalance + totalAmount));
             }
             MinesGameRepository.deleteGame(userName);
         }

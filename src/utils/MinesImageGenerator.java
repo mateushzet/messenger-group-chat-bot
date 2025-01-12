@@ -41,8 +41,8 @@ public class MinesImageGenerator {
         g.setPaint(gradient);
         g.fillRect(0, 0, 220, 330);
 
-        Color darkenedColor1 = darkenColor(color1, 0.7f);
-        Color darkenedColor2 = darkenColor(color2, 0.7f);
+        Color darkenedColor1 = darkenColor(color1, 0.9f);
+        Color darkenedColor2 = darkenColor(color2, 0.9f);
 
         for (int row = 0; row < BOARD_SIZE; row++) {
             for (int col = 0; col < BOARD_SIZE; col++) {
