@@ -74,7 +74,7 @@ public class RouletteService {
         UserRepository.updateUserBalance(userName, updatedBalance);
 
         RouletteImageGenerator.generateImage(randomNumber, winAmount, updatedBalance, userName, amount, rouletteHistory);
-        MessageService.sendMessageFromClipboard();
+        MessageService.sendMessageFromClipboard(false);
 
         //MessageService.sendMessage(resultMessage);
 

@@ -31,17 +31,17 @@ public class SlotsImageGenerator {
     
     public static void generateSlotsResultImage(int[] result, String playerName, int amount, int totalBalance, int betAmount, int jackpotAmount) {
         String[] resultsImages = {symbols[result[0]], symbols[result[1]], symbols[result[2]]};
-
-        Color color1 = generateColorFromUsername(playerName, 1);
-        Color color2 = generateColorFromUsername(playerName, 2);
-    
-        GradientPaint gradient = new GradientPaint(0, 0, color1, 600, 646, color2);
         
         int width = 300;
         int height = 330;
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
     
+        Color color1 = generateColorFromUsername(playerName, 1);
+        Color color2 = generateColorFromUsername(playerName, 2);
+    
+        GradientPaint gradient = new GradientPaint(0, 0, color1, width, height, color2);
+
         int symbolWidth = width / 3;
         int symbolHeight = width / 3;
     

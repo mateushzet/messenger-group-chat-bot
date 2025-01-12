@@ -2,6 +2,7 @@ package controller;
 
 import model.CommandContext;
 import service.MessageService;
+import service.MinesService;
 import service.SlotsService;
 import service.roulette.RouletteService;
 import utils.ConfigReader;
@@ -40,7 +41,10 @@ public class CommandController {
         commands.put("hourly", CommandService::handleHourlyCommand); 
         commands.put("coinflip", CoinflipService::handleCoinflipCommand);
         commands.put("colors", ColorsService::handleColorsCommand);
+        commands.put("mines", MinesService::handleMinesCommand);
     }
+
+    
 
     public static void processCommand(String userName, String message) {
         CommandContext context = parseCommand(message, userName);

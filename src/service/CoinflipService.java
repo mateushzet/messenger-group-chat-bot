@@ -119,7 +119,7 @@ public class CoinflipService {
             MessageService.sendMessage("There are no active coinflip games at the moment.");
         } else {
             CoinflipGamesImageGenerator.generateActiveGamesImage(openGames);
-            MessageService.sendMessageFromClipboard();
+            MessageService.sendMessageFromClipboard(true);
         }
     }
 

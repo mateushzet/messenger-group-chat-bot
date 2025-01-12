@@ -52,7 +52,7 @@ public class ColorsService {
 
             if (winnings <= 0) winnings = balanceChange;
             ColorsImageGenerator.generateColorsImage(winnings, playerName, updatedBalance, result, betAmount, colorsHistory);
-            MessageService.sendMessageFromClipboard();
+            MessageService.sendMessageFromClipboard(false);
     }
     
     private static int[] handleMultiColorBet(CommandContext context, int currentBalance, int resultColorNumber) {

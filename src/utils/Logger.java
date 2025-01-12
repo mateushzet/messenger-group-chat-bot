@@ -71,9 +71,9 @@ public class Logger {
 
     public static void logError(String message, String source, Exception e, Object... params) {
         try {
-            error(String.format(message, params) + " Exception: " + e.getMessage(), source);
+            error(String.format(message, params) + " Exception: " + e.getMessage() + " Stack trace: " + e.getStackTrace(), source);
         } catch (Exception e2) {
-            error("Logger failed to format log message. Error: " + e2.getMessage(), source);
+            error("Logger failed to format log message. Error: " + e2.getMessage() + " Stack trace: " + e.getStackTrace(), source);
         }
     }
 }

@@ -33,10 +33,10 @@ public static void generateImage(int result, int winnings, int balance, String u
     Graphics2D g = image.createGraphics();
 
 
-   Color color1 = generateColorFromUsername(username, 1);;
-   Color color2 = generateColorFromUsername(username, 2);;
+   Color color1 = generateColorFromUsername(username, 1);
+   Color color2 = generateColorFromUsername(username, 2);
 
-   GradientPaint gradient = new GradientPaint(0, 0, color1, 600, 646, color2);
+   GradientPaint gradient = new GradientPaint(0, 0, color1, 600, 600, color2);
 
    g.setPaint(gradient);
    g.fillRect(0, 0, 600, 600);

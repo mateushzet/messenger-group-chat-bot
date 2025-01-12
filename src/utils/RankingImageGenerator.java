@@ -19,7 +19,7 @@ public class RankingImageGenerator {
         Color color1 = generateColorFromUsername(reguesterName, 1);
         Color color2 = generateColorFromUsername(reguesterName, 2);
     
-        GradientPaint gradient = new GradientPaint(0, 0, color1, 600, 646, color2);
+        GradientPaint gradient = new GradientPaint(0, 0, color1, imageWidth, imageHeight, color2);
 
         g.setPaint(gradient);
         g.fillRect(0, 0, imageWidth, imageHeight);

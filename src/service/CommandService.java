@@ -82,7 +82,7 @@ public class CommandService {
     public static void handleRankCommand(CommandContext context) {
         List<Map.Entry<String, Integer>> rankingString = UserRepository.getRanking();
         RankingImageGenerator.generateRankingImage(rankingString, context.getUserName());
-        MessageService.sendMessageFromClipboard();
+        MessageService.sendMessageFromClipboard(true);
     }
 
     public static void handleHelpCommand(CommandContext context) {

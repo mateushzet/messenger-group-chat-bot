@@ -72,7 +72,7 @@ public class MessageService {
         Logger.logInfo("Message sent: %s", "MessageService.sendMessage()", formattedMessage);
     }
 
-    public static void sendMessageFromClipboard() {
+    public static void sendMessageFromClipboard(boolean instant) {
         String messageInputBoxCssSelector = ConfigReader.getMessageInputBoxCssSelector();
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         WebElement inputBox = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(messageInputBoxCssSelector)));
@@ -86,17 +86,19 @@ public class MessageService {
         .sendKeys("v")
         .keyUp(Keys.CONTROL)
         .perform();
-    
+
         counter++;
 
-        if(counter==5) {
+        if(instant == true){
+            actions.sendKeys(Keys.RETURN).perform();
+            lastHour = java.time.LocalTime.now();
+            counter = 0;
+        } else if(counter==5) {
             actions.sendKeys(Keys.RETURN).perform();
             lastHour = java.time.LocalTime.now();
             counter = 0;
         }
     
-       // Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(""), null);
-
         Logger.logToConsole("INFO", "Message sent from clipboard.", "MessageService.sendMessage()");
     }
 

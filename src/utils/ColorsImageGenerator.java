@@ -14,7 +14,6 @@ public class ColorsImageGenerator {
 
         colorOrder = rotateArray(colorOrder, shift);
                 
-                        Color navy = new Color(39, 38, 44);
                         Color yellow = new Color(252, 194, 120);
                         Color blue = new Color(72, 179, 221);
                         Color red = new Color(197, 52, 81);
@@ -30,7 +29,7 @@ public class ColorsImageGenerator {
                         Color color1 = generateColorFromUsername(userName, 1);
                         Color color2 = generateColorFromUsername(userName, 2);
                      
-                        GradientPaint gradient = new GradientPaint(0, 0, color1, 600, 646, color2);
+                        GradientPaint gradient = new GradientPaint(0, 0, color1, width, height, color2);
                      
                         g.setPaint(gradient);
                         g.fillRect(0, 0, width, height);
