@@ -90,6 +90,11 @@ public class MessageService {
         counter++;
 
         if(instant == true){
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             actions.sendKeys(Keys.RETURN).perform();
             lastHour = java.time.LocalTime.now();
             counter = 0;

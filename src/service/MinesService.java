@@ -39,6 +39,25 @@ public class MinesService {
             return;
         }
 
+        if (firstArg.equalsIgnoreCase("multi")) {
+            if (secondArg == null || secondArg.isEmpty()) {
+                MessageService.sendMessage(userName + " provide field numbers to reveal, separated by commas.");
+                return;
+            }
+        
+            try {
+                String[] fieldNumbers = secondArg.split(",");
+                List<Integer> fieldsToReveal = new ArrayList<>();
+                for (String field : fieldNumbers) {
+                    fieldsToReveal.add(Integer.parseInt(field.trim()));
+                }
+                revealMultipleFields(userName, fieldsToReveal);
+            } catch (NumberFormatException e) {
+                MessageService.sendMessage(userName + " invalid field numbers. Please provide valid numbers separated by commas.");
+            }
+            return;
+        }
+
         MinesGame game = MinesGameRepository.getGameByUserName(userName);
         if (game != null && game.isGameInProgress()) {
             String currentPlayer = game.getUserName();
@@ -183,7 +202,7 @@ public class MinesService {
         List<String> status = List.of(userName, "Bet: " + betAmount, "Reward: " + (int) Math.round(multiplier * betAmount), "Bombs: " + totalBombs, "Multiplier: " + multiplier);
         MinesImageGenerator.generateMinesweeperImage(game.getRevealedBoard(), game.getBombBoard(), userName, status, gameStatus, userBalance);
     
-        MessageService.sendMessageFromClipboard(false);
+        MessageService.sendMessageFromClipboard(true);
     }
 
     private static void endGame(String userName, boolean win, MinesGame game) {
@@ -192,7 +211,7 @@ public class MinesService {
                 int userBalance = UserRepository.getUserBalance(userName, true);
                 int totalAmount = (int) Math.round(game.getBetAmount() * calculateMultiplier(game));
                 UserRepository.updateUserBalance(userName, userBalance + totalAmount);
-                MessageService.sendMessage(userName + " has cashed out! You won " + totalAmount + "!" + "Current balance: " + (userBalance + totalAmount));
+                MessageService.sendMessage(userName + " has cashed out! You won " + totalAmount + "!" + " Current balance: " + (userBalance + totalAmount));
             }
             MinesGameRepository.deleteGame(userName);
         }
@@ -241,6 +260,76 @@ public class MinesService {
         }
     
         return safeFields == totalSafeFields;
+    }
+
+    private static void revealMultipleFields(String userName, List<Integer> fields) {
+        MinesGame game = MinesGameRepository.getGameByUserName(userName);
+        if (game == null || !game.isGameInProgress()) {
+            MessageService.sendMessage(userName + " no game in progress.");
+            return;
+        }
+    
+        String gameStatus = null;
+    
+        for (int fieldNumber : fields) {
+            int fieldIndex = fieldNumber - 1;
+            if (fieldIndex < 0 || fieldIndex >= BOARD_SIZE * BOARD_SIZE) {
+                MessageService.sendMessage(userName + " invalid field number: " + fieldNumber);
+                continue;
+            }
+    
+            int row = fieldIndex / BOARD_SIZE;
+            int col = fieldIndex % BOARD_SIZE;
+    
+            if (game.getRevealedBoard()[row][col]) {
+                MessageService.sendMessage(userName + " field " + fieldNumber + " is already revealed.");
+                continue;
+            }
+    
+            game.getRevealedBoard()[row][col] = true;
+    
+            if (game.getBombBoard()[row][col]) {
+                endGame(userName, false, game);
+                gameStatus = "Game over!";
+                break;
+            }
+    
+            game.setRevealedFields(game.getRevealedFields() + 1);
+    
+            if (checkIfAllSafeFieldsRevealed(game)) {
+                int betAmount = game.getBetAmount();
+                Double multiplier = calculateMultiplier(game);
+                endGame(userName, true, game);
+                gameStatus = "You won " + (int) Math.round(multiplier * betAmount);
+                break;
+            }
+        }
+    
+            int betAmount = game.getBetAmount();
+            int totalBombs = game.getTotalBombs();
+            Double multiplier = calculateMultiplier(game);
+            int userBalance = UserRepository.getUserBalance(userName, false);
+    
+            MinesGameRepository.updateGame(game);
+    
+            List<String> status = List.of(
+                userName,
+                "Bet: " + betAmount,
+                "Reward: " + (int) Math.round(multiplier * betAmount),
+                "Bombs: " + totalBombs,
+                "Multiplier: " + multiplier
+            );
+    
+            MinesImageGenerator.generateMinesweeperImage(
+                game.getRevealedBoard(),
+                game.getBombBoard(),
+                userName,
+                status,
+                gameStatus,
+                userBalance
+            );
+    
+            MessageService.sendMessageFromClipboard(true);
     }
 
 }
