@@ -5,8 +5,21 @@ import repository.UserRepository;
 import repository.UserSkinRepository;
 
 import java.util.List;
+import java.util.Map;
 
 public class SkinsService {
+
+    private static final Map<String, Integer> SKIN_PRICES = Map.of(
+        "red_flame", 10,
+        "green_forest", 10,
+        "blue_ocean", 10,
+        "sunny_yellow", 10,
+        "purple_dream", 10,
+        "fiery_orange", 10,
+        "pink_blossom", 10,
+        "crimson_sunset", 50,
+        "lavender_haze", 50
+    );
 
     public static void handleSkinsCommand(CommandContext context) {
         String userName = context.getUserName();
@@ -65,30 +78,35 @@ public class SkinsService {
     }
 
     private static void handleBuyCommand(CommandContext context, String userName, String skinId) {
-
         if (skinId == null) {
             MessageService.sendMessage("Usage: skins buy <skin_id>");
             return;
         }
-    
+
         if (!isSkinAvailableInShop(skinId)) {
             MessageService.sendMessage("Skin " + skinId + " is not available in the shop.");
             return;
         }
-    
+
+        Integer skinPrice = SKIN_PRICES.get(skinId);
+        if (skinPrice == null) {
+            MessageService.sendMessage("Price for the skin is not defined.");
+            return;
+        }
+
         int userBalance = UserRepository.getUserBalance(userName, false);
-        int skinPrice = 10;
-    
+
         if (userBalance < skinPrice) {
             MessageService.sendMessage("You don't have enough coins to buy this skin.");
             return;
         }
-    
+
         boolean balanceUpdated = UserRepository.updateUserBalance(userName, (userBalance - skinPrice));
         if (!balanceUpdated) {
             MessageService.sendMessage("Failed to update user balance.");
             return;
         }
+
         boolean success = UserSkinRepository.assignSkinToUser(userName, skinId);
         if (success) {
             MessageService.sendMessage("You successfully bought the skin: " + skinId);
@@ -98,23 +116,16 @@ public class SkinsService {
     }
 
     private static void handleShopCommand(CommandContext context) {
-        String[] skins = {
-            "red_flame - 10 coins",
-            "green_forest - 10 coins",
-            "blue_ocean - 10 coins",
-            "sunny_yellow - 10 coins",
-            "purple_dream - 10 coins",
-            "fiery_orange - 10 coins",
-            "pink_blossom - 10 coins"
-        };
-    
-        String availableSkins = String.join(", ", skins);
-        MessageService.sendMessage("Available skins in the shop: " + availableSkins);
+        StringBuilder availableSkins = new StringBuilder("Available skins in the shop:\n");
+        
+        SKIN_PRICES.forEach((skin, price) -> {
+            availableSkins.append(skin).append(" (").append(price).append(" coins) | ");
+        });
+        
+        MessageService.sendMessage(availableSkins.toString().substring(0, availableSkins.length() - 3));
     }
 
     private static boolean isSkinAvailableInShop(String skinId) {
-        List<String> availableSkins = List.of("red_flame", "green_forest", "blue_ocean", "sunny_yellow", "purple_dream", "fiery_orange", "pink_blossom");
-        
-        return availableSkins.contains(skinId);
+        return SKIN_PRICES.containsKey(skinId);
     }
 }

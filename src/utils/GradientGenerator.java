@@ -121,7 +121,13 @@ public class GradientGenerator {
     
             case "pink_blossom":
                 return new GradientPaint(0, 0, new Color(255, 182, 193), width, height, new Color(255, 105, 180));
-    
+            
+            case "crimson_sunset":
+                    return new GradientPaint(0, 0, new Color(255, 50, 50), width / 2, height / 2, new Color(255, 255, 0));
+                
+            case "lavender_haze":
+                    return new GradientPaint(0, 0, new Color(240, 220, 255), width / 2, height / 2, new Color(70, 50, 200));
+            
             default:
                 return new GradientPaint(0, 0, new Color(200, 200, 200), width, height, new Color(255, 255, 255));
         }
