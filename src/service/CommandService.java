@@ -17,6 +17,7 @@ import model.CommandContext;
 public class CommandService {
     
     private static int dailyRewardPrize = ConfigReader.getDailyRewardPrize();
+    private static int hourlyRewardPrize = ConfigReader.getDailyRewardPrize();
     private static int coinFlipAmount = 0;
     private static String coinFlipCurrentPlayer = "";
 
@@ -154,7 +155,6 @@ public class CommandService {
 
         try {
             int currentBalance = UserRepository.getUserBalance(userName, true);
-            int hourlyRewardPrize = 5;
             int newBalance = currentBalance + hourlyRewardPrize;
 
             UserRepository.updateUserBalance(userName, newBalance);

@@ -146,11 +146,15 @@ public class ConfigReader {
     }
 
     public static int getMathQuestionPrize() {
-        return getPropertyInt("math_question_prize", 10);
+        return getPropertyInt("math_question_prize", 20);
     }
 
     public static int getDailyRewardPrize() {
-        return getPropertyInt("daily_reward_prize", 10);
+        return getPropertyInt("daily_reward_prize", 20);
+    }
+
+    public static int getHourlyRewardPrize() {
+        return getPropertyInt("hourly_reward_prize", 30);
     }
 
     public static String getFirstCookiesButtonId() {
