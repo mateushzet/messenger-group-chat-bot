@@ -74,10 +74,10 @@ public class RouletteService {
 
         UserRepository.updateUserBalance(userName, updatedBalance);
 
-        RouletteImageGenerator.generateImage(randomNumber, winAmount, updatedBalance, userName, amount, rouletteHistory);
-        MessageService.sendMessageFromClipboard(false);
-
         GameHistoryRepository.addGameHistory(userName, "Roulette", context.getFullCommand(), amount, winAmount, "Result: " + randomNumber);
+
+        RouletteImageGenerator.generateImage(randomNumber, winAmount, updatedBalance, userName, amount, GameHistoryRepository.getGameHistory(13, "Roulette"));
+        MessageService.sendMessageFromClipboard(false);
 
         //MessageService.sendMessage(resultMessage);
 

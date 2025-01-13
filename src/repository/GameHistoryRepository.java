@@ -2,10 +2,15 @@ package repository;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import database.DatabaseConnectionManager;
 import model.GameHistory;
+import utils.Logger;
 
 public class GameHistoryRepository {
 
@@ -64,4 +69,37 @@ public class GameHistoryRepository {
 
         return history;
     }
+
+    public static Queue<Integer> getGameHistory(int limit, String game) {
+        String query = "SELECT note FROM game_history WHERE game_type = ? ORDER BY created_at DESC LIMIT ?";
+        List<String> notes = new ArrayList<>();
+        Queue<Integer> queue = new LinkedList<>();
+    
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+    
+            statement.setString(1, game);
+            statement.setInt(2, limit);
+    
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    notes.add(resultSet.getString("note"));
+                }
+            }
+        } catch (SQLException e) {
+            Logger.logError("Error while fetching recent notes", "GameHistoryRepository.getGameHistory()", e);
+        }
+    
+        Pattern pattern = Pattern.compile("Result:\\s*(\\d+)");
+        for (int i = notes.size() - 1; i >= 0; i--) {
+            String note = notes.get(i);
+            Matcher matcher = pattern.matcher(note);
+            if (matcher.find()) {
+                queue.add(Integer.parseInt(matcher.group(1)));
+            }
+        }
+    
+        return queue;
+    }
+
 }

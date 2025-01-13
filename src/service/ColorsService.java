@@ -15,7 +15,6 @@ import utils.Logger;
 public class ColorsService {
 
     private static final int colorsAccessCost = ConfigReader.getColorsAccessCost();
-    private static final Queue<Integer> colorsHistory = new LinkedList<>();
 
     public static void handleColorsCommand(CommandContext context) {
         String playerName = context.getUserName();
@@ -48,13 +47,11 @@ public class ColorsService {
     
         int updatedBalance = currentBalance + balanceChange;
         UserRepository.updateUserBalance(playerName, updatedBalance);
-    
-        storeColorsColor(resultColorNumber);
 
         if (winnings <= 0) winnings = balanceChange;
 
         GameHistoryRepository.addGameHistory(playerName, "Colors", context.getFullCommand(), betAmount, winnings, "Result: " + resultColorNumber);
-        ColorsImageGenerator.generateColorsImage(winnings, playerName, updatedBalance, result, betAmount, colorsHistory);
+        ColorsImageGenerator.generateColorsImage(winnings, playerName, updatedBalance, result, betAmount, GameHistoryRepository.getGameHistory(16, "Colors"));
         MessageService.sendMessageFromClipboard(false);
     }
     
@@ -188,10 +185,4 @@ public class ColorsService {
         }
     }
 
-    private static void storeColorsColor(int colorNumber) {
-        if (colorsHistory.size() >= 17) {
-            colorsHistory.poll();
-        }
-        colorsHistory.offer(colorNumber);
-    }
 }
