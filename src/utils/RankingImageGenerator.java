@@ -16,11 +16,8 @@ public class RankingImageGenerator {
 
         Graphics2D g = image.createGraphics();
 
-        Color color1 = generateColorFromUsername(reguesterName, 1);
-        Color color2 = generateColorFromUsername(reguesterName, 2);
-    
-        GradientPaint gradient = new GradientPaint(0, 0, color1, imageWidth, imageHeight, color2);
-
+        GradientPaint gradient = GradientGenerator.generateGradientFromUsername(reguesterName, false, imageWidth, imageHeight);
+        
         g.setPaint(gradient);
         g.fillRect(0, 0, imageWidth, imageHeight);
 
@@ -85,26 +82,6 @@ public class RankingImageGenerator {
             }
             return image;
         }
-    }
-
-    private static Color generateColorFromUsername(String username, int seed) {
-        int hash = (username + seed).hashCode();
-        int colorComponent1 = (hash >>> 16) & 0xFF;
-        int colorComponent2 = (hash >>> 8) & 0xFF;
-        int colorComponent3 = (hash) & 0xFF;
-    
-        int red1 = Math.min((colorComponent1 * 2) % 256 + 100, 255);
-        int green1 = Math.min((colorComponent2 * 2) % 256 + 100, 255);
-        int blue1 = Math.min((colorComponent3 * 2) % 256 + 100, 255);
-    
-        int red2 = Math.min((colorComponent1 + 50) % 256 + 100, 255);
-        int green2 = Math.min((colorComponent2 + 100) % 256 + 100, 255);
-        int blue2 = Math.min((colorComponent3 + 150) % 256 + 100, 255);
-    
-        Color color1 = new Color(red1, green1, blue1);
-        Color color2 = new Color(red2, green2, blue2);
-    
-        return seed == 1 ? color1 : color2;
     }
 
 }

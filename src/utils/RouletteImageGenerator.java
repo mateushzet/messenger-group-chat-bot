@@ -32,11 +32,7 @@ public static void generateImage(int result, int winnings, int balance, String u
     BufferedImage image = new BufferedImage(600, 646, BufferedImage.TYPE_INT_RGB);
     Graphics2D g = image.createGraphics();
 
-
-   Color color1 = generateColorFromUsername(username, 1);
-   Color color2 = generateColorFromUsername(username, 2);
-
-   GradientPaint gradient = new GradientPaint(0, 0, color1, 600, 600, color2);
+   GradientPaint gradient = GradientGenerator.generateGradientFromUsername(username, false, 600, 600);
 
    g.setPaint(gradient);
    g.fillRect(0, 0, 600, 600);
@@ -212,35 +208,6 @@ private static class TransferableImage implements Transferable {
         }
         return image;
     }
-}
-
-private static Color generateColorFromUsername(String username, int seed) {
-
-    int hash = (username + seed).hashCode();
-    int colorComponent1 = (hash >>> 16) & 0xFF;
-    int colorComponent2 = (hash >>> 8) & 0xFF;
-    int colorComponent3 = (hash) & 0xFF;
-
-    int red1 = (colorComponent1 * 2) % 256;
-    int green1 = (colorComponent2 * 2) % 256;
-    int blue1 = (colorComponent3 * 2) % 256;
-
-    int red2 = (colorComponent1 + 50) % 256;
-    int green2 = (colorComponent2 + 100) % 256;
-    int blue2 = (colorComponent3 + 150) % 256;
-
-    red1 = red1 / 2;
-    green1 = green1 / 2;
-    blue1 = blue1 / 2;
-
-    red2 = red2 / 2;
-    green2 = green2 / 2;
-    blue2 = blue2 / 2;
-
-    Color color1 = new Color(red1, green1, blue1);
-    Color color2 = new Color(red2, green2, blue2);
-
-    return seed == 1 ? color1 : color2;
 }
 
 }
