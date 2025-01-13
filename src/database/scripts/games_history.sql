@@ -1,9 +1,11 @@
-CREATE TABLE IF NOT EXISTS games_history (
+CREATE TABLE game_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
+    user_name TEXT NOT NULL,
     game_type VARCHAR(50) NOT NULL,
-    result_amount INT NOT NULL,
     bet_command VARCHAR(100) NOT NULL,
+    bet_amount INTEGER NOT NULL,
+    result_amount INT NOT NULL,
+    note VARCHAR(100) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id)
+    FOREIGN KEY (user_name) REFERENCES users(user_name)
 );

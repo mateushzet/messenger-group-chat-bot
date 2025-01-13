@@ -1,6 +1,7 @@
 package service;
 
 import repository.CoinflipRepository;
+import repository.GameHistoryRepository;
 import repository.UserRepository;
 import utils.CoinflipGamesImageGenerator;
 import utils.Logger;
@@ -42,10 +43,10 @@ public class CoinflipService {
                 return;
             }
 
-            boolean success = CoinflipRepository.addCoinflipGame(username, coinFlipAmount);
-            if (success) {
+            Integer gameId = CoinflipRepository.addCoinflipGame(username, coinFlipAmount);
+            if (gameId != null) {
                 UserRepository.updateUserBalance(username, userBalance - coinFlipAmount);
-                MessageService.sendMessage("%s has started a coinflip with a bet of %d.", username, coinFlipAmount);
+                MessageService.sendMessage("%s has started a coinflip with a bet of %d and ID: %d", username, coinFlipAmount, gameId);
             } else {
                 MessageService.sendMessage("Failed to start the coinflip");
             }
@@ -73,10 +74,19 @@ public class CoinflipService {
 
         String opponent = game.getPlayer1Username();
         int result = new Random().nextInt(2);
-        String winner = result == 1 ? username : opponent;
+        String winner;
+        if(result == 1){
+            winner = username;
+            GameHistoryRepository.addGameHistory(opponent, "Coinflip", context.getFullCommand(), betAmount, -betAmount, "Result: " + result);
+            GameHistoryRepository.addGameHistory(username, "Coinflip", context.getFullCommand(), betAmount, betAmount, "Result: " + result);
+        } else {
+            winner = opponent;
+            GameHistoryRepository.addGameHistory(opponent, "Coinflip", context.getFullCommand(), betAmount, betAmount, "Result: " + result);
+            GameHistoryRepository.addGameHistory(username, "Coinflip", context.getFullCommand(), betAmount, -betAmount, "Result: " + result);
+        }
         CoinflipRepository.updateGameResult(gameIdParsed, winner);
         UserRepository.updateUserBalance(winner, UserRepository.getUserBalance(winner, false) + betAmount);
-        MessageService.sendMessage("%s won the coinflip!", winner);
+        MessageService.sendMessage("%s won %d in the coinflip battle!", winner, betAmount);
     }
 
     private static void handleCancelCommand(CommandContext context, String username, int userBalance) {

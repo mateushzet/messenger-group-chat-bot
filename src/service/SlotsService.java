@@ -8,6 +8,7 @@ import utils.Logger;
 import utils.SlotsImageGenerator;
 import repository.SlotsRepository;
 import repository.UserRepository;
+import repository.GameHistoryRepository;
 import repository.JackpotRepository;
 
 public class SlotsService {
@@ -36,7 +37,7 @@ public class SlotsService {
 
         if (validateSlotsGame(playerName, betAmount, currentBalance)) {
             int betAmountInt = Integer.parseInt(betAmount);
-            playSlots(playerName, betAmountInt, currentBalance);
+            playSlots(playerName, betAmountInt, currentBalance, context);
         }
     }
 
@@ -98,7 +99,7 @@ public class SlotsService {
         }
     }
 
-    private static void playSlots(String playerName, int betAmount, int currentBalance) {
+    private static void playSlots(String playerName, int betAmount, int currentBalance, CommandContext context) {
         int newBalance = currentBalance - betAmount;
         UserRepository.updateUserBalance(playerName, newBalance);
         Logger.logInfo("%s placed a bet of %d coins. New balance: %d", "SlotsService.playSlots()", playerName, betAmount, newBalance);
@@ -122,10 +123,12 @@ public class SlotsService {
         if (winnings > 0) {
             //MessageService.sendMessage(playerName + " won " + winnings + " coins! New balance: " + newBalance);
             Logger.logInfo("%s won %d coins. New balance: %d", "SlotsService.playSlots()", playerName, winnings, newBalance);
+            GameHistoryRepository.addGameHistory(playerName, "Slots", context.getFullCommand(), betAmount, winnings, "Result: " + result[0] + "-" + result[1] + "-" + result[2]);
         } else {
             JackpotRepository.addToJackpotPool(betAmount);
             //MessageService.sendMessage(playerName + " lost the bet. New balance: " + newBalance);
             Logger.logInfo("%s lost the bet. New balance: %d", "SlotsService.playSlots()", playerName, newBalance);
+            GameHistoryRepository.addGameHistory(playerName, "Slots", context.getFullCommand(), betAmount, winnings, "Result: " + result[0] + "-" + result[1] + "-" + result[2]);
         }
 
         int jackpotAmount = JackpotRepository.getJackpot();

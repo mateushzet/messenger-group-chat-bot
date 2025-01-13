@@ -65,4 +65,8 @@ public class CommandContext {
     public String getUserName() {
         return this.userName;
     }
+
+    public String getFullCommand() {
+        return this.command + arguments.toString();
+    }
 }

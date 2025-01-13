@@ -6,6 +6,7 @@ import java.util.Random;
 
 import model.CommandContext;
 import repository.ColorsRepository;
+import repository.GameHistoryRepository;
 import repository.UserRepository;
 import utils.ColorsImageGenerator;
 import utils.ConfigReader;
@@ -45,14 +46,16 @@ public class ColorsService {
         balanceChange = betResult[1];
         betAmount = betResult[2];
     
-            int updatedBalance = currentBalance + balanceChange;
-            UserRepository.updateUserBalance(playerName, updatedBalance);
+        int updatedBalance = currentBalance + balanceChange;
+        UserRepository.updateUserBalance(playerName, updatedBalance);
     
-            storeColorsColor(resultColorNumber);
+        storeColorsColor(resultColorNumber);
 
-            if (winnings <= 0) winnings = balanceChange;
-            ColorsImageGenerator.generateColorsImage(winnings, playerName, updatedBalance, result, betAmount, colorsHistory);
-            MessageService.sendMessageFromClipboard(false);
+        if (winnings <= 0) winnings = balanceChange;
+
+        GameHistoryRepository.addGameHistory(playerName, "Colors", context.getFullCommand(), betAmount, winnings, "Result: " + resultColorNumber);
+        ColorsImageGenerator.generateColorsImage(winnings, playerName, updatedBalance, result, betAmount, colorsHistory);
+        MessageService.sendMessageFromClipboard(false);
     }
     
     private static int[] handleMultiColorBet(CommandContext context, int currentBalance, int resultColorNumber) {
@@ -98,7 +101,7 @@ public class ColorsService {
     
         int betAmountParsed = parseBetAmount(betAmount);
         if (betAmountParsed == Integer.MIN_VALUE || betAmountParsed <= 0) {
-            MessageService.sendMessage("Invalid bet amount. Please enter a valid number greater than 0. /bot colors amountColor");
+            MessageService.sendMessage("Invalid bet amount. Please enter a valid number greater than 0. /bot colors amount color");
             return null; 
         }
     

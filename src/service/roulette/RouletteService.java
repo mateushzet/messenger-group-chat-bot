@@ -1,6 +1,7 @@
 package service.roulette;
 
 import service.EmojiService;
+import repository.GameHistoryRepository;
 import repository.UserRepository;
 import service.MessageService;
 import utils.ConfigReader;
@@ -61,10 +62,10 @@ public class RouletteService {
 
         storeNumberColor(randomNumber);
 
-        processRouletteOutcome(fieldParsed, randomNumber, amountInteger, userBalance, userName);
+        processRouletteOutcome(fieldParsed, randomNumber, amountInteger, userBalance, userName, context);
     }
 
-    public static void processRouletteOutcome(int field, int randomNumber, int amount, int userBalance, String userName) {
+    public static void processRouletteOutcome(int field, int randomNumber, int amount, int userBalance, String userName, CommandContext context) {
         //String resultMessage = RouletteResultProcessor.generateResultMessage(field, randomNumber, amount);
         int winAmount = RouletteResultProcessor.calculateBalanceChange(field, randomNumber, amount);
         int updatedBalance = winAmount + userBalance;
@@ -75,6 +76,8 @@ public class RouletteService {
 
         RouletteImageGenerator.generateImage(randomNumber, winAmount, updatedBalance, userName, amount, rouletteHistory);
         MessageService.sendMessageFromClipboard(false);
+
+        GameHistoryRepository.addGameHistory(userName, "Roulette", context.getFullCommand(), amount, winAmount, "Result: " + randomNumber);
 
         //MessageService.sendMessage(resultMessage);
 

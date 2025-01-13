@@ -1,6 +1,7 @@
 package service;
 
 import repository.UserRepository;
+import repository.GameHistoryRepository;
 import repository.MinesGameRepository;
 import model.CommandContext;
 import model.MinesGame;
@@ -26,7 +27,7 @@ public class MinesService {
         }
 
         if (firstArg.equalsIgnoreCase("cashout")) {
-            handleCashout(userName);
+            handleCashout(userName, context);
             return;
         }
 
@@ -51,7 +52,7 @@ public class MinesService {
                 for (String field : fieldNumbers) {
                     fieldsToReveal.add(Integer.parseInt(field.trim()));
                 }
-                revealMultipleFields(userName, fieldsToReveal);
+                revealMultipleFields(userName, fieldsToReveal, context);
             } catch (NumberFormatException e) {
                 MessageService.sendMessage(userName + " invalid field numbers. Please provide valid numbers separated by commas.");
             }
@@ -64,7 +65,7 @@ public class MinesService {
             if (userName.equals(currentPlayer)) {
                 try {
                     int fieldNumber = Integer.parseInt(firstArg);
-                    revealField(userName, fieldNumber);
+                    revealField(userName, fieldNumber, context);
                 } catch (NumberFormatException e) {
                     MessageService.sendMessage(userName + " invalid field number. Please provide a valid number.");
                 }
@@ -151,7 +152,7 @@ public class MinesService {
         }
     }
 
-    private static void revealField(String userName, int fieldNumber) {
+    private static void revealField(String userName, int fieldNumber, CommandContext context) {
 
         String gameStatus = null;
 
@@ -176,26 +177,22 @@ public class MinesService {
         }
     
         game.getRevealedBoard()[row][col] = true;
-    
-        if (game.getBombBoard()[row][col]) {
-            endGame(userName, false, game);
-            gameStatus = "Game over!";
-        }
-    
-        if (checkIfAllSafeFieldsRevealed(game)) {
-            int betAmount = game.getBetAmount();
-            Double multiplier = calculateMultiplier(game);
-            endGame(userName, true, game);
-            gameStatus = "You won " + (int) Math.round(multiplier * betAmount);
-        }
-
         int revealedFields = game.getRevealedFields();
         game.setRevealedFields(revealedFields + 1);
-
         int betAmount = game.getBetAmount();
         int totalBombs = game.getTotalBombs();
         Double multiplier = calculateMultiplier(game);
         int userBalance = UserRepository.getUserBalance(userName, false);
+
+        if (game.getBombBoard()[row][col]) {
+            endGame(userName, false, game, context);
+            gameStatus = "Game over!";
+        }
+    
+        if (checkIfAllSafeFieldsRevealed(game)) {
+            endGame(userName, true, game, context);
+            gameStatus = "You won " + (int) Math.round(multiplier * betAmount);
+        }
 
         MinesGameRepository.updateGame(game);
 
@@ -205,14 +202,16 @@ public class MinesService {
         MessageService.sendMessageFromClipboard(true);
     }
 
-    private static void endGame(String userName, boolean win, MinesGame game) {
+    private static void endGame(String userName, boolean win, MinesGame game, CommandContext context) {
         if (game != null) {
             if (win) {
                 int userBalance = UserRepository.getUserBalance(userName, true);
                 int totalAmount = (int) Math.round(game.getBetAmount() * calculateMultiplier(game));
                 UserRepository.updateUserBalance(userName, userBalance + totalAmount);
                 MessageService.sendMessage(userName + " has cashed out " + totalAmount + "!" + " Current balance: " + (userBalance + totalAmount));
+                GameHistoryRepository.addGameHistory(userName, "Mines", context.getFullCommand(), game.getBetAmount(), totalAmount, "Bombs: " + booleanArrayToString(game.getBombBoard()) + " RevealedFields: " + booleanArrayToString(game.getRevealedBoard()));
             }
+            GameHistoryRepository.addGameHistory(userName, "Mines", context.getFullCommand(), game.getBetAmount(), -game.getBetAmount(), "Bombs: " + booleanArrayToString(game.getBombBoard()) + " RevealedFields: " + booleanArrayToString(game.getRevealedBoard()));
             MinesGameRepository.deleteGame(userName);
         }
     }
@@ -234,14 +233,13 @@ public class MinesService {
     }
     
 
-    private static void handleCashout(String userName) {
+    private static void handleCashout(String userName, CommandContext context) {
         MinesGame game = MinesGameRepository.getGameByUserName(userName);
         if (game == null || !game.isGameInProgress()) {
             MessageService.sendMessage(userName + " you don't have an active game to cash out from.");
             return;
         }
-    
-        endGame(userName, true, game);
+        endGame(userName, true, game, context);
     }
 
     private static boolean checkIfAllSafeFieldsRevealed(MinesGame game) {
@@ -262,7 +260,7 @@ public class MinesService {
         return safeFields == totalSafeFields;
     }
 
-    private static void revealMultipleFields(String userName, List<Integer> fields) {
+    private static void revealMultipleFields(String userName, List<Integer> fields, CommandContext context) {
         MinesGame game = MinesGameRepository.getGameByUserName(userName);
         if (game == null || !game.isGameInProgress()) {
             MessageService.sendMessage(userName + " no game in progress.");
@@ -289,7 +287,7 @@ public class MinesService {
             game.getRevealedBoard()[row][col] = true;
     
             if (game.getBombBoard()[row][col]) {
-                endGame(userName, false, game);
+                endGame(userName, false, game, context);
                 gameStatus = "Game over!";
                 break;
             }
@@ -299,7 +297,7 @@ public class MinesService {
             if (checkIfAllSafeFieldsRevealed(game)) {
                 int betAmount = game.getBetAmount();
                 Double multiplier = calculateMultiplier(game);
-                endGame(userName, true, game);
+                endGame(userName, true, game, context);
                 gameStatus = "You won " + (int) Math.round(multiplier * betAmount);
                 break;
             }
@@ -330,6 +328,27 @@ public class MinesService {
             );
     
             MessageService.sendMessageFromClipboard(true);
+    }
+
+
+
+    // Convert boolean[][] to String
+    public static String booleanArrayToString(boolean[][] array) {
+        String ROW_DELIMITER = ";";
+        String COL_DELIMITER = ",";
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < array.length; i++) {
+            for (int j = 0; j < array[i].length; j++) {
+                builder.append(array[i][j] ? "1" : "0"); // Use 1 for true, 0 for false
+                if (j < array[i].length - 1) {
+                    builder.append(COL_DELIMITER);
+                }
+            }
+            if (i < array.length - 1) {
+                builder.append(ROW_DELIMITER);
+            }
+        }
+        return builder.toString();
     }
 
 }

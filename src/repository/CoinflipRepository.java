@@ -14,22 +14,29 @@ import utils.Logger;
 
 public class CoinflipRepository {
 
-    public static boolean addCoinflipGame(String player1Username, int betAmount) {
+    public static Integer addCoinflipGame(String player1Username, int betAmount) {
         String query = "INSERT INTO coinflip_games (player1_username, bet_amount, game_status) " +
                        "VALUES (?, ?, 'open')";
-
+    
         try (Connection connection = DatabaseConnectionManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(query)) {
-
+             PreparedStatement statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+    
             statement.setString(1, player1Username);
             statement.setInt(2, betAmount);
             int rowsAffected = statement.executeUpdate();
-            
-            return rowsAffected > 0;
+    
+            if (rowsAffected > 0) {
+                try (ResultSet generatedKeys = statement.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        return generatedKeys.getInt(1);
+                    }
+                }
+            }
         } catch (SQLException e) {
             Logger.logError("Error while creating coinflip game for user: %s, bet amount: %d", "CoinflipRepository.addCoinflipGame()", e, player1Username, betAmount);
-            return false;
         }
+    
+        return null;
     }
 
     public static boolean updateGameResult(int gameId, String winnerUsername) {
