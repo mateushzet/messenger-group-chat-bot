@@ -9,16 +9,14 @@ import utils.Logger;
 
 public class UserSkinRepository {
     public static boolean assignSkinToUser(String username, String skinId) {
-        String query = "INSERT INTO user_skins (user_name, skin_id) VALUES (?, ?) " +
-                       "ON CONFLICT(user_name) DO UPDATE SET skin_id = ?";
-
+        String query = "INSERT INTO user_skins (user_name, skin_id) VALUES (?, ?)";
+    
         try (Connection connection = DatabaseConnectionManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
-
+    
             statement.setString(1, username);
             statement.setString(2, skinId);
-            statement.setString(3, skinId);
-
+    
             int rowsAffected = statement.executeUpdate();
             return rowsAffected > 0;
         } catch (SQLException e) {
@@ -48,7 +46,7 @@ public class UserSkinRepository {
     }
 
     public static String getActiveSkinForUser(String username) {
-        String query = "SELECT skin_id FROM user_skins WHERE user_name = ? AND is_current = 1";
+        String query = "SELECT skin_id FROM user_skins WHERE user_name = ? AND is_active = 1";
         try (Connection connection = DatabaseConnectionManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
     
@@ -66,8 +64,8 @@ public class UserSkinRepository {
     }
 
     public static boolean updateActiveSkinForUser(String username, String skinId) {
-        String updateQuery = "UPDATE user_skins SET is_current = 0 WHERE user_name = ? AND is_current = 1";
-        String setActiveQuery = "UPDATE user_skins SET is_current = 1 WHERE user_name = ? AND skin_id = ?";
+        String updateQuery = "UPDATE user_skins SET is_active = 0 WHERE user_name = ? AND is_active = 1";
+        String setActiveQuery = "UPDATE user_skins SET is_active = 1 WHERE user_name = ? AND skin_id = ?";
     
         try (Connection connection = DatabaseConnectionManager.getConnection()) {
             try (PreparedStatement statement = connection.prepareStatement(updateQuery)) {

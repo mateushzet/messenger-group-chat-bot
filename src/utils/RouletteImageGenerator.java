@@ -12,9 +12,6 @@ import java.awt.geom.Arc2D;
 import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
 
-
-
-
 public class RouletteImageGenerator  {
 
     private static final Color DARK_GRAY = new Color(25, 25, 25);
