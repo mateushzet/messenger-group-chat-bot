@@ -127,7 +127,7 @@ public class UserRepository {
         return -1;
     }
 
-    public static void updateUserBalance(String userName, int newBalance) {
+    public static boolean updateUserBalance(String userName, int newBalance) {
         String query = "UPDATE users SET account_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE username = ?";
         try (Connection connection = DatabaseConnectionManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
@@ -136,8 +136,10 @@ public class UserRepository {
             statement.setString(2, userName);
             statement.executeUpdate();
             Logger.logInfo("User balance updated: %s = %d", "UserRepository.updateUserBalance()", userName, newBalance);
+            return true;
         } catch (SQLException e) {
             Logger.logError("Error while updating user balance for user: %s", "UserRepository.updateUserBalance()", e, userName);
+            return false;
         }
     }
 

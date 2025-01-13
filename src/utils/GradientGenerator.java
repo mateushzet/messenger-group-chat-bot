@@ -17,9 +17,9 @@ public class GradientGenerator {
 
     public static GradientPaint generateGradientFromUsername(String username, boolean isDark, int width, int height) {
 
-        String skinId = UserSkinRepository.getSkinForUser(username);
+        String skinId = UserSkinRepository.getActiveSkinForUser(username);
         
-        if (skinId != null) {
+        if (skinId != null && skinId != "default") {
             return getGradientForSkin(skinId, width, height);
         }
         
@@ -59,9 +59,9 @@ public class GradientGenerator {
 
     public static GradientPaint generateGradientFromUsername(String username, boolean isDark, int width, int height, int x, int y) {
 
-        String skinId = UserSkinRepository.getSkinForUser(username);
+        String skinId = UserSkinRepository.getActiveSkinForUser(username);
         
-        if (skinId != null) {
+        if (skinId != null && skinId != "default") {
             return getGradientForSkin(skinId, width, height);
         }
         
@@ -101,12 +101,27 @@ public class GradientGenerator {
 
     private static GradientPaint getGradientForSkin(String skinId, int width, int height) {
         switch (skinId) {
-            case "skin1":
+            case "red_flame":
                 return new GradientPaint(0, 0, new Color(255, 100, 100), width, height, new Color(255, 0, 0));
-            case "skin2":
+    
+            case "green_forest":
                 return new GradientPaint(0, 0, new Color(100, 255, 100), width, height, new Color(0, 255, 0));
-            case "skin3":
+    
+            case "blue_ocean":
                 return new GradientPaint(0, 0, new Color(100, 100, 255), width, height, new Color(0, 0, 255));
+    
+            case "sunny_yellow":
+                return new GradientPaint(0, 0, new Color(255, 255, 100), width, height, new Color(255, 255, 0));
+    
+            case "purple_dream":
+                return new GradientPaint(0, 0, new Color(200, 100, 255), width, height, new Color(100, 0, 255));
+    
+            case "fiery_orange":
+                return new GradientPaint(0, 0, new Color(255, 150, 50), width, height, new Color(255, 100, 0));
+    
+            case "pink_blossom":
+                return new GradientPaint(0, 0, new Color(255, 182, 193), width, height, new Color(255, 105, 180));
+    
             default:
                 return new GradientPaint(0, 0, new Color(200, 200, 200), width, height, new Color(255, 255, 255));
         }

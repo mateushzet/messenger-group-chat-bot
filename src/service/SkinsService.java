@@ -1,0 +1,120 @@
+package service;
+
+import model.CommandContext;
+import repository.UserRepository;
+import repository.UserSkinRepository;
+
+import java.util.List;
+
+public class SkinsService {
+
+    public static void handleSkinsCommand(CommandContext context) {
+        String userName = context.getUserName();
+        String firstArg = context.getFirstArgument();
+        String secondArg = context.getSecondArgument();
+        
+        if (firstArg == null) {
+            MessageService.sendMessage("Available commands: set, list, buy, shop");
+            return;
+        }
+
+        switch (firstArg.toLowerCase()) {
+            case "set":
+                handleSetCommand(context, userName, secondArg);
+                break;
+
+            case "list":
+                handleListCommand(context, userName);
+                break;
+
+            case "buy":
+                handleBuyCommand(context, userName, secondArg);
+                break;
+
+            case "shop":
+                handleShopCommand(context);
+                break;
+
+            default:
+                MessageService.sendMessage("Unknown command. Available commands: set, list, buy, shop");
+                break;
+        }
+    }
+
+    public static void handleSetCommand(CommandContext context, String userName, String skinId) {
+        if (skinId == null) {
+            MessageService.sendMessage("Usage: skins set <skin_id>");
+            return;
+        }
+    
+        boolean success = UserSkinRepository.updateActiveSkinForUser(userName, skinId);
+        if (success) {
+            MessageService.sendMessage("Skin set successfully to: " + skinId);
+        } else {
+            MessageService.sendMessage("Failed to set skin. Please ensure you own the skin.");
+        }
+    }
+
+    private static void handleListCommand(CommandContext context, String userName) {
+        List<String> userSkins = UserSkinRepository.getAllSkinsForUser(userName);
+        if (userSkins.isEmpty()) {
+            MessageService.sendMessage("You don't own any skins.");
+        } else {
+            MessageService.sendMessage("Your skins: " + String.join(", ", userSkins));
+        }
+    }
+
+    private static void handleBuyCommand(CommandContext context, String userName, String skinId) {
+
+        if (skinId == null) {
+            MessageService.sendMessage("Usage: skins buy <skin_id>");
+            return;
+        }
+    
+        if (!isSkinAvailableInShop(skinId)) {
+            MessageService.sendMessage("Skin " + skinId + " is not available in the shop.");
+            return;
+        }
+    
+        int userBalance = UserRepository.getUserBalance(userName, false);
+        int skinPrice = 10;
+    
+        if (userBalance < skinPrice) {
+            MessageService.sendMessage("You don't have enough coins to buy this skin.");
+            return;
+        }
+    
+        boolean balanceUpdated = UserRepository.updateUserBalance(userName, (userBalance - skinPrice));
+        if (!balanceUpdated) {
+            MessageService.sendMessage("Failed to update user balance.");
+            return;
+        }
+        boolean success = UserSkinRepository.assignSkinToUser(userName, skinId);
+        if (success) {
+            MessageService.sendMessage("You successfully bought the skin: " + skinId);
+        } else {
+            MessageService.sendMessage("Failed to buy skin. You might already own it or something went wrong.");
+        }
+    }
+
+    private static void handleShopCommand(CommandContext context) {
+        String[] skins = {
+            "red_flame - 10 coins",
+            "green_forest - 10 coins",
+            "blue_ocean - 10 coins",
+            "sunny_yellow - 10 coins",
+            "purple_dream - 10 coins",
+            "fiery_orange - 10 coins",
+            "pink_blossom - 10 coins"
+        };
+    
+        String availableSkins = String.join(", ", skins);
+        MessageService.sendMessage("Available skins in the shop: " + availableSkins);
+    }
+
+    private static boolean isSkinAvailableInShop(String skinId) {
+        List<String> availableSkins = List.of("red_flame", "green_forest", "blue_ocean", "sunny_yellow", "purple_dream", "fiery_orange", "pink_blossom");
+        
+        return availableSkins.contains(skinId);
+    }
+}

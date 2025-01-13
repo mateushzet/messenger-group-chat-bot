@@ -38,8 +38,6 @@ public class MinesImageGenerator {
         g.setPaint(gradient);
         g.fillRect(0, 0, 220, 330);
 
-        GradientPaint gradientDark = GradientGenerator.generateGradientFromUsername(username, false, 220, 330);
-
         for (int row = 0; row < BOARD_SIZE; row++) {
             for (int col = 0; col < BOARD_SIZE; col++) {
 
@@ -70,7 +68,7 @@ public class MinesImageGenerator {
                         g.drawRect(x, y, TILE_SIZE, TILE_SIZE);
                     }
                 } else {
-                    GradientPaint darkGradient = GradientGenerator.generateGradientFromUsername(username, false, x + TILE_SIZE, y + TILE_SIZE, x, y);
+                    GradientPaint darkGradient = GradientGenerator.generateGradientFromUsername(username, true, x + TILE_SIZE, y + TILE_SIZE, x, y);
                     
                     g.setPaint(darkGradient);
                     g.fillRect(x, y, TILE_SIZE, TILE_SIZE);
