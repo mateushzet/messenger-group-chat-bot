@@ -126,7 +126,6 @@ public class ColorsImageGenerator {
                         g.dispose();
                 
                         setClipboardImage(image);
-                        System.out.println("Obraz skopiowany do schowka.");
                     }
                 
                     private static void drawHistory(Graphics2D g, Queue<Integer> colorHistory, int width, int height) {
