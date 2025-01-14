@@ -3,6 +3,8 @@ package utils;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 import database.DatabaseConnectionManager;
 
@@ -69,11 +71,18 @@ public class Logger {
         }
     }
 
-    public static void logError(String message, String source, Exception e, Object... params) {
-        try {
-            error(String.format(message, params) + " Exception: " + e.getMessage() + " Stack trace: " + e.getStackTrace(), source);
-        } catch (Exception e2) {
-            error("Logger failed to format log message. Error: " + e2.getMessage() + " Stack trace: " + e.getStackTrace(), source);
-        }
+public static void logError(String message, String source, Exception e, Object... params) {
+    try {
+        String formattedMessage = String.format(message, params);
+        String fullMessage = formattedMessage + " Exception: " + e.getMessage() + " Stack trace: " + Arrays.stream(e.getStackTrace())
+            .map(StackTraceElement::toString)
+            .collect(Collectors.joining("\n"));
+        error(fullMessage, source);
+    } catch (Exception e2) {
+        String errorMessage = "Logger failed to format log message. Error: " + e2.getMessage() + " Stack trace: " + Arrays.stream(e2.getStackTrace())
+            .map(StackTraceElement::toString)
+            .collect(Collectors.joining("\n"));
+        error(errorMessage, source);
     }
+}
 }
