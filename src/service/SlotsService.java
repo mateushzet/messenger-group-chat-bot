@@ -47,6 +47,9 @@ public class SlotsService {
             Logger.logInfo("%s attempted to play slots without access.", "SlotsService.validateSlotsGame()", playerName);
             return false;
         }
+        
+        int minimalBet = (int) (UserRepository.getTotalUserBalance(playerName) * 0.005);
+        if(minimalBet < 10) minimalBet = 10;
 
         try {
             int betAmountInt = Integer.parseInt(betAmount);
@@ -56,9 +59,9 @@ public class SlotsService {
                 return false;
             }
 
-            if (betAmountInt < 10) {
-                MessageService.sendMessage("Your bet amount must be at least 10 coins. Your current balance is: %d", currentBalance);
-                Logger.logInfo("Player %s attempted to place a bet of %d coins, which is less than the minimum required bet of 10 coins. Current balance: %d", "SlotsService.validateSlotsGame()", playerName, betAmountInt, currentBalance);
+            if (betAmountInt < minimalBet) {
+                MessageService.sendMessage("Your bet amount must be at least %d coins (0.5%% of total balance or 10 coins). Your current balance is: %d", minimalBet, currentBalance);
+                Logger.logInfo("Player %s attempted to place a bet of %d coins, which is less than the minimum required bet of %d coins. Current balance: %d", "SlotsService.validateSlotsGame()", playerName, betAmountInt, minimalBet, currentBalance);
                 return false;
             }
 
@@ -163,7 +166,7 @@ public class SlotsService {
         if (result[0] == (result[1]) || result[1] == (result[2]) || result[0] == (result[2])) {
             return 1.5;
         } else if ((result[0] == (3) || result[1] == (3) || result[2] == (3))) {
-            return 1.2;
+            return 1.1;
         }
 
         return 0;

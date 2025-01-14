@@ -183,4 +183,43 @@ public class UserRepository {
 
         return sortedUsers;
     }
+
+    public static int getTotalUserBalance(String userName) {
+        int totalBalance = 0;
+        int totalBetInMines = 0;
+        int totalBetInCoinflip = 0;
+    
+        try (Connection connection = DatabaseConnectionManager.getConnection()) {
+            String balanceQuery = "SELECT account_balance FROM users WHERE username = ?";
+            try (PreparedStatement balanceStatement = connection.prepareStatement(balanceQuery)) {
+                balanceStatement.setString(1, userName);
+                ResultSet balanceResult = balanceStatement.executeQuery();
+                if (balanceResult.next()) {
+                    totalBalance = balanceResult.getInt("account_balance");
+                }
+            }
+    
+            String minesBetQuery = "SELECT SUM(bet_amount) AS total_bet FROM mines_game WHERE user_name = ?";
+            try (PreparedStatement minesStatement = connection.prepareStatement(minesBetQuery)) {
+                minesStatement.setString(1, userName);
+                ResultSet minesResult = minesStatement.executeQuery();
+                if (minesResult.next()) {
+                    totalBetInMines = minesResult.getInt("total_bet");
+                }
+            }
+
+            String coinflipBetQuery = "SELECT SUM(bet_amount) AS total_bet FROM coinflip_games WHERE player1_username = ?";
+            try (PreparedStatement coinflipStatement = connection.prepareStatement(coinflipBetQuery)) {
+                coinflipStatement.setString(1, userName);
+                ResultSet coinflipResult = coinflipStatement.executeQuery();
+                if (coinflipResult.next()) {
+                    totalBetInCoinflip = coinflipResult.getInt("total_bet");
+                }
+            }
+        } catch (SQLException e) {
+            Logger.logError("Error while fetching user game stats", "SlotsService.getTotalUserGameStats()", e);
+        }
+    
+        return totalBalance + totalBetInMines + totalBetInCoinflip;
+    }
 }
