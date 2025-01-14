@@ -3,6 +3,7 @@ package service;
 import repository.UserRepository;
 import utils.Logger;
 
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 import model.MathQuestion;
@@ -52,6 +53,8 @@ public class MathQuestionService {
             if (mathQuestionRandomTime) {
                 // random minute
                 if (currentMinute == mathQuestionRandomMinute) {
+                    MessageService.isMathQuestionSolved = false;
+                    MessageService.mathQuestionAnswers.clear();
                     sendMathQuestion();
                     mathQuestionRandomMinute = setRandomMinute();
                     isQuestionSolved = false;
@@ -60,6 +63,8 @@ public class MathQuestionService {
                 }
             } else {
                 // full hour
+                MessageService.isMathQuestionSolved = false;
+                MessageService.mathQuestionAnswers.clear();
                 sendMathQuestion();
                 isQuestionSolved = false;
                 lastHour = currentHour;
@@ -71,6 +76,8 @@ public class MathQuestionService {
     private static void rewardUser(String userName) {
         int userBalance = UserRepository.getUserBalance(userName, true);
         UserRepository.updateUserBalance(userName, userBalance + mathQuestionPrize);
+        MessageService.isMathQuestionSolved = true;
+        MessageService.mathQuestionAnswers.clear();
         MessageService.sendMessage("%s correct answer! You earn %d coins! Current balance: %d", userName, mathQuestionPrize, (userBalance + mathQuestionPrize));
         Logger.logInfo("%s solved math question and earned %d coins, previous balance: %d", "MathQuestionService.rewardUser()", userName, mathQuestionPrize, userBalance);
     }

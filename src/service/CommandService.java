@@ -17,7 +17,7 @@ import model.CommandContext;
 public class CommandService {
     
     private static int dailyRewardPrize = ConfigReader.getDailyRewardPrize();
-    private static int hourlyRewardPrize = ConfigReader.getDailyRewardPrize();
+    private static int hourlyRewardPrize = ConfigReader.getHourlyRewardPrize();
     private static int coinFlipAmount = 0;
     private static String coinFlipCurrentPlayer = "";
 
