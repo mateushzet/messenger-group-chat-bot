@@ -40,14 +40,16 @@ public class MinesService {
             return;
         }
 
-        if (firstArg.equalsIgnoreCase("multi")) {
-            if (secondArg == null || secondArg.isEmpty()) {
+        if (firstArg.equalsIgnoreCase("multi") || firstArg.contains(",")) {
+            if ((secondArg == null || secondArg.isEmpty()) && !firstArg.contains(",")) {
                 MessageService.sendMessage(userName + " provide field numbers to reveal, separated by commas.");
                 return;
             }
         
             try {
-                String[] fieldNumbers = secondArg.split(",");
+                String[] fieldNumbers;
+                if (firstArg.contains(",")) fieldNumbers = firstArg.split(",");
+                else fieldNumbers = secondArg.split(",");
                 List<Integer> fieldsToReveal = new ArrayList<>();
                 for (String field : fieldNumbers) {
                     fieldsToReveal.add(Integer.parseInt(field.trim()));
@@ -73,7 +75,11 @@ public class MinesService {
                 MessageService.sendMessage(userName + " it's not your turn!");
             }
         } else {
-            MessageService.sendMessage(userName + " no game in progress.");
+                if (isInteger(firstArg) && (secondArg == null || isInteger(secondArg))) {
+                    startGame(userName, firstArg, secondArg);
+                } else {
+                    MessageService.sendMessage(userName + " no game in progress.");
+                }
         }
     }
 
@@ -262,8 +268,15 @@ public class MinesService {
 
     private static void revealMultipleFields(String userName, List<Integer> fields, CommandContext context) {
         MinesGame game = MinesGameRepository.getGameByUserName(userName);
+        String firstArg = context.getFirstArgument();
+        String secondArg = context.getSecondArgument();
+
         if (game == null || !game.isGameInProgress()) {
-            MessageService.sendMessage(userName + " no game in progress.");
+            if (isInteger(firstArg) && (secondArg == null || isInteger(secondArg))) {
+                startGame(userName, firstArg, secondArg);
+            } else {
+                MessageService.sendMessage(userName + " no game in progress.");
+            }
             return;
         }
     
@@ -330,8 +343,6 @@ public class MinesService {
             MessageService.sendMessageFromClipboard(true);
     }
 
-
-
     // Convert boolean[][] to String
     public static String booleanArrayToString(boolean[][] array) {
         String ROW_DELIMITER = ";";
@@ -349,6 +360,18 @@ public class MinesService {
             }
         }
         return builder.toString();
+    }
+
+    private static boolean isInteger(String str) {
+        if (str == null) {
+            return false;
+        }
+        try {
+            Integer.parseInt(str);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
 }
