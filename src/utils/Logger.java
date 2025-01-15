@@ -10,7 +10,7 @@ import database.DatabaseConnectionManager;
 
 public class Logger {
 
-    private static void logToDatabase(String level, String message, String source) {
+    public static void logToDatabase(String level, String message, String source) {
         String sql = "INSERT INTO logs(timestamp, level, message, source) VALUES(?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnectionManager.getConnection();
@@ -71,18 +71,34 @@ public class Logger {
         }
     }
 
-public static void logError(String message, String source, Exception e, Object... params) {
-    try {
-        String formattedMessage = String.format(message, params);
-        String fullMessage = formattedMessage + " Exception: " + e.getMessage() + " Stack trace: " + Arrays.stream(e.getStackTrace())
-            .map(StackTraceElement::toString)
-            .collect(Collectors.joining("\n"));
-        error(fullMessage, source);
-    } catch (Exception e2) {
-        String errorMessage = "Logger failed to format log message. Error: " + e2.getMessage() + " Stack trace: " + Arrays.stream(e2.getStackTrace())
-            .map(StackTraceElement::toString)
-            .collect(Collectors.joining("\n"));
-        error(errorMessage, source);
+    public static void logError(String message, String source, Exception e, Object... params) {
+        try {
+            String formattedMessage = String.format(message, params);
+            String fullMessage = formattedMessage + " Exception: " + e.getMessage() + " Stack trace: " + Arrays.stream(e.getStackTrace())
+                .map(StackTraceElement::toString)
+                .collect(Collectors.joining("\n"));
+            error(fullMessage, source);
+        } catch (Exception e2) {
+            String errorMessage = "Logger failed to format log message. Error: " + e2.getMessage() + " Stack trace: " + Arrays.stream(e2.getStackTrace())
+                .map(StackTraceElement::toString)
+                .collect(Collectors.joining("\n"));
+            error(errorMessage, source);
+        }
     }
-}
+
+    public static boolean doesLogExist(String message) {
+        String sql = "SELECT COUNT(*) FROM logs WHERE message = ?";
+        try (Connection conn = DatabaseConnectionManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, message);
+            try (java.sql.ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            error("Encountered Error while checking log existence: " + e.getMessage(), "doesLogExist()");
+        }
+        return false;
+    }
 }

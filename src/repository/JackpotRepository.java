@@ -38,18 +38,14 @@ public class JackpotRepository {
             Logger.logError("Error while updating jackpot amount", "DailyRewardRepository.addToJackpotPool()", e);
         }
     }
-
     public static void resetJackpot() {
         String query = "UPDATE jackpot SET amount = 0, last_updated = CURRENT_TIMESTAMP, reset_at = CURRENT_TIMESTAMP";
         try (Connection connection = DatabaseConnectionManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
-            
-            statement.setInt(1, 0);
-            statement.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
-            statement.setTimestamp(3, new Timestamp(System.currentTimeMillis()));
+             
             statement.executeUpdate();
         } catch (SQLException e) {
-            Logger.logError("Error while reseting jackpot amount", "DailyRewardRepository.resetJackpot()", e);
+            Logger.logError("Error while resetting jackpot amount", "JackpotRepository.resetJackpot()", e);
         }
     }
 }

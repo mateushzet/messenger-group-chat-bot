@@ -27,6 +27,20 @@ public class SlotsService {
     public static void handleSlotsCommand(CommandContext context) {
         String playerName = context.getUserName();
         String betAmount = context.getFirstArgument();
+        String betAmountMulti = context.getSecondArgument();
+
+        if(betAmount.equals("multi")){
+            context.setFirstArgument(betAmountMulti);
+            for (int i = 0; i < 5; i++) {
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                handleSlotsCommand(context);
+            }
+            return;
+        }
 
         if(betAmount.equals("jackpot")){
             handleSlotsJackpotCommand();

@@ -4,8 +4,8 @@ import java.util.List;
 
 public class CommandContext {
     private final String command;
-    private final List<String> arguments;
     private final String userName;
+    private List<String> arguments;
 
     public CommandContext(String command, List<String> arguments, String userName) {
         this.command = command;
@@ -68,5 +68,14 @@ public class CommandContext {
 
     public String getFullCommand() {
         return this.command + arguments.toString();
+    }
+
+    public void setFirstArgument(String argument) {
+        if (this.arguments == null || this.arguments.isEmpty()) {
+            this.arguments = new java.util.ArrayList<>();
+            this.arguments.add(argument);
+        } else {
+            this.arguments.set(0, argument);
+        }
     }
 }
