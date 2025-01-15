@@ -3,6 +3,8 @@ package utils;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
@@ -87,10 +89,16 @@ public class Logger {
     }
 
     public static boolean doesLogExist(String message) {
-        String sql = "SELECT COUNT(*) FROM logs WHERE message = ?";
+
+        String sql = "SELECT COUNT(*) FROM logs WHERE message = ? AND timestamp > ?";
         try (Connection conn = DatabaseConnectionManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            
             pstmt.setString(1, message);
+            
+            String currentTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"));
+            pstmt.setString(2, currentTime);
+            
             try (java.sql.ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
                     return rs.getInt(1) > 0;

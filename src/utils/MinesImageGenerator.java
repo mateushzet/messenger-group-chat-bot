@@ -33,7 +33,7 @@ public class MinesImageGenerator {
         g.setColor(new Color(255, 255, 255));
         g.fillRect(0, 0, width, height);
 
-        GradientPaint gradient = GradientGenerator.generateGradientFromUsername(username, false, 220, 330);
+        Paint gradient = GradientGenerator.generateGradientFromUsername(username, false, 220, 330);
 
         g.setPaint(gradient);
         g.fillRect(0, 0, 220, 330);
@@ -68,7 +68,7 @@ public class MinesImageGenerator {
                         g.drawRect(x, y, TILE_SIZE, TILE_SIZE);
                     }
                 } else {
-                    GradientPaint darkGradient = GradientGenerator.generateGradientFromUsername(username, true, x + TILE_SIZE, y + TILE_SIZE, x, y);
+                    Paint darkGradient = GradientGenerator.generateGradientFromUsername(username, true, x + TILE_SIZE, y + TILE_SIZE, x, y);
                     
                     g.setPaint(darkGradient);
                     g.fillRect(x, y, TILE_SIZE, TILE_SIZE);

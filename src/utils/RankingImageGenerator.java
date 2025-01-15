@@ -16,7 +16,7 @@ public class RankingImageGenerator {
 
         Graphics2D g = image.createGraphics();
 
-        GradientPaint gradient = GradientGenerator.generateGradientFromUsername(reguesterName, false, imageWidth, imageHeight);
+        Paint gradient = GradientGenerator.generateGradientFromUsername(reguesterName, false, imageWidth, imageHeight);
         
         g.setPaint(gradient);
         g.fillRect(0, 0, imageWidth, imageHeight);

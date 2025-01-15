@@ -37,7 +37,7 @@ public class SlotsImageGenerator {
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
     
-        GradientPaint gradient = GradientGenerator.generateGradientFromUsername(playerName, false, width, height);
+        Paint gradient = GradientGenerator.generateGradientFromUsername(playerName, false, width, height);
         
         int symbolWidth = width / 3;
         int symbolHeight = width / 3;

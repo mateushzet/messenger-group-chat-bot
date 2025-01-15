@@ -49,10 +49,10 @@ public class MessageService {
         String text = message.getText();
 
         //dont check heart reaction for answer commands
-        if (text.startsWith(botCommand.toLowerCase()+" answer") && !Logger.doesLogExist(getSenderName(message) + text + LocalDateTime.now().withMinute(0).withSecond(0).withNano(0))) {
-            Logger.logToDatabase("INFO",getSenderName(message) + text + LocalDateTime.now().withMinute(0).withSecond(0).withNano(0),"validateMessage");
-            return true;
-        }
+        //if (text.startsWith(botCommand.toLowerCase()+" answer") && !Logger.doesLogExist(getSenderName(message) + text + LocalDateTime.now().withMinute(0).withSecond(0).withNano(0))) {
+        //    Logger.logToDatabase("INFO",getSenderName(message) + text + LocalDateTime.now().withMinute(0).withSecond(0).withNano(0),"validateMessage");
+        //    return true;
+        //}
 
         // check if message starts with /bot
         if (!text.startsWith(botCommand.toLowerCase())) {

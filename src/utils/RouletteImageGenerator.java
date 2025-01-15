@@ -29,7 +29,7 @@ public static void generateImage(int result, int winnings, int balance, String u
     BufferedImage image = new BufferedImage(600, 646, BufferedImage.TYPE_INT_RGB);
     Graphics2D g = image.createGraphics();
 
-   GradientPaint gradient = GradientGenerator.generateGradientFromUsername(username, false, 600, 600);
+    Paint gradient = GradientGenerator.generateGradientFromUsername(username, false, 600, 600);
 
    g.setPaint(gradient);
    g.fillRect(0, 0, 600, 600);

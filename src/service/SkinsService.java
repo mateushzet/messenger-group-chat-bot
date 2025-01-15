@@ -3,23 +3,28 @@ package service;
 import model.CommandContext;
 import repository.UserRepository;
 import repository.UserSkinRepository;
+import utils.GradientGenerator;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class SkinsService {
 
-    private static final Map<String, Integer> SKIN_PRICES = Map.of(
-        "red_flame", 10,
-        "green_forest", 10,
-        "blue_ocean", 10,
-        "sunny_yellow", 10,
-        "purple_dream", 10,
-        "fiery_orange", 10,
-        "pink_blossom", 10,
-        "crimson_sunset", 50,
-        "lavender_haze", 50
-    );
+    private static final Map<String, Integer> SKIN_PRICES = new HashMap<>();
+    static {
+        SKIN_PRICES.put("red_flame", 10);
+        SKIN_PRICES.put("green_forest", 10);
+        SKIN_PRICES.put("blue_ocean", 10);
+        SKIN_PRICES.put("sunny_yellow", 10);
+        SKIN_PRICES.put("purple_dream", 10);
+        SKIN_PRICES.put("fiery_orange", 10);
+        SKIN_PRICES.put("pink_blossom", 10);
+        SKIN_PRICES.put("crimson_sunset", 50);
+        SKIN_PRICES.put("lavender_haze", 50);
+        SKIN_PRICES.put("rainbow", 100);
+        SKIN_PRICES.put("sunrise", 100);
+    }
 
     public static void handleSkinsCommand(CommandContext context) {
         String userName = context.getUserName();
@@ -82,50 +87,46 @@ public class SkinsService {
             MessageService.sendMessage("Usage: skins buy <skin_id>");
             return;
         }
-
-        if (!isSkinAvailableInShop(skinId)) {
+    
+        Map<String, Object> skin = findSkinById(skinId);
+        if (skin == null) {
             MessageService.sendMessage("Skin " + skinId + " is not available in the shop.");
             return;
         }
-
-        Integer skinPrice = SKIN_PRICES.get(skinId);
-        if (skinPrice == null) {
-            MessageService.sendMessage("Price for the skin is not defined.");
-            return;
-        }
-
+    
+        int skinPrice = (int) skin.get("price");
         int userBalance = UserRepository.getUserBalance(userName, false);
-
+    
         if (userBalance < skinPrice) {
             MessageService.sendMessage("You don't have enough coins to buy this skin.");
             return;
         }
-
+    
         boolean balanceUpdated = UserRepository.updateUserBalance(userName, (userBalance - skinPrice));
         if (!balanceUpdated) {
             MessageService.sendMessage("Failed to update user balance.");
             return;
         }
-
+    
         boolean success = UserSkinRepository.assignSkinToUser(userName, skinId);
         if (success) {
-            MessageService.sendMessage("You successfully bought the skin: " + skinId);
+            MessageService.sendMessage("You successfully bought the skin: " + skin.get("name"));
         } else {
             MessageService.sendMessage("Failed to buy skin. You might already own it or something went wrong.");
         }
     }
+    
+    private static Map<String, Object> findSkinById(String skinId) {
+        for (Map<String, Object> skin : GradientGenerator.skinIds) {
+            if (skin.get("id").equals(skinId)) {
+                return skin;
+            }
+        }
+        return null;
+    }
 
     private static void handleShopCommand(CommandContext context) {
-        StringBuilder availableSkins = new StringBuilder("Available skins in the shop:\n");
-        
-        SKIN_PRICES.forEach((skin, price) -> {
-            availableSkins.append(skin).append(" (").append(price).append(" coins) | ");
-        });
-        
-        MessageService.sendMessage(availableSkins.toString().substring(0, availableSkins.length() - 3));
+        GradientGenerator.sendAvaiableSkinsImage();
     }
 
-    private static boolean isSkinAvailableInShop(String skinId) {
-        return SKIN_PRICES.containsKey(skinId);
-    }
 }

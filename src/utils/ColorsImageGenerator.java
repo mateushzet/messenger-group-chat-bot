@@ -26,7 +26,7 @@ public class ColorsImageGenerator {
                 
                         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-                        GradientPaint gradient = GradientGenerator.generateGradientFromUsername(userName, false, width, height);
+                        Paint gradient = GradientGenerator.generateGradientFromUsername(userName, false, width, height);
                         
                         g.setPaint(gradient);
                         g.fillRect(0, 0, width, height);
