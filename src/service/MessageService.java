@@ -34,9 +34,6 @@ public class MessageService {
     private static final String messageReactButtonCssSelector = ConfigReader.getMessageReactButtonCssSelector();
     private static int counter = 0;
 
-    public static boolean isMathQuestionSolved = true;
-    public static List<String> mathQuestionAnswers = new ArrayList<>();
-
     private static LocalTime lastHour = java.time.LocalTime.now();
 
     public static boolean validateMessage(WebElement message) {
@@ -50,8 +47,9 @@ public class MessageService {
 
         String text = message.getText();
 
-        if (!text.startsWith(botCommand.toLowerCase()+" answer") && !mathQuestionAnswers.contains((getSenderName(message) + text)) && !isMathQuestionSolved) {
-            mathQuestionAnswers.add(getSenderName(message) + text);
+        //dont check heart reaction for answer commands
+        if (text.startsWith(botCommand.toLowerCase()+" answer") && Logger.doesLogExist(getSenderName(message) + text + java.time.LocalTime.now())) {
+            Logger.logToDatabase("INFO",getSenderName(message) + text + java.time.LocalTime.now(),"validateMessage");
             return true;
         }
 
