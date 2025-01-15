@@ -3,7 +3,6 @@ package service;
 import repository.UserRepository;
 import utils.Logger;
 
-import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 import model.MathQuestion;
@@ -18,7 +17,7 @@ public class MathQuestionService {
     private static boolean mathQuestionRandomTime = ConfigReader.getMathQuestionRandomTime();
     private static int mathQuestionRandomMinuteStart = ConfigReader.getMathQuestionRandomStartMinute();
     private static int mathQuestionRandomMinuteEnd = ConfigReader.getMathQuestionRandomEndMinute();
-    private static int mathQuestionRandomMinute = java.time.LocalTime.now().getMinute()+2;
+    private static int mathQuestionRandomMinute = setRandomMinute();
     private static int mathQuestionPrize = ConfigReader.getMathQuestionPrize();
 
     public static void handleMathAnswer(String answer, String userName) {
