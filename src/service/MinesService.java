@@ -61,6 +61,11 @@ public class MinesService {
             return;
         }
 
+        if (firstArg.isEmpty()) {
+            MessageService.sendMessage("Avaiable mines commands: mines <betAmount> <bombsNumber(default 3)>, mines <fieldNumber>, mines multi <fieldNumber,fieldNumber,...>");
+            return;
+        }
+
         MinesGame game = MinesGameRepository.getGameByUserName(userName);
         if (game != null && game.isGameInProgress()) {
             String currentPlayer = game.getUserName();
