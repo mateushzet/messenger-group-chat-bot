@@ -26,10 +26,10 @@ public class SlotsService {
 
     public static void handleSlotsCommand(CommandContext context) {
         String playerName = context.getUserName();
-        String betAmount = context.getFirstArgument();
+        String firstArgument = context.getFirstArgument();
         String betAmountMulti = context.getSecondArgument();
 
-        if(betAmount.equals("multi")){
+        if(firstArgument.equals("multi")){
             context.setFirstArgument(betAmountMulti);
             for (int i = 0; i < 5; i++) {
                 try {
@@ -42,15 +42,21 @@ public class SlotsService {
             return;
         }
 
-        if(betAmount.equals("jackpot")){
+        if(firstArgument.equals("jackpot")){
             handleSlotsJackpotCommand();
             return;
         }
 
+        if(firstArgument.isEmpty()){
+            MessageService.sendMessage("Avaiable slots commands: buy slots, slots multi <betAmount>, slots jackpot");
+            return;
+        }
+
+        String betAmount = firstArgument;
         int currentBalance = UserRepository.getUserBalance(playerName, false);
 
         if (validateSlotsGame(playerName, betAmount, currentBalance)) {
-            int betAmountInt = Integer.parseInt(betAmount);
+            int betAmountInt = Integer.parseInt(firstArgument);
             playSlots(playerName, betAmountInt, currentBalance, context);
         }
     }
