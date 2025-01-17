@@ -1,19 +1,13 @@
 package service;
 
-
 import java.time.LocalDateTime;
-import java.util.HashSet;
 import java.util.Random;
-import java.util.Set;
 
 import model.CommandContext;
 import repository.GameHistoryRepository;
-import repository.JackpotRepository;
 import repository.UserRepository;
 import utils.Logger;
 import utils.LottoImageGenerator;
-import utils.RouletteImageGenerator;
-import service.MessageService;
 
 public class LottoService {
 
@@ -71,7 +65,6 @@ public class LottoService {
         MessageService.sendMessageFromClipboard(true);
     
         GameHistoryRepository.addGameHistory(playerName, "Lotto", arrayToString(playerNumbers), betAmount, winnings, "Winning Numbers: " + arrayToString(winningNumbers));
-    
     }
     
     private static String arrayToString(int[] array) {
