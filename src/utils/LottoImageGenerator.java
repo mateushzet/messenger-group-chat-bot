@@ -62,7 +62,7 @@ public class LottoImageGenerator {
             g.drawString("You won: " + winAmount, 20, 325);
         } else {
             g.setColor(LOSE_COLOR);
-            g.drawString("You lost: " + betAmount, 20, 325);
+            g.drawString("You lost: " + winAmount, 20, 325);
         }
 
         g.setColor(Color.darkGray);

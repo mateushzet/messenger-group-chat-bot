@@ -19,16 +19,24 @@ public class LottoService {
         String playerName = context.getUserName();
         String betAmount = context.getFirstArgument();
         String numbers = context.getSecondArgument();
+        int[] playerNumbersParsed;
         int betAmountParsed;
 
         if (betAmount.isEmpty()) {
-            MessageService.sendMessage("Avaiable lotto commands: lotto <betAmount> <num1,num2,num3,num4,num5,num6>");
+            MessageService.sendMessage("Avaiable lotto commands: lotto random, lotto <betAmount> <num1,num2,num3,num4,num5,num6>");
             return;
         }
 
-        if(validateAndParseNumbers(numbers) == null){
-            return;
+        
+        if (betAmount.equals("random")) {
+            playerNumbersParsed = generateNumbers();
+        } else {
+            playerNumbersParsed = validateAndParseNumbers(numbers);
+            if(playerNumbersParsed == null){
+                return;
+            }
         }
+
         betAmountParsed = parseBetAmount(betAmount);
         if(betAmountParsed == -1) return;
         int currentBalance = UserRepository.getUserBalance(playerName, false);
@@ -43,9 +51,7 @@ public class LottoService {
             return;
         }
 
-        int[] playerNumbers = validateAndParseNumbers(numbers);
-
-        playLotto(playerName, playerNumbers, currentBalance, betAmountParsed);
+        playLotto(playerName, playerNumbersParsed, currentBalance, betAmountParsed);
     }
 
     private static void playLotto(String playerName, int[] playerNumbers, int currentBalance, int betAmount) {
@@ -53,12 +59,12 @@ public class LottoService {
         UserRepository.updateUserBalance(playerName, newBalance);
         Logger.logInfo("%s placed a Lotto bet. New balance: %d", "LottoService.playLotto()", playerName, newBalance);
     
-        int[] winningNumbers = generateWinningNumbers();
+        int[] winningNumbers =  generateNumbers();
         int matches = countMatches(playerNumbers, winningNumbers);
         int prizePool = getPrizePool();
 
         int winnings = calculateWinnings(matches, betAmount, prizePool);
-        newBalance += winnings;
+        if(winnings>0) newBalance += winnings;
         UserRepository.updateUserBalance(playerName, newBalance);
     
         if (winnings > 0) {
@@ -82,7 +88,7 @@ public class LottoService {
     }
 
 
-    private static int[] generateWinningNumbers() {
+    private static int[] generateNumbers() {
         Random rand = new Random();
         int[] winningNumbers = new int[LOTTO_NUMBERS];
         int count = 0;
