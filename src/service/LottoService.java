@@ -130,7 +130,7 @@ public class LottoService {
             case 2:
                 return (int) (7.5 * betAmount);
             case 3:
-                return (int) (0.0000057 * prizePool);
+                return (int) (0.000057 * prizePool);
             case 4:
                 return (int) (0.001 * prizePool);
             case 5:
