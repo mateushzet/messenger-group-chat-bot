@@ -26,9 +26,8 @@ public class LottoService {
             MessageService.sendMessage("Avaiable lotto commands: lotto random, lotto <betAmount> <num1,num2,num3,num4,num5,num6>");
             return;
         }
-
         
-        if (betAmount.equals("random")) {
+        if (numbers.equals("random")) {
             playerNumbersParsed = generateNumbers();
         } else {
             playerNumbersParsed = validateAndParseNumbers(numbers);
