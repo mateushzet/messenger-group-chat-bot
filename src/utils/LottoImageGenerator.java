@@ -16,18 +16,6 @@ public class LottoImageGenerator {
     private static final Color LOSE_COLOR = new Color(200, 50, 50);
     private static final Color BALL_COLOR = new Color(255, 200, 50);
 
-    public static void main(String[] args) {
-        int[] drawnNumbers = {5, 13, 22, 31, 44, 50};
-        int[] playerNumbers = {5, 10, 15, 31, 44, 50};
-        int winAmount = 5000;
-        int totalBalance = 15000;
-        String playerName = "John Doe";
-
-        LottoImageGenerator.drawLottoResults(drawnNumbers, playerNumbers, winAmount, 50, totalBalance, playerName, 20000000);
-
-        System.out.println("Lotto image generated and copied to clipboard!");
-    }
-
     public static void drawLottoResults(int[] drawnNumbers, int[] playerNumbers, int winAmount, int betAmount, int totalBalance, String playerName, int prizePool) {
         int width = 340;
         int height = 400;
@@ -35,7 +23,7 @@ public class LottoImageGenerator {
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
 
-        Paint gradient = GradientGenerator.generateGradientFromUsername(playerName, false, 220, 330);
+        Paint gradient = GradientGenerator.generateGradientFromUsername(playerName, false, 340, 400);
         g.setPaint(gradient);
         g.fillRect(0, 0, width, height);
 

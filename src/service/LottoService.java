@@ -1,5 +1,6 @@
 package service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Random;
 
@@ -34,6 +35,11 @@ public class LottoService {
 
         if (currentBalance < betAmountParsed) {
             MessageService.sendMessage("You don't have enough coins. Your balance: %d", currentBalance);
+            return;
+        }
+
+        if (betAmountParsed < 10) {
+            MessageService.sendMessage("The bet amount must be greater than or equal to 10. Please increase your bet.");
             return;
         }
 
@@ -117,29 +123,30 @@ public class LottoService {
             case 1:
                 return (int) (2 * betAmount);
             case 2:
-                return (int) (8 * betAmount);
+                return (int) (7.5 * betAmount);
             case 3:
-                return (int) (57 * betAmount);
+                return (int) (0.0000057 * prizePool);
             case 4:
-                return (int) (0.0002 * prizePool);
+                return (int) (0.001 * prizePool);
             case 5:
                 return (int) (0.01 * prizePool);
             case 6:
                 return (int) (0.5 * prizePool);
             default:
-                return 1;
+                return -betAmount;
         }
     }
 
     public static int getPrizePool() {
 
-        LocalDateTime currentDate = LocalDateTime.now();
+        LocalDateTime currentDateTime = LocalDateTime.now();
+        LocalDate currentDate = currentDateTime.toLocalDate();
         
         int hashValue = currentDate.hashCode();
         
         Random random = new Random(hashValue);
         
-        int prizePool = random.nextInt(18000000) + 2000000;
+        int prizePool = random.nextInt(19000000 - 100000) + 100000;
         
         prizePool = (prizePool / 1000) * 1000;
         
