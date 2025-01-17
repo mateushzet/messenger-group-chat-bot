@@ -16,6 +16,18 @@ public class LottoImageGenerator {
     private static final Color LOSE_COLOR = new Color(200, 50, 50);
     private static final Color BALL_COLOR = new Color(255, 200, 50);
 
+    public static void main(String[] args) {
+        int[] drawnNumbers = {5, 13, 22, 31, 44, 50};
+        int[] playerNumbers = {5, 10, 15, 31, 44, 50};
+        int winAmount = 5000;
+        int totalBalance = 15000;
+        String playerName = "John Doe";
+
+        LottoImageGenerator.drawLottoResults(drawnNumbers, playerNumbers, winAmount, 50, totalBalance, playerName, 20000000);
+
+        System.out.println("Lotto image generated and copied to clipboard!");
+    }
+
     public static void drawLottoResults(int[] drawnNumbers, int[] playerNumbers, int winAmount, int betAmount, int totalBalance, String playerName, int prizePool) {
         int width = 340;
         int height = 400;
@@ -81,19 +93,19 @@ public class LottoImageGenerator {
     private static void drawWinningTube(Graphics2D g, int[] drawnNumbers, int x, int y) {
         
         g.setColor(new Color(100, 100, 100, 200));
-        g.fillRect(x, y, 50, 200);
+        g.fillRect(x-10, y-30, 60, 270);
 
         for (int i = 0; i < drawnNumbers.length; i++) {
             g.setColor(BALL_COLOR);
-            g.fillOval(x + 10, y + i * 30 + 10, 30, 30);
+            g.fillOval(x, y + i * 43 - 23, 40, 40);
             g.setColor(Color.BLACK);
             g.setFont(new Font("Arial", Font.BOLD, 14));
-            g.drawString(String.valueOf(drawnNumbers[i]), x + 18, y + i * 30 + 30);
+            g.drawString(String.valueOf(drawnNumbers[i]), x + 8, y + i * 43);
         }
     }
 
     private static void drawLotteryDrum(Graphics2D g, int[] numbers, int centerX, int centerY) {
-        int radius = 100;
+        int radius = 105;
         int ballRadius = 15;
 
         g.setColor(new Color(100, 100, 100, 200));
@@ -120,7 +132,7 @@ public class LottoImageGenerator {
             g.setColor(BALL_COLOR);
             g.fillOval(ballX, ballY, ballRadius * 2, ballRadius * 2);
             g.setColor(Color.BLACK);
-            g.setFont(new Font("Arial", Font.BOLD, 12));
+            g.setFont(new Font("Arial", Font.BOLD, 14));
             g.drawString(String.valueOf(i), ballX + 7, ballY + 20);
         }
     }
