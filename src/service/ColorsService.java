@@ -25,7 +25,44 @@ public class ColorsService {
             MessageService.sendMessage("You need to purchase access to play colors. Cost: %d coins. /bot buy colors", colorsAccessCost);
             return;
         }
-    
+
+        if(context.getFirstArgument().equals("multi")){
+            context.setFirstArgument(context.getSecondArgument());
+            context.setSecondArgument(context.getThirdArgument());
+
+            if(!context.getFourthArgument().isEmpty()){
+                context.setThirdArgument(context.getFourthArgument());
+                context.setFourthArgument(context.getFifthArgument());
+                context.setFifthArgument(context.getSixtArgument());
+            }
+
+            String betAmount = context.getFirstArgument();
+            int betAmountInt;
+
+            try {
+                betAmountInt = Integer.parseInt(betAmount);
+            } catch (Exception e) {
+                MessageService.sendMessage("Invalid bet amount");
+                return;
+            }
+
+            if (betAmountInt <= 0) {
+                MessageService.sendMessage("Your bet amount must be greater than 0");
+                Logger.logInfo("Player %s attempted to place a bet lesser or equal to 0", "SlotsService.validateSlotsGame()", playerName);
+                return;
+            }
+
+            for (int i = 0; i < 5; i++) {
+                try {
+                    Thread.sleep(200);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                handleColorsCommand(context);
+            }
+            return;
+        }
+
         Random random = new Random();
         int result = random.nextInt(53) + 1;
         int resultColorNumber = getResult(result);

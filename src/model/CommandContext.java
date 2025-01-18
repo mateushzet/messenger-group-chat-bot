@@ -56,7 +56,15 @@ public class CommandContext {
 
     public String getFifthArgument() {
         try {
-            return this.arguments.get(3);
+            return this.arguments.get(4);
+        } catch (IndexOutOfBoundsException e) {
+            return "";
+        }
+    }
+
+    public String getSixtArgument() {
+        try {
+            return this.arguments.get(5);
         } catch (IndexOutOfBoundsException e) {
             return "";
         }
@@ -87,4 +95,32 @@ public class CommandContext {
             this.arguments.set(1, argument);
         }
     }
+
+    public void setThirdArgument(String argument) {
+        if (this.arguments == null || this.arguments.isEmpty()) {
+            this.arguments = new java.util.ArrayList<>();
+            this.arguments.add(argument);
+        } else {
+            this.arguments.set(2, argument);
+        }
+    }
+
+    public void setFourthArgument(String argument) {
+        if (this.arguments == null || this.arguments.isEmpty()) {
+            this.arguments = new java.util.ArrayList<>();
+            this.arguments.add(argument);
+        } else {
+            this.arguments.set(3, argument);
+        }
+    }
+
+    public void setFifthArgument(String argument) {
+        if (this.arguments == null || this.arguments.isEmpty()) {
+            this.arguments = new java.util.ArrayList<>();
+            this.arguments.add(argument);
+        } else {
+            this.arguments.set(4, argument);
+        }
+    }
+
 }
