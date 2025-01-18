@@ -31,6 +31,7 @@ public class SlotsService {
 
         if(firstArgument.equals("multi")){
             context.setFirstArgument(betAmountMulti);
+            firstArgument = context.getFirstArgument();
             int betAmountInt = Integer.parseInt(firstArgument);
             int currentBalance = UserRepository.getTotalUserBalance(playerName);
             int minimalBet = (int) (currentBalance * 0.005);
