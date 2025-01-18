@@ -89,7 +89,7 @@ public class LottoService {
         }
 
         LottoImageGenerator.drawLottoResults(winningNumbers, playerNumbers, winnings, betAmount, newBalance, playerName, prizePool);
-        MessageService.sendMessageFromClipboard(true);
+        MessageService.sendMessageFromClipboard(false);
     
         GameHistoryRepository.addGameHistory(playerName, "Lotto", arrayToString(playerNumbers), betAmount, winnings, "Winning Numbers: " + arrayToString(winningNumbers));
     }
@@ -146,13 +146,13 @@ public class LottoService {
             case 2:
                 return (int) (5 * betAmount);
             case 3:
-                return (int) (0.000025 * prizePool);
+                return (int) (0.000025 * prizePool * (betAmount/10));
             case 4:
-                return (int) (0.0005 * prizePool);
+                return (int) (0.0005 * prizePool * (betAmount/10));
             case 5:
-                return (int) (0.01 * prizePool);
+                return (int) (0.01 * prizePool * (betAmount/10));
             case 6:
-                return (int) (0.5 * prizePool);
+                return (int) (0.5 * prizePool * (betAmount/10));
             default:
                 return -betAmount;
         }
