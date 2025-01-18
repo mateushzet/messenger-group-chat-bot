@@ -163,9 +163,9 @@ public class LottoService {
             case 2:
                 return -betAmount;
             case 3:
-                return (int) (calculateProportionalValueB(prizePool,250,300) * betAmount);
+                return (int) (calculateProportionalValueB(prizePool,25,30) * betAmount);
             case 4:
-                return (int) (calculateProportionalValueB(prizePool,5000,6000) * betAmount);
+                return (int) (calculateProportionalValueB(prizePool,500,600) * betAmount);
             case 5:
                 return (int) (0.001 * prizePool * betAmount);
             case 6:
