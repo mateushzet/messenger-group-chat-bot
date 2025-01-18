@@ -32,9 +32,22 @@ public class LottoService {
         if(context.getFirstArgument().equals("multi")){
             context.setFirstArgument(context.getSecondArgument());
             context.setSecondArgument(context.getThirdArgument());
+            betAmount = context.getFirstArgument();
+            betAmountParsed = parseBetAmount(betAmount);
+
+            int currentBalance = UserRepository.getUserBalance(playerName, false);
+            int minimalBet = (int) (currentBalance * 0.005);
+            if(minimalBet < 10) minimalBet = 10;
+
+            if (betAmountParsed < minimalBet) {
+                MessageService.sendMessage("Your bet amount must be at least %d coins (0.5%% of total balance or 10 coins). Your current balance is: %d", minimalBet, currentBalance);
+                Logger.logInfo("Player %s attempted to place a bet of %d coins, which is less than the minimum required bet of %d coins. Current balance: %d", "LottoService.handleLottoCommand()", playerName, betAmountParsed, minimalBet, currentBalance);
+                return;
+            }    
+
             for (int i = 0; i < 5; i++) {
                 try {
-                    Thread.sleep(50);
+                    Thread.sleep(200);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -56,13 +69,17 @@ public class LottoService {
         if(betAmountParsed == -1) return;
         int currentBalance = UserRepository.getUserBalance(playerName, false);
 
-        if (currentBalance < betAmountParsed) {
-            MessageService.sendMessage("You don't have enough coins. Your balance: %d", currentBalance);
+        int minimalBet = (int) (currentBalance * 0.005);
+        if(minimalBet < 10) minimalBet = 10;
+
+        if (betAmountParsed < minimalBet) {
+            MessageService.sendMessage("Your bet amount must be at least %d coins (0.5%% of total balance or 10 coins). Your current balance is: %d", minimalBet, currentBalance);
+            Logger.logInfo("Player %s attempted to place a bet of %d coins, which is less than the minimum required bet of %d coins. Current balance: %d", "LottoService.handleLottoCommand()", playerName, betAmountParsed, minimalBet, currentBalance);
             return;
         }
 
-        if (betAmountParsed < 10) {
-            MessageService.sendMessage("The bet amount must be greater than or equal to 10. Please increase your bet.");
+        if (currentBalance < betAmountParsed) {
+            MessageService.sendMessage("You don't have enough coins. Your balance: %d", currentBalance);
             return;
         }
 
@@ -138,39 +155,43 @@ public class LottoService {
         }
         return matches;
     }
-
+    
     private static int calculateWinnings(int matches, int betAmount, int prizePool) {
         switch (matches) {
             case 1:
                 return -betAmount;
             case 2:
-                return (int) (5 * betAmount);
+                return -betAmount;
             case 3:
-                return (int) (0.000025 * prizePool * (betAmount/10));
+                return (int) (calculateProportionalValueB(prizePool,250,300) * betAmount);
             case 4:
-                return (int) (0.0005 * prizePool * (betAmount/10));
+                return (int) (calculateProportionalValueB(prizePool,5000,6000) * betAmount);
             case 5:
-                return (int) (0.01 * prizePool * (betAmount/10));
+                return (int) (0.001 * prizePool * betAmount);
             case 6:
-                return (int) (0.5 * prizePool * (betAmount/10));
+                return (int) (0.01 * prizePool * betAmount);
             default:
                 return -betAmount;
         }
     }
 
     public static int getPrizePool() {
-
         LocalDateTime currentDateTime = LocalDateTime.now();
+        
+        int currentHour = currentDateTime.getHour();
+    
+        int minPrize = 100_000;
+        int maxPrize = 20_000_000;
+    
         LocalDate currentDate = currentDateTime.toLocalDate();
-        
-        int hashValue = currentDate.hashCode();
-        
+        int hashValue = currentDate.hashCode() + currentHour;
+    
         Random random = new Random(hashValue);
-        
-        int prizePool = random.nextInt(19000000 - 100000) + 100000;
-        
+    
+        int prizePool = random.nextInt(maxPrize - minPrize) + minPrize;
+    
         prizePool = (prizePool / 1000) * 1000;
-        
+    
         return prizePool;
     }
 
@@ -227,4 +248,11 @@ public class LottoService {
         }
     }
     
+    public static double calculateProportionalValueB(int prizePool, int rangeMin, int rangeMax) {
+        double minValue = 1_000_000;
+        double maxValue = 20_000_000;
+        
+        return rangeMin + ((prizePool - minValue) / (maxValue - minValue)) * (rangeMax - rangeMin);
+    }
+
 }

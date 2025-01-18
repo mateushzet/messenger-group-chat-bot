@@ -31,6 +31,17 @@ public class SlotsService {
 
         if(firstArgument.equals("multi")){
             context.setFirstArgument(betAmountMulti);
+            int betAmountInt = Integer.parseInt(firstArgument);
+            int currentBalance = UserRepository.getTotalUserBalance(playerName);
+            int minimalBet = (int) (currentBalance * 0.005);
+            if(minimalBet < 10) minimalBet = 10;
+    
+            if (betAmountInt < minimalBet) {
+                MessageService.sendMessage("Your bet amount must be at least %d coins (0.5%% of total balance or 10 coins). Your current balance is: %d", minimalBet, currentBalance);
+                Logger.logInfo("Player %s attempted to place a bet of %d coins, which is less than the minimum required bet of %d coins. Current balance: %d", "SlotsService.validateSlotsGame()", playerName, betAmountInt, minimalBet, currentBalance);
+                return;
+            }
+
             for (int i = 0; i < 5; i++) {
                 try {
                     Thread.sleep(50);
