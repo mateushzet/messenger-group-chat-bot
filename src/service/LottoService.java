@@ -2,6 +2,8 @@ package service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 import model.CommandContext;
@@ -24,6 +26,20 @@ public class LottoService {
 
         if (betAmount.isEmpty()) {
             MessageService.sendMessage("Avaiable lotto commands: lotto random, lotto <betAmount> <num1,num2,num3,num4,num5,num6>");
+            return;
+        }
+
+        if(context.getFirstArgument().equals("multi")){
+            context.setFirstArgument(context.getSecondArgument());
+            context.setSecondArgument(context.getThirdArgument());
+            for (int i = 0; i < 5; i++) {
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                handleLottoCommand(context);
+            }
             return;
         }
         
@@ -126,13 +142,13 @@ public class LottoService {
     private static int calculateWinnings(int matches, int betAmount, int prizePool) {
         switch (matches) {
             case 1:
-                return (int) (2 * betAmount);
+                return -betAmount;
             case 2:
-                return (int) (7.5 * betAmount);
+                return (int) (5 * betAmount);
             case 3:
-                return (int) (0.000057 * prizePool);
+                return (int) (0.000025 * prizePool);
             case 4:
-                return (int) (0.001 * prizePool);
+                return (int) (0.0005 * prizePool);
             case 5:
                 return (int) (0.01 * prizePool);
             case 6:
@@ -210,5 +226,5 @@ public class LottoService {
             return -1;
         }
     }
-
+    
 }

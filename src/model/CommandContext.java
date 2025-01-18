@@ -78,4 +78,13 @@ public class CommandContext {
             this.arguments.set(0, argument);
         }
     }
+
+    public void setSecondArgument(String argument) {
+        if (this.arguments == null || this.arguments.isEmpty()) {
+            this.arguments = new java.util.ArrayList<>();
+            this.arguments.add(argument);
+        } else {
+            this.arguments.set(1, argument);
+        }
+    }
 }
