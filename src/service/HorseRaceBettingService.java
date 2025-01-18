@@ -3,6 +3,7 @@ package service;
 import java.io.IOException;
 
 import model.CommandContext;
+import repository.GameHistoryRepository;
 import repository.UserRepository;
 import utils.HorseRaceImageGenerator;
 
@@ -35,8 +36,10 @@ public class HorseRaceBettingService {
                 int winnings = betAmountParesd * 6;
                 UserRepository.updateUserBalance(playerName, UserBalance + winnings);
                 MessageService.sendMessage("Horse number %d won, you earnd %d coins, current balance: %d", winner, winnings, UserBalance + winnings);
+                GameHistoryRepository.addGameHistory(playerName, "Race", context.getFullCommand(), betAmountParesd, winnings, "Horse number " + winner + " won" );
             } else {
                 MessageService.sendMessage("Horse number %d won, you lost %d coins, current balance: %d", winner, betAmountParesd, UserBalance);
+                GameHistoryRepository.addGameHistory(playerName, "Race", context.getFullCommand(), betAmountParesd, -betAmountParesd, "Horse number " + winner + " won" );
             }
         }
 

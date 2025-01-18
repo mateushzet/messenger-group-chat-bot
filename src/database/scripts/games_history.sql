@@ -9,3 +9,7 @@ CREATE TABLE game_history (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_name) REFERENCES users(user_name)
 );
+select * from game_history order by id desc
+
+
+select * from game_history where game_type = 'Slots' and note = 'Result: 6-6-6'

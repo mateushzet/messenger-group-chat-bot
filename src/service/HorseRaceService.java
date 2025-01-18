@@ -1,6 +1,5 @@
 package service;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -24,16 +23,12 @@ public class HorseRaceService {
             allHorses.add(new Horse("Comet", 120, 200, 0.3, 8));
             allHorses.add(new Horse("Fury", 110, 190, 0.09, 9));
     
-            // Lista koni do wyścigu
             List<Horse> raceHorses = new ArrayList<>();
             
-            // Dodanie wybranego konia
-            raceHorses.add(allHorses.get(selectedHorse - 1));  // selectedHorse powinno być 1-based, a lista jest 0-based
+            raceHorses.add(allHorses.get(selectedHorse - 1));
 
-            // Shuffle listy, ale nie ruszaj już wybranego konia
             Collections.shuffle(allHorses);
 
-            // Dodawanie losowych koni do wyścigu, pomijając wybranego
             for (Horse horse : allHorses) {
                 if (horse.getImageNumber() != selectedHorse && raceHorses.size() < 6) {
                     raceHorses.add(horse);
@@ -50,7 +45,6 @@ public class HorseRaceService {
                 MessageService.sendMessageFromClipboard(true);
                 Thread.sleep(3000);
             } catch (Exception e) {
-                // TODO Auto-generated catch block
                 e.printStackTrace();
             }
 
