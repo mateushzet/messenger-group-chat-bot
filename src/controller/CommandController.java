@@ -11,6 +11,7 @@ import utils.Logger;
 import service.CoinflipService;
 import service.ColorsService;
 import service.CommandService;
+import service.HorseRaceBettingService;
 import service.LottoService;
 
 import java.util.ArrayList;
@@ -46,7 +47,7 @@ public class CommandController {
         commands.put("mines", MinesService::handleMinesCommand);
         commands.put("skins", SkinsService::handleSkinsCommand);
         commands.put("lotto", LottoService::handleLottoCommand);
-        
+        commands.put("race", HorseRaceBettingService::handleRaceCommand);
     }
 
     public static void processCommand(String userName, String message) {
