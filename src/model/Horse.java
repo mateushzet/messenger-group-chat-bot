@@ -1,5 +1,7 @@
 package model;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 public class Horse {
@@ -49,5 +51,18 @@ public class Horse {
 
     public int getImageNumber() {
         return imageNumber;
+    }
+
+    @Override
+    public Horse clone() {
+        return new Horse(this.name, this.minMove, this.maxMove, this.fallChance, this.imageNumber);
+    }
+
+    public static List<Horse> copyHorses(List<Horse> original) {
+        List<Horse> copy = new ArrayList<>();
+        for (Horse horse : original) {
+            copy.add(horse.clone());
+        }
+        return copy;
     }
 }

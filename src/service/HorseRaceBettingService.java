@@ -1,25 +1,45 @@
 package service;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import model.CommandContext;
+import model.Horse;
 import repository.GameHistoryRepository;
 import repository.UserRepository;
 import utils.HorseRaceImageGenerator;
 
 public class HorseRaceBettingService {
     
+    public static List<Horse> allHorses = new ArrayList<>();
+
+    static {
+        allHorses.add(new Horse("Thunderbolt", 50, 180, 0.12, 1));
+        allHorses.add(new Horse("Lightning", 70, 180, 0.12, 2));
+        allHorses.add(new Horse("Shadow", 60, 170, 0.01, 3));
+        allHorses.add(new Horse("Blaze", 60, 190, 0.185, 4));
+        allHorses.add(new Horse("Spirit", 90, 160, 0.075, 5));
+        allHorses.add(new Horse("Flash", 50, 170, 0, 6));
+        allHorses.add(new Horse("Storm", 80, 200, 0.385, 7));
+        allHorses.add(new Horse("Comet", 95, 180, 0.325, 8));
+        allHorses.add(new Horse("Fury", 80, 180, 0.25, 9));
+    }
+
         public static void handleRaceCommand(CommandContext context) {
             String playerName = context.getUserName();
             String raceCommand = context.getFirstArgument();
             String betAmmount = context.getSecondArgument();
             String horseNumber = context.getThirdArgument();
-
-
+         
             if(raceCommand.equals("bet")){
             int currentBalance = UserRepository.getUserBalance(playerName, false);
             int betAmountParesd = parseBetAmount(betAmmount);
             int horseNumberParesd = parseHorseNumber(horseNumber);
+
+            if(betAmountParesd == -1 || horseNumberParesd == -1){
+                return;
+            }
 
             if (currentBalance < betAmountParesd) {
                 MessageService.sendMessage("You can't afford the bet, current balance: %d", currentBalance);
@@ -32,13 +52,17 @@ public class HorseRaceBettingService {
 
             int winner = HorseRaceService.startRace(horseNumberParesd);
             UserBalance = UserRepository.getUserBalance(playerName, false);
+
+            Horse horse = allHorses.get(winner-1);
+            String horseName = horse.getName();
+
             if(winner == horseNumberParesd){
-                int winnings = betAmountParesd * 6;
+                int winnings = betAmountParesd * 5;
                 UserRepository.updateUserBalance(playerName, UserBalance + winnings);
-                MessageService.sendMessage("Horse number %d won, you earnd %d coins, current balance: %d", winner, winnings, UserBalance + winnings);
+                MessageService.sendMessage("#%d %s won, you earnd %d coins, current balance: %d", winner, horseName, winnings, UserBalance + winnings);
                 GameHistoryRepository.addGameHistory(playerName, "Race", context.getFullCommand(), betAmountParesd, winnings, "Horse number " + winner + " won" );
             } else {
-                MessageService.sendMessage("Horse number %d won, you lost %d coins, current balance: %d", winner, betAmountParesd, UserBalance);
+                MessageService.sendMessage("#%d %s won, you lost %d coins, current balance: %d", winner, horseName, betAmountParesd, UserBalance);
                 GameHistoryRepository.addGameHistory(playerName, "Race", context.getFullCommand(), betAmountParesd, -betAmountParesd, "Horse number " + winner + " won" );
             }
         }
@@ -59,11 +83,12 @@ public class HorseRaceBettingService {
             try {
                 int parsedAmount = Integer.parseInt(betAmount);
                 if (parsedAmount < 0) {
-                    throw new NumberFormatException("Bet amount must be greater than 0");
+                    MessageService.sendMessage("Bet amount must be greater than 0");
+                    return -1;
                 }
                 return parsedAmount;
             } catch (NumberFormatException e) {
-                return Integer.MIN_VALUE;
+                return -1;
             }
         }
 
@@ -71,11 +96,12 @@ public class HorseRaceBettingService {
             try {
                 int parsedAmount = Integer.parseInt(betAmount);
                 if (parsedAmount < 0 || parsedAmount > 9) {
-                    throw new NumberFormatException("Please chose horse number between 1 and 9");
+                    MessageService.sendMessage("Please chose horse number between 1 and 9");
+                    return -1;
                 }
                 return parsedAmount;
             } catch (NumberFormatException e) {
-                return Integer.MIN_VALUE;
+                return -1;
             }
         }
 }

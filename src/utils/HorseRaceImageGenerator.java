@@ -6,19 +6,16 @@ import java.awt.datatransfer.*;
 import java.awt.geom.AffineTransform;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.imageio.ImageIO;
 
 import model.Horse;
+import service.HorseRaceBettingService;
 
 public class HorseRaceImageGenerator {
 
     private static final Color TEXT_COLOR = new Color(50, 50, 50);
-    private static final Color WIN_COLOR = new Color(50, 200, 50);
-    private static final Color LOSE_COLOR = new Color(200, 50, 50);
-    private static final Color HORSE_COLOR = new Color(255, 200, 50);
 
     public static void drawHorseRace(List<Horse> allHorses) throws IOException {
         int trackLength = 600;
@@ -70,19 +67,11 @@ public class HorseRaceImageGenerator {
     }
 
     public static void showHorses() throws IOException {
-         List<Horse> allHorses = new ArrayList<>();
-            allHorses.add(new Horse("Thunderbolt", 50, 150, 0.05, 1));
-            allHorses.add(new Horse("Lightning", 100, 200, 0.1, 2));
-            allHorses.add(new Horse("Shadow", 70, 120, 0.02, 3));
-            allHorses.add(new Horse("Blaze", 80, 180, 0.08, 4));
-            allHorses.add(new Horse("Spirit", 60, 140, 0.03, 5));
-            allHorses.add(new Horse("Flash", 90, 160, 0.07, 6));
-            allHorses.add(new Horse("Storm", 100, 250, 0.12, 7));
-            allHorses.add(new Horse("Comet", 120, 200, 0.1, 8));
-            allHorses.add(new Horse("Fury", 110, 190, 0.09, 9));
     
-       BufferedImage[] horseImages = new BufferedImage[allHorses.size()];
-       for (int i = 0; i < allHorses.size(); i++) {
+        int horseCount = 9;
+
+       BufferedImage[] horseImages = new BufferedImage[horseCount];
+       for (int i = 0; i < horseCount; i++) {
            horseImages[i] = ImageIO.read(new File("src/utils/horseRace/horse" + (i + 1) + ".png"));
        }
    
@@ -102,7 +91,9 @@ public class HorseRaceImageGenerator {
        int xSpacing = 220;
        int ySpacing = 200;
    
-       for (int i = 0; i < allHorses.size(); i++) {
+       List<Horse> allHorses = Horse.copyHorses(HorseRaceBettingService.allHorses);
+
+       for (int i = 0; i < horseCount; i++) {
            Horse horse = allHorses.get(i);
    
            int x = xOffset + (i % 3) * xSpacing;
