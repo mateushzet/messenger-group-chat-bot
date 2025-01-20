@@ -34,6 +34,7 @@ public class MessageService {
     private static final String messageHeartReactionCssSelector = ConfigReader.getMessageHeartReactionCssSelector();
     private static final String messageReactButtonCssSelector = ConfigReader.getMessageReactButtonCssSelector();
     private static int counter = 0;
+    private static int lasthourAPIfetch = 0;
 
     private static LocalTime lastHour = java.time.LocalTime.now();
 
@@ -121,11 +122,23 @@ public class MessageService {
         while (true) {
             try {
                 
-                if((Duration.between(lastHour, java.time.LocalTime.now()).getSeconds() > 10) && counter != 0) {
+                LocalTime currenttime = java.time.LocalTime.now();
+                int currentHour = currenttime.getHour();
+                int currentMinute = currenttime.getMinute();
+
+                if((Duration.between(lastHour, currenttime).getSeconds() > 10) && counter != 0) {
                     Actions actions = new Actions(driver);
                     actions.sendKeys(Keys.RETURN).perform();
                     lastHour = java.time.LocalTime.now();
                     counter = 0;
+                }
+
+                if((currentHour >= 8 && currentHour <= 24) && currentMinute == 0 && lasthourAPIfetch != currentHour){
+                    try {
+                       // SportsApiToDatabase.fetchAndStoreMatchData();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
 
                 MathQuestionService.checkAndSendMathQuestion();
