@@ -15,7 +15,7 @@ public class MatchController {
             break;
                 
         case "checkresults":
-        SportsBettingService.showAllResults(context);
+                SportsBettingService.showAllResults(context);
                 SportsBettingService.checkAndPayOutBets(context);
                 break;
             

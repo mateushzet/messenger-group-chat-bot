@@ -117,9 +117,10 @@ public class SportsBettingService {
             String awayTeam = (String) result.get("awayTeam");
             int homeScore = (int) result.get("homeScore");
             int awayScore = (int) result.get("awayScore");
+            int matchId = (int) result.get("matchId");
             String resultTime = (String) result.get("resultTime");
 
-            response.append(String.format("%s vs %s: %d - %d at %s\n", homeTeam, awayTeam, homeScore, awayScore, resultTime));
+            response.append(String.format("#%d %s vs %s: %d - %d at %s\n", matchId, homeTeam, awayTeam, homeScore, awayScore, resultTime));
         }
 
         MessageService.sendMessage(response.toString());

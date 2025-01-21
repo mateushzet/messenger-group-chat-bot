@@ -148,7 +148,7 @@ public class MatchOddsRepository {
 
     public static List<Map<String, Object>> getAllResults() {
         List<Map<String, Object>> results = new ArrayList<>();
-        String query = "SELECT id, home_score, away_score FROM match_odds";
+        String query = "SELECT id, home_score, away_score,  FROM match_odds";
         try (Connection connection = DatabaseConnectionManager.getConnection()) {
             PreparedStatement statement = connection.prepareStatement(query);
             ResultSet rs = statement.executeQuery();
@@ -157,6 +157,9 @@ public class MatchOddsRepository {
                 result.put("matchId", rs.getInt("id"));
                 result.put("homeScore", rs.getInt("home_score"));
                 result.put("awayScore", rs.getInt("away_score"));
+                result.put("homeTeam", rs.getString("home_team"));
+                result.put("awayTeam", rs.getString("away_team"));
+                result.put("resultTime", rs.getString("result_time"));
                 results.add(result);
             }
         } catch (SQLException e) {
