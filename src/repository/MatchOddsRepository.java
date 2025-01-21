@@ -11,7 +11,7 @@ import java.util.*;
 public class MatchOddsRepository {
 
     public static List<Map<String, Object>> getUserBets(String playerName) {
-        String query = "SELECT * FROM bets WHERE player_name = ?";
+        String query = "SELECT * FROM users_bets WHERE player_name = ?";
         List<Map<String, Object>> bets = new ArrayList<>();
         try (Connection connection = DatabaseConnectionManager.getConnection()) {
             PreparedStatement statement = connection.prepareStatement(query);
