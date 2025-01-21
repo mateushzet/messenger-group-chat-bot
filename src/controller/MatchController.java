@@ -10,14 +10,14 @@ public class MatchController {
     String firstArgument = context.getFirstArgument();
 
     switch (firstArgument.toLowerCase()) {
-    //    case "bet":
-    //        SportsBettingService.placeBet(context);
-    //        break;
-            
-    //    case "checkresults":
-    //    SportsBettingService.showAllResults(context);
-    //        SportsBettingService.checkAndPayOutBets(context);
-    //        break;
+        case "bet":
+            SportsBettingService.placeBet(context);
+            break;
+                
+        case "checkresults":
+        SportsBettingService.showAllResults(context);
+                SportsBettingService.checkAndPayOutBets(context);
+                break;
             
         case "showmatches":
             SportsBettingService.showAllMatches(context);

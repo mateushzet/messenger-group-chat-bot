@@ -10,6 +10,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.awt.desktop.UserSessionEvent;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -126,10 +127,10 @@ public class SportsBettingService {
 
     public static void placeBet(CommandContext context) {
         String playerName = context.getUserName();
-        String matchId = context.getFirstArgument();
         String betAmount = context.getSecondArgument();
-        String selectedOutcome = context.getThirdArgument();  
-
+        String matchId = context.getThirdArgument();
+        String selectedOutcome = context.getFourthArgument();  
+        
         int matchIdParsed = parseMatchId(matchId);
         if (matchIdParsed == -1) return;
 
@@ -211,47 +212,55 @@ public class SportsBettingService {
 
     public static void checkAndPayOutBets(CommandContext context) {
         String playerName = context.getUserName();
-    
+        
         List<Map<String, Object>> userBets = MatchOddsRepository.getUserBets(playerName);
         if (userBets.isEmpty()) {
             MessageService.sendMessage("You have no bets placed.");
             return;
         }
-    
-        StringBuilder response = new StringBuilder("Checking results for your bets...\n");
-    
+        
+        StringBuilder response = new StringBuilder(playerName+": ");
+        
         for (Map<String, Object> bet : userBets) {
             int matchId = (int) bet.get("match_id");
             int betAmount = (int) bet.get("bet_amount");
             String outcome = (String) bet.get("outcome");
-    
+            boolean isPaid = (boolean) bet.get("is_paid");
+        
+            if (isPaid) {
+                response.append(String.format("Bet on match %d has already been paid out. ", matchId));
+                continue;
+            }
+        
             Map<String, Object> result = MatchOddsRepository.getResultByMatchId(matchId);
             if (result == null) {
                 response.append(String.format("No result yet for match %d.\n", matchId));
                 continue;
             }
-    
+        
             int homeScore = (int) result.get("homeScore");
             int awayScore = (int) result.get("awayScore");
-    
+        
             String matchResult = determineMatchResult(homeScore, awayScore);
-    
             boolean isBetWon = checkIfBetIsWon(outcome, matchResult);
-    
+        
             if (isBetWon) {
                 double odds = MatchOddsRepository.getOddsForMatchAndOutcome(matchId, outcome);
                 double winnings = betAmount * odds;
-    
+        
                 int currentBalance = UserRepository.getUserBalance(playerName, true);
                 int newBalance = (int) (currentBalance + winnings);
                 UserRepository.updateUserBalance(playerName, newBalance);
-    
+        
+                // Oznaczenie zakładu jako wypłaconego
+                MatchOddsRepository.updateBetAsPaid(bet.get("bet_id"));
+        
                 response.append(String.format("You won on match %d! Your winnings: %.2f. New balance: %d\n", matchId, winnings, newBalance));
             } else {
                 response.append(String.format("You lost on match %d. No winnings.\n", matchId));
             }
         }
-    
+        
         MessageService.sendMessage(response.toString());
     }
     

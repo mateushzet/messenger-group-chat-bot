@@ -10,7 +10,6 @@ import java.util.*;
 
 public class MatchOddsRepository {
 
-    // Pobierz wszystkie zakłady użytkownika
     public static List<Map<String, Object>> getUserBets(String playerName) {
         String query = "SELECT * FROM bets WHERE player_name = ?";
         List<Map<String, Object>> bets = new ArrayList<>();
@@ -32,9 +31,8 @@ public class MatchOddsRepository {
         return bets;
     }
 
-    // Sprawdź wynik meczu po match_id
     public static Map<String, Object> getResultByMatchId(int matchId) {
-        String query = "SELECT home_score, away_score FROM match_odds WHERE match_id = ?";
+        String query = "SELECT home_score, away_score FROM match_odds WHERE id = ?";
         try (Connection connection = DatabaseConnectionManager.getConnection()) {
             PreparedStatement statement = connection.prepareStatement(query);
             statement.setInt(1, matchId);
@@ -52,10 +50,9 @@ public class MatchOddsRepository {
         return null;
     }
 
-    // Pobierz kursy dla meczu
     public static Map<String, Double> getOddsForMatchAndOutcomes(int matchId) {
         Map<String, Double> oddsData = new HashMap<>();
-        String query = "SELECT bookmaker, home_odds, away_odds, draw_odds FROM match_odds WHERE match_id = ?";
+        String query = "SELECT bookmaker, home_odds, away_odds, draw_odds FROM match_odds WHERE id = ?";
         
         try (Connection connection = DatabaseConnectionManager.getConnection()) {
             PreparedStatement statement = connection.prepareStatement(query);
@@ -63,18 +60,17 @@ public class MatchOddsRepository {
             ResultSet resultSet = statement.executeQuery();
             
             while (resultSet.next()) {
-                oddsData.put("home_odds", resultSet.getDouble("home_odds"));
-                oddsData.put("away_odds", resultSet.getDouble("away_odds"));
-                oddsData.put("draw_odds", resultSet.getDouble("draw_odds"));
+                oddsData.put("home", resultSet.getDouble("home_odds"));
+                oddsData.put("away", resultSet.getDouble("away_odds"));
+                oddsData.put("draw", resultSet.getDouble("draw_odds"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
         
-        return oddsData;  // Zwracamy mapę z kursami
+        return oddsData;
     }
 
-    // Pobierz kurs dla meczu i wyniku
     public static double getOddsForMatchAndOutcome(int matchId, String outcome) {
         String query = "SELECT " + outcome + "_odds FROM match_odds WHERE match_id = ?";
         try (Connection connection = DatabaseConnectionManager.getConnection()) {
@@ -88,10 +84,9 @@ public class MatchOddsRepository {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return -1; // Jeśli nie znaleziono kursu, zwróć -1
+        return -1;
     }
 
-    // Zaktualizuj saldo użytkownika po wygranej
     public static void updateUserBalance(String playerName, double newBalance) {
         String query = "UPDATE users SET balance = ? WHERE player_name = ?";
         try (Connection connection = DatabaseConnectionManager.getConnection()) {
@@ -104,7 +99,6 @@ public class MatchOddsRepository {
         }
     }
 
-    // Zapisz zakład do bazy danych
     public static void saveBetToDatabase(String playerName, int matchId, int betAmount, String outcome) {
         String insertBetQuery = "INSERT INTO bets (match_id, player_name, bet_amount, outcome) VALUES (?, ?, ?, ?)";
         try (Connection connection = DatabaseConnectionManager.getConnection()) {
@@ -119,12 +113,11 @@ public class MatchOddsRepository {
         }
     }
 
-    // Sprawdź, czy mecz istnieje
-    public static boolean isMatchExist(int matchId) {
-        String query = "SELECT COUNT(*) FROM match_odds WHERE match_id = ?";
+    public static boolean isMatchExist(int id) {
+        String query = "SELECT COUNT(*) FROM match_odds WHERE id = ?";
         try (Connection connection = DatabaseConnectionManager.getConnection()) {
             PreparedStatement statement = connection.prepareStatement(query);
-            statement.setInt(1, matchId);
+            statement.setInt(1, id);
             ResultSet rs = statement.executeQuery();
             return rs.getInt(1) > 0;
         } catch (SQLException e) {
@@ -133,7 +126,6 @@ public class MatchOddsRepository {
         return false;
     }
 
-    // Pobierz wszystkie mecze
     public static List<Map<String, Object>> getAllMatches() {
         List<Map<String, Object>> matches = new ArrayList<>();
         String query = "SELECT * FROM match_odds";
@@ -142,7 +134,7 @@ public class MatchOddsRepository {
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
                 Map<String, Object> match = new HashMap<>();
-                match.put("id", rs.getInt("match_id"));
+                match.put("id", rs.getInt("id"));
                 match.put("homeTeam", rs.getString("home_team"));
                 match.put("awayTeam", rs.getString("away_team"));
                 match.put("commenceTime", rs.getString("commence_time"));
@@ -154,16 +146,15 @@ public class MatchOddsRepository {
         return matches;
     }
 
-    // Pobierz wszystkie wyniki meczów
     public static List<Map<String, Object>> getAllResults() {
         List<Map<String, Object>> results = new ArrayList<>();
-        String query = "SELECT match_id, home_score, away_score FROM match_odds";
+        String query = "SELECT id, home_score, away_score FROM match_odds";
         try (Connection connection = DatabaseConnectionManager.getConnection()) {
             PreparedStatement statement = connection.prepareStatement(query);
             ResultSet rs = statement.executeQuery();
             while (rs.next()) {
                 Map<String, Object> result = new HashMap<>();
-                result.put("matchId", rs.getInt("match_id"));
+                result.put("matchId", rs.getInt("id"));
                 result.put("homeScore", rs.getInt("home_score"));
                 result.put("awayScore", rs.getInt("away_score"));
                 results.add(result);
@@ -172,5 +163,16 @@ public class MatchOddsRepository {
             e.printStackTrace();
         }
         return results;
+    }
+
+    public static void updateBetAsPaid(Object betId) {
+        String updateQuery = "UPDATE bets SET is_paid = TRUE WHERE bet_id = ?";
+        try (Connection connection = DatabaseConnectionManager.getConnection()) {
+            PreparedStatement statement = connection.prepareStatement(updateQuery);
+            statement.setInt(1, (int) betId);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }
