@@ -6,9 +6,7 @@ import utils.ConfigReader;
 import utils.Logger;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.openqa.selenium.By;

@@ -6,9 +6,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -132,14 +130,11 @@ public class MatchOddsRepository {
             if (rs.next()) {
                 String commenceTimeString = rs.getString("commence_time");
                 if (commenceTimeString != null) {
-                    // Parsowanie daty w formacie ISO 8601
                     LocalDateTime utcTime = LocalDateTime.parse(commenceTimeString, DateTimeFormatter.ISO_DATE_TIME);
 
-                    // Konwersja czasu UTC na lokalny
                     ZonedDateTime zonedTime = utcTime.atZone(ZoneId.of("UTC"))
                                                     .withZoneSameInstant(ZoneId.systemDefault());
 
-                    // Porównanie lokalnego czasu meczu z bieżącym czasem lokalnym
                     return !zonedTime.toLocalDateTime().isBefore(LocalDateTime.now());
                 }
             }
