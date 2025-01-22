@@ -65,12 +65,9 @@ public class LottoService {
         if(betAmountParsed == -1) return;
         int currentBalance = UserRepository.getUserBalance(playerName, false);
 
-        int minimalBet = (int) (currentBalance * 0.005);
-        if(minimalBet < 10) minimalBet = 10;
-
-        if (betAmountParsed < minimalBet) {
-            MessageService.sendMessage("Your bet amount must be at least %d coins (0.5%% of total balance or 10 coins). Your current balance is: %d", minimalBet, currentBalance);
-            Logger.logInfo("Player %s attempted to place a bet of %d coins, which is less than the minimum required bet of %d coins. Current balance: %d", "LottoService.handleLottoCommand()", playerName, betAmountParsed, minimalBet, currentBalance);
+        if (betAmountParsed < 10) {
+            MessageService.sendMessage("Your bet amount must be greater than 10");
+            Logger.logInfo("Player %s attempted to place a bet of %d coins, which is less than 10", "LottoService.handleLottoCommand()", playerName, betAmountParsed);
             return;
         }
 
