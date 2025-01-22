@@ -6,12 +6,19 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
+
 
 public class MatchOddsRepository {
 
     public static List<Map<String, Object>> getUserBets(String playerName) {
-        String query = "SELECT * FROM users_bets WHERE player_name = ?";
+        String query = "SELECT * FROM user_bets WHERE user_name = ?";
         List<Map<String, Object>> bets = new ArrayList<>();
         try (Connection connection = DatabaseConnectionManager.getConnection()) {
             PreparedStatement statement = connection.prepareStatement(query);
@@ -22,7 +29,9 @@ public class MatchOddsRepository {
                 Map<String, Object> bet = new HashMap<>();
                 bet.put("match_id", resultSet.getInt("match_id"));
                 bet.put("bet_amount", resultSet.getInt("bet_amount"));
-                bet.put("outcome", resultSet.getString("outcome"));
+                bet.put("outcome", resultSet.getString("bet_type"));
+                bet.put("is_paid", resultSet.getBoolean("is_paid"));
+                bet.put("bet_id", resultSet.getInt("bet_id"));
                 bets.add(bet);
             }
         } catch (SQLException e) {
@@ -32,7 +41,7 @@ public class MatchOddsRepository {
     }
 
     public static Map<String, Object> getResultByMatchId(int matchId) {
-        String query = "SELECT home_score, away_score FROM match_odds WHERE id = ?";
+        String query = "SELECT home_score, away_score FROM match_odds WHERE id = ? AND home_score != -1 AND away_score != -1";
         try (Connection connection = DatabaseConnectionManager.getConnection()) {
             PreparedStatement statement = connection.prepareStatement(query);
             statement.setInt(1, matchId);
@@ -71,20 +80,21 @@ public class MatchOddsRepository {
         return oddsData;
     }
 
-    public static double getOddsForMatchAndOutcome(int matchId, String outcome) {
-        String query = "SELECT " + outcome + "_odds FROM match_odds WHERE match_id = ?";
+    public static double getOddsForMatchAndOutcome(int matchId, String PlayerName) {
+        String query = "SELECT odds FROM user_bets WHERE match_id = ? AND user_name = ?";
         try (Connection connection = DatabaseConnectionManager.getConnection()) {
             PreparedStatement statement = connection.prepareStatement(query);
             statement.setInt(1, matchId);
+            statement.setString(2, PlayerName);
             ResultSet resultSet = statement.executeQuery();
     
             if (resultSet.next()) {
-                return resultSet.getDouble(outcome + "_odds");
+                return resultSet.getDouble("odds");
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return -1;
+        return 1;
     }
 
     public static void updateUserBalance(String playerName, double newBalance) {
@@ -100,7 +110,7 @@ public class MatchOddsRepository {
     }
 
     public static void saveBetToDatabase(String playerName, int matchId, int betAmount, String outcome) {
-        String insertBetQuery = "INSERT INTO bets (match_id, player_name, bet_amount, outcome) VALUES (?, ?, ?, ?)";
+        String insertBetQuery = "INSERT INTO user_bets (match_id, player_name, bet_amount, outcome) VALUES (?, ?, ?, ?)";
         try (Connection connection = DatabaseConnectionManager.getConnection()) {
             PreparedStatement statement = connection.prepareStatement(insertBetQuery);
             statement.setInt(1, matchId);
@@ -114,12 +124,25 @@ public class MatchOddsRepository {
     }
 
     public static boolean isMatchExist(int id) {
-        String query = "SELECT COUNT(*) FROM match_odds WHERE id = ?";
+        String query = "SELECT commence_time FROM match_odds WHERE id = ?";
         try (Connection connection = DatabaseConnectionManager.getConnection()) {
             PreparedStatement statement = connection.prepareStatement(query);
             statement.setInt(1, id);
             ResultSet rs = statement.executeQuery();
-            return rs.getInt(1) > 0;
+            if (rs.next()) {
+                String commenceTimeString = rs.getString("commence_time");
+                if (commenceTimeString != null) {
+                    // Parsowanie daty w formacie ISO 8601
+                    LocalDateTime utcTime = LocalDateTime.parse(commenceTimeString, DateTimeFormatter.ISO_DATE_TIME);
+
+                    // Konwersja czasu UTC na lokalny
+                    ZonedDateTime zonedTime = utcTime.atZone(ZoneId.of("UTC"))
+                                                    .withZoneSameInstant(ZoneId.systemDefault());
+
+                    // Porównanie lokalnego czasu meczu z bieżącym czasem lokalnym
+                    return !zonedTime.toLocalDateTime().isBefore(LocalDateTime.now());
+                }
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -148,7 +171,7 @@ public class MatchOddsRepository {
 
     public static List<Map<String, Object>> getAllResults() {
         List<Map<String, Object>> results = new ArrayList<>();
-        String query = "SELECT id, home_score, away_score,  FROM match_odds";
+        String query = "SELECT id, home_score, away_score, home_team, away_team, commence_time FROM match_odds";
         try (Connection connection = DatabaseConnectionManager.getConnection()) {
             PreparedStatement statement = connection.prepareStatement(query);
             ResultSet rs = statement.executeQuery();
@@ -159,7 +182,7 @@ public class MatchOddsRepository {
                 result.put("awayScore", rs.getInt("away_score"));
                 result.put("homeTeam", rs.getString("home_team"));
                 result.put("awayTeam", rs.getString("away_team"));
-                result.put("resultTime", rs.getString("result_time"));
+                result.put("resultTime", rs.getString("commence_time"));
                 results.add(result);
             }
         } catch (SQLException e) {
@@ -169,7 +192,7 @@ public class MatchOddsRepository {
     }
 
     public static void updateBetAsPaid(Object betId) {
-        String updateQuery = "UPDATE bets SET is_paid = TRUE WHERE bet_id = ?";
+        String updateQuery = "UPDATE user_bets SET is_paid = TRUE WHERE bet_id = ?";
         try (Connection connection = DatabaseConnectionManager.getConnection()) {
             PreparedStatement statement = connection.prepareStatement(updateQuery);
             statement.setInt(1, (int) betId);
@@ -178,4 +201,5 @@ public class MatchOddsRepository {
             e.printStackTrace();
         }
     }
+    
 }

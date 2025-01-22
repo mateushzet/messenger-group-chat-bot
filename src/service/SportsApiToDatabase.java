@@ -33,7 +33,7 @@ public class SportsApiToDatabase {
         }
     }
 
-    private static void fetchAndStoreMatchData() throws Exception {
+    public static void fetchAndStoreMatchData() throws Exception {
         HttpClient client = HttpClient.newHttpClient();
         
         String queryParamsForOdds = "?regions=eu&markets=h2h&apiKey=" + API_KEY;

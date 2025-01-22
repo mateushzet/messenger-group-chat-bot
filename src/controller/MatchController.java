@@ -15,12 +15,12 @@ public class MatchController {
             break;
                 
         case "checkresults":
-                SportsBettingService.showAllResults(context);
+                SportsBettingService.showAllResults();
                 SportsBettingService.checkAndPayOutBets(context);
                 break;
             
         case "showmatches":
-            SportsBettingService.showAllMatches(context);
+            SportsBettingService.showAllMatches();
             break;
 
         default:
