@@ -137,7 +137,6 @@ public class CommandService {
         String userName = context.getUserName();
         LocalTime now = LocalTime.now();
         int currentMinute = now.getMinute();
-
         if (currentMinute != 0 && currentMinute != 1) {
             MessageService.sendMessage("Command can only be used at the start of an hour.");
             return;

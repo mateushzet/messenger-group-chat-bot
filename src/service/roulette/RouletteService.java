@@ -60,7 +60,7 @@ public class RouletteService {
             return;
         }
 
-        storeNumberColor(randomNumber);
+        storeNumberColor(getColorNumber(randomNumber));
 
         processRouletteOutcome(fieldParsed, randomNumber, amountInteger, userBalance, userName, context);
     }
