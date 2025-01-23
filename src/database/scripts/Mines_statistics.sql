@@ -12,7 +12,9 @@ SELECT
     win_streak.max_streak AS Win_streak,
     lose_streak.max_streak AS Lose_streak,
     -- Dodanie sumy revealed_values, ale tylko raz na użytkownika
-    COALESCE(revealed_values.Tiles_revealed, 0) AS Tiles_revealed
+    COALESCE(revealed_values.Tiles_revealed, 0) AS Tiles_revealed,
+	COALESCE(bombs.Bombs_detonated, 0) AS Bombs_detonated,
+	COALESCE(mines_wins.Games_fully_cleared, 0) AS Games_fully_cleared
     
 FROM 
     game_history AS main
@@ -53,6 +55,22 @@ LEFT JOIN (
     WHERE i <= LENGTH(revealed_values)
     GROUP BY user_name
 ) revealed_values ON main.user_name = revealed_values.user_name
+LEFT JOIN (
+	SELECT user_name, COUNT(*) AS Bombs_detonated 
+	FROM game_history 
+	WHERE game_type='Mines' 
+	AND result_amount < 0 
+	GROUP BY user_name
+	) bombs ON main.user_name = bombs.user_name
+LEFT JOIN (
+	SELECT user_name, COUNT(*) AS Games_fully_cleared
+	FROM game_history 
+	WHERE game_type='Mines' 
+	AND result_amount > 0 
+	AND bet_command 
+	NOT LIKE '%cashout%' 
+	GROUP BY user_name
+	) mines_wins ON mines_wins.user_name = main.user_name
 WHERE main.game_type = 'Mines'
 GROUP BY 
-    main.user_name;
+    main.user_name
