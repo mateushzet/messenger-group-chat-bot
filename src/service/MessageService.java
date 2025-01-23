@@ -131,7 +131,7 @@ public class MessageService {
                     counter = 0;
                 }
 
-                if((currentHour >= 8 && currentHour <= 24) && currentMinute == 0 && lasthourAPIfetch != currentHour){
+                if((currentHour >= 12 && currentHour <= 24) && currentMinute == 0 && lasthourAPIfetch != currentHour){
                     try {
                         lasthourAPIfetch = currentHour;
                         SportsApiToDatabase.fetchAndStoreMatchData();
