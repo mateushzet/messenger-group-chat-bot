@@ -99,7 +99,7 @@ public class LottoService {
         LottoImageGenerator.drawLottoResults(winningNumbers, playerNumbers, winnings, betAmount, newBalance, playerName, prizePool);
         MessageService.sendMessageFromClipboard(false);
     
-        GameHistoryRepository.addGameHistory(playerName, "Lotto", arrayToString(playerNumbers), betAmount, winnings, "Winning Numbers: " + arrayToString(winningNumbers));
+        GameHistoryRepository.addGameHistory(playerName, "Lotto", arrayToString(playerNumbers), betAmount, winnings, "Winning Numbers: " + arrayToString(winningNumbers) + "Matches: " + matches);
     }
     
     private static String arrayToString(int[] array) {
