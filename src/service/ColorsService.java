@@ -103,8 +103,10 @@ public class ColorsService {
         int blueBetParsed = parseBetAmount(blueBet);
         int goldBetParsed = parseBetAmount(goldBet);
 
-        System.out.println(blackBet+"-"+redBet+"-"+blueBet+"-"+goldBet+"-" );
-    
+        if(blackBet.isEmpty()){
+            MessageService.sendMessage("/bot colors amountBlack amountRed amountBlue amountGold\n/bot colors amount color");
+        }
+
         if (blackBetParsed == Integer.MIN_VALUE || redBetParsed == Integer.MIN_VALUE || blueBetParsed == Integer.MIN_VALUE || goldBetParsed == Integer.MIN_VALUE) {
             MessageService.sendMessage("Invalid bet amount. Please enter valid numbers. /bot colors amountBlack amountRed amountBlue amountGold");
             return null;
