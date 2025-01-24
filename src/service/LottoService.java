@@ -78,16 +78,14 @@ public class LottoService {
     }
 
     private static void playLotto(String playerName, int[] playerNumbers, int currentBalance, int betAmount) {
-        int newBalance = currentBalance - betAmount;
-        UserRepository.updateUserBalance(playerName, newBalance);
-        Logger.logInfo("%s placed a Lotto bet. New balance: %d", "LottoService.playLotto()", playerName, newBalance);
+        Logger.logInfo("%s placed a Lotto bet.", "LottoService.playLotto()", playerName);
     
         int[] winningNumbers =  generateNumbers();
         int matches = countMatches(playerNumbers, winningNumbers);
         int prizePool = getPrizePool();
 
         int winnings = calculateWinnings(matches, betAmount, prizePool);
-        if(winnings>0) newBalance += winnings;
+        int newBalance = currentBalance + winnings;
         UserRepository.updateUserBalance(playerName, newBalance);
     
         if (winnings > 0) {
