@@ -152,7 +152,7 @@ public class LottoService {
             case 1:
                 return -betAmount;
             case 2:
-                return -betAmount;
+                return -betAmount + ((int) calculateProportionalValueB(prizePool,0, betAmount + 1));
             case 3:
                 return (int) (calculateProportionalValueB(prizePool,25,30) * betAmount);
             case 4:
@@ -171,7 +171,7 @@ public class LottoService {
         
         int currentHour = currentDateTime.getHour();
     
-        int minPrize = 100_000;
+        int minPrize = 1_000_000;
         int maxPrize = 20_000_000;
     
         LocalDate currentDate = currentDateTime.toLocalDate();
