@@ -74,7 +74,7 @@ public class BlackjackService {
         playerHand.add(drawCard());
         playerHand.add(drawCard());
         dealerHand.add(drawCard());
-    
+        dealerHand.add(drawCard());
         BlackjackGame game = new BlackjackGame(userName, betAmount, playerHand, dealerHand, true, userBalance);
         BlackjackGameRepository.saveGame(game);
     
@@ -82,7 +82,6 @@ public class BlackjackService {
         int dealerScore = calculateHandValue(dealerHand);
     
         if (playerScore == 21 ) {
-            dealerHand.add(drawCard());
             dealerScore = calculateHandValue(dealerHand);
             if(dealerScore != 21){
             int winnings = (int) (betAmount * 2.5);
