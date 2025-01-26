@@ -18,21 +18,21 @@ public class BlackjackImageGenerator {
     private static final Color PLAYER_COLOR = new Color(50, 200, 50);
     private static final Color DEALER_COLOR = new Color(200, 50, 50);
     
-    public static void generateBlackjackImage(String userName, List<String> playerHand, List<String> dealerHand, String gameStatus, int playerBalance) {
+    public static void generateBlackjackImage(String userName, List<String> playerHand, List<String> dealerHand, String gameStatus, int playerBalance, int betAmount, boolean revealDealerCard, int playerScore, int dealerScore) {
         int width = Math.max(playerHand.size(), dealerHand.size()) * CARD_WIDTH + 2 * MARGIN;
-        int height = 2 * CARD_HEIGHT + 3 * MARGIN;
+        int height = 2 * CARD_HEIGHT + 3 * MARGIN + 100;
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
-
+    
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
         g.setColor(new Color(0, 0, 0));
         g.fillRect(0, 0, width, height);
-
+    
         Paint gradient = GradientGenerator.generateGradientFromUsername(userName, false, 220, 330);
         g.setPaint(gradient);
         g.fillRect(0, 0, width, height);
-
+    
         int playerX = MARGIN;
         int playerY = height - CARD_HEIGHT - MARGIN;
         for (int i = 0; i < playerHand.size(); i++) {
@@ -41,29 +41,39 @@ public class BlackjackImageGenerator {
             g.fillRect(playerX + i * CARD_WIDTH, playerY, CARD_WIDTH, CARD_HEIGHT);
             drawCard(g, card, playerX + i * CARD_WIDTH, playerY);
         }
-
+    
         int dealerX = MARGIN;
         int dealerY = MARGIN;
         for (int i = 0; i < dealerHand.size(); i++) {
             String card = dealerHand.get(i);
             g.setColor(DEALER_COLOR);
             g.fillRect(dealerX + i * CARD_WIDTH, dealerY, CARD_WIDTH, CARD_HEIGHT);
-            if (i == 0) {
+            if (i == 0 && !revealDealerCard) {
                 drawCardBack(g, dealerX + i * CARD_WIDTH, dealerY);
             } else {
                 drawCard(g, card, dealerX + i * CARD_WIDTH, dealerY);
             }
         }
-
+    
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 18));
         if (gameStatus != null) {
-            g.drawString(gameStatus, MARGIN, height - 2 * MARGIN);
+            g.drawString(gameStatus, MARGIN, height/2 - 2*MARGIN);
         }
+    
+        g.setFont(new Font("Arial", Font.PLAIN, 14));
+        g.drawString("Balance: " + playerBalance, MARGIN, height/2 - MARGIN);
         
         g.setFont(new Font("Arial", Font.PLAIN, 14));
-        g.drawString("Balance: $" + playerBalance, MARGIN, height - MARGIN);
-
+        g.drawString("Bet: " + betAmount, MARGIN, height/2);
+    
+        // Wyświetlanie punktów gracza i dealera
+        g.setFont(new Font("Arial", Font.PLAIN, 16));
+        g.drawString("Player: " + playerScore, MARGIN, height/2 + MARGIN);
+        if (revealDealerCard) {
+            g.drawString("Dealer: " + dealerScore, MARGIN, height/2 + 2*MARGIN);
+        }
+    
         g.dispose();
         setClipboardImage(image);
     }
@@ -73,13 +83,31 @@ public class BlackjackImageGenerator {
         g.fillRect(x, y, CARD_WIDTH, CARD_HEIGHT);
         g.setColor(Color.BLACK);
         g.drawRect(x, y, CARD_WIDTH, CARD_HEIGHT);
-
-        g.setFont(new Font("Arial", Font.BOLD, 20));
-        FontMetrics metrics = g.getFontMetrics();
-        String cardValue = card;
+    
+        Color textColor = getCardTextColor(card); // Określenie koloru tekstu (czarny lub czerwony w zależności od koloru symbolu karty)
+    
+        g.setFont(new Font("Arial", Font.BOLD, 20)); // Ustawienie czcionki na gruby, większy tekst
+        FontMetrics metrics = g.getFontMetrics(); // Pobranie metryk czcionki
+    
+        // Wyodrębnienie wartości karty (np. "10", "A", "J") i symbolu karty
+        String cardValue = card.substring(0, card.length() - 1); 
+        char suit = card.charAt(card.length() - 1); // Pobranie symbolu (ostatni znak karty)
+    
+        // Obliczanie pozycji tekstu, aby był wyśrodkowany
         int textX = x + (CARD_WIDTH - metrics.stringWidth(cardValue)) / 2;
         int textY = y + (CARD_HEIGHT + metrics.getHeight()) / 2 - 5;
-        g.drawString(cardValue, textX, textY);
+    
+        g.setColor(textColor); // Ustawienie koloru tekstu (czerwony dla karo i serca, czarny dla pik i trefla)
+        g.drawString(cardValue, textX, textY); // Rysowanie wartości karty
+    
+        // Rysowanie symbolu karty (na górze i na dole karty)
+        g.setFont(new Font("Arial", Font.PLAIN, 14)); // Mniejsza czcionka na symbol
+        String symbol = String.valueOf(suit); // Zamienia znak na symbol
+    
+        // Rysowanie symbolu w lewym górnym rogu
+        g.drawString(symbol, x + 5, y + 15);
+        // Rysowanie symbolu w prawym dolnym rogu
+        g.drawString(symbol, x + CARD_WIDTH - 20, y + CARD_HEIGHT - 5);
     }
 
     private static void drawCardBack(Graphics2D g, int x, int y) {
@@ -91,6 +119,15 @@ public class BlackjackImageGenerator {
             g.fillRect(x, y, CARD_WIDTH, CARD_HEIGHT);
             g.setColor(Color.BLACK);
             g.drawRect(x, y, CARD_WIDTH, CARD_HEIGHT);
+        }
+    }
+    
+    private static Color getCardTextColor(String card) {
+        char suit = card.charAt(card.length() - 1);
+        if (suit == '♦' || suit == '♥') {
+            return Color.RED;
+        } else {
+            return Color.BLACK;
         }
     }
 
