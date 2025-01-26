@@ -18,7 +18,7 @@ public class BlackjackService {
         String secondArg = context.getSecondArgument();
 
         if (firstArg.equalsIgnoreCase("start")) {
-            startGame(userName, secondArg);
+            startGame(userName, secondArg, context);
             return;
         }
 
@@ -40,7 +40,7 @@ public class BlackjackService {
         
     }
 
-    private static void startGame(String userName, String betAmountArg) {
+    private static void startGame(String userName, String betAmountArg, CommandContext context) {
         BlackjackGame existingGame = BlackjackGameRepository.getGameByUserName(userName);
         if (existingGame != null && existingGame.isGameInProgress()) {
             MessageService.sendMessage(userName + " you already have an active game. Finish that game before starting a new one.");
@@ -81,6 +81,18 @@ public class BlackjackService {
         int playerScore = calculateHandValue(playerHand);
         int dealerScore = calculateHandValue(dealerHand);
     
+        if (playerScore == 21) {
+            int winnings = (int) (betAmount * 2.5);
+            UserRepository.updateUserBalance(userName, userBalance + winnings);
+            String gameStatus = userName + " you won with Blackjack! You won " + winnings + "!";
+            GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), betAmount, userBalance + winnings, "Player hand: " + handToString(playerHand) + " Dealer hand: " + handToString(dealerHand));
+            
+            BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, dealerHand, gameStatus, userBalance, betAmount, true, playerScore, dealerScore);
+            MessageService.sendMessageFromClipboard(true);
+            BlackjackGameRepository.deleteGame(userName);
+            return;
+        }
+
         BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, dealerHand, userName + " game started", userBalance, betAmount, false, playerScore, dealerScore);
         MessageService.sendMessageFromClipboard(true);
     }
@@ -191,22 +203,33 @@ public class BlackjackService {
     private static int calculateHandValue(List<String> hand) {
         int value = 0;
         int aces = 0;
+        boolean isBlackjack = false;
     
         for (String card : hand) {
             String cardValue = card.replaceAll("[♠♣♦♥]", "");
+            
             if (cardValue.equals("A")) {
                 aces++;
                 value += 11;
-            } else if (cardValue.equals("K") || cardValue.equals("Q") || cardValue.equals("J")) {
+            } else if (cardValue.equals("K") || cardValue.equals("Q") || cardValue.equals("J") || cardValue.equals("10")) {
                 value += 10;
             } else {
                 value += Integer.parseInt(cardValue);
             }
         }
     
+        if (aces == 2) {
+            isBlackjack = true;
+            value = 21;
+        }
+    
         while (value > 21 && aces > 0) {
             value -= 10;
             aces--;
+        }
+    
+        if (isBlackjack) {
+            return 21;
         }
     
         return value;
