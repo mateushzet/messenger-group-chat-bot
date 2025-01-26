@@ -54,6 +54,11 @@ public class BlackjackService {
             MessageService.sendMessage(userName + " invalid bet amount. Please provide a valid number.");
             return;
         }
+
+        if(betAmount <= 0){
+            MessageService.sendMessage(userName + " invalid bet amount. Please provide a valid number.");
+            return;
+        }
     
         int userBalance = UserRepository.getUserBalance(userName, true);
         if (userBalance < betAmount) {
