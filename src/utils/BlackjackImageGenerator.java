@@ -29,12 +29,10 @@ public class BlackjackImageGenerator {
         g.setColor(new Color(0, 0, 0));
         g.fillRect(0, 0, width, height);
 
-        // Background gradient based on username (you can modify this further)
         Paint gradient = GradientGenerator.generateGradientFromUsername(userName, false, 220, 330);
         g.setPaint(gradient);
         g.fillRect(0, 0, width, height);
 
-        // Player cards
         int playerX = MARGIN;
         int playerY = height - CARD_HEIGHT - MARGIN;
         for (int i = 0; i < playerHand.size(); i++) {
@@ -44,7 +42,6 @@ public class BlackjackImageGenerator {
             drawCard(g, card, playerX + i * CARD_WIDTH, playerY);
         }
 
-        // Dealer cards (showing one card face down)
         int dealerX = MARGIN;
         int dealerY = MARGIN;
         for (int i = 0; i < dealerHand.size(); i++) {
@@ -52,13 +49,12 @@ public class BlackjackImageGenerator {
             g.setColor(DEALER_COLOR);
             g.fillRect(dealerX + i * CARD_WIDTH, dealerY, CARD_WIDTH, CARD_HEIGHT);
             if (i == 0) {
-                drawCardBack(g, dealerX + i * CARD_WIDTH, dealerY); // Draw back of the first card
+                drawCardBack(g, dealerX + i * CARD_WIDTH, dealerY);
             } else {
-                drawCard(g, card, dealerX + i * CARD_WIDTH, dealerY); // Draw face-up card
+                drawCard(g, card, dealerX + i * CARD_WIDTH, dealerY);
             }
         }
 
-        // Game status and balance
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 18));
         if (gameStatus != null) {
@@ -73,16 +69,14 @@ public class BlackjackImageGenerator {
     }
 
     private static void drawCard(Graphics2D g, String card, int x, int y) {
-        // Draw the card (simplified for the example)
         g.setColor(Color.WHITE);
         g.fillRect(x, y, CARD_WIDTH, CARD_HEIGHT);
         g.setColor(Color.BLACK);
         g.drawRect(x, y, CARD_WIDTH, CARD_HEIGHT);
 
-        // Draw the card value (simplified)
         g.setFont(new Font("Arial", Font.BOLD, 20));
         FontMetrics metrics = g.getFontMetrics();
-        String cardValue = card;  // Use actual card value (e.g., 10, Jack, Queen, etc.)
+        String cardValue = card;
         int textX = x + (CARD_WIDTH - metrics.stringWidth(cardValue)) / 2;
         int textY = y + (CARD_HEIGHT + metrics.getHeight()) / 2 - 5;
         g.drawString(cardValue, textX, textY);
@@ -94,7 +88,7 @@ public class BlackjackImageGenerator {
             g.drawImage(cardBackImage, x, y, CARD_WIDTH, CARD_HEIGHT, null);
         } catch (IOException e) {
             g.setColor(Color.BLUE);
-            g.fillRect(x, y, CARD_WIDTH, CARD_HEIGHT); // Fallback if image fails to load
+            g.fillRect(x, y, CARD_WIDTH, CARD_HEIGHT);
             g.setColor(Color.BLACK);
             g.drawRect(x, y, CARD_WIDTH, CARD_HEIGHT);
         }

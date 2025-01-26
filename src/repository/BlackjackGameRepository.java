@@ -41,21 +41,18 @@ public class BlackjackGameRepository {
             ResultSet resultSet = statement.executeQuery();
     
             if (resultSet.next()) {
-                // Convert the string from database back to List<String> for hands
                 List<String> playerHand = convertHandFromString(resultSet.getString("player_hand"));
                 List<String> dealerHand = convertHandFromString(resultSet.getString("dealer_hand"));
     
-                // Create a BlackjackGame using the complete constructor
                 BlackjackGame game = new BlackjackGame(
-                        resultSet.getString("user_name"),   // userName
-                        resultSet.getInt("current_bet"),    // currentBet
-                        playerHand,                         // playerHand
-                        dealerHand,                         // dealerHand
-                        resultSet.getBoolean("game_in_progress"), // gameInProgress
-                        resultSet.getInt("balance")         // balance
+                        resultSet.getString("user_name"),
+                        resultSet.getInt("current_bet"),
+                        playerHand,
+                        dealerHand,
+                        resultSet.getBoolean("game_in_progress"),
+                        resultSet.getInt("balance")
                 );
     
-                // Set the player's "stands" state (this might be already stored in the database)
                 game.setPlayerStands(resultSet.getBoolean("player_stands"));
     
                 return game;

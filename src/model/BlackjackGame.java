@@ -13,7 +13,6 @@ public class BlackjackGame {
     private boolean gameInProgress;
     private boolean playerStands;
 
-    // Konstruktor domyślny
     public BlackjackGame(String userName, int currentBet, boolean gameInProgress, boolean playerStands, int balance) {
         this.userName = userName;
         this.currentBet = currentBet;
@@ -23,17 +22,15 @@ public class BlackjackGame {
         this.playerStands = playerStands;
     }
 
-    // Nowy konstruktor z rękami gracza i krupiera
     public BlackjackGame(String userName, int currentBet, List<String> playerHand, List<String> dealerHand, boolean gameInProgress, int balance) {
         this.userName = userName;
         this.currentBet = currentBet;
         this.playerHand = playerHand;
         this.dealerHand = dealerHand;
         this.gameInProgress = gameInProgress;
-        this.playerStands = false; // Domyślnie gracz nie spasował
+        this.playerStands = false;
     }
 
-    // Gettery i settery
     public String getUserName() {
         return userName;
     }

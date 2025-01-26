@@ -147,8 +147,8 @@ public class BlackjackService {
     }
 
     private static String drawCard() {
-        int cardValue = (int) (Math.random() * 10) + 1; // Cards range from 1 to 10
-        return String.valueOf(cardValue); // Convert to String
+        int cardValue = (int) (Math.random() * 10) + 1;
+        return String.valueOf(cardValue);
     }
 
     private static int calculateHandValue(List<String> hand) {
