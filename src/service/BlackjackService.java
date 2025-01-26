@@ -3,6 +3,7 @@ package service;
 import model.BlackjackGame;
 import model.CommandContext;
 import repository.BlackjackGameRepository;
+import repository.GameHistoryRepository;
 import repository.UserRepository;
 import utils.BlackjackImageGenerator;
 
@@ -22,12 +23,12 @@ public class BlackjackService {
         }
 
         if (firstArg.equalsIgnoreCase("hit")) {
-            hitCard(userName);
+            hitCard(userName, context);
             return;
         }
 
         if (firstArg.equalsIgnoreCase("stand")) {
-            stand(userName);
+            stand(userName, context);
             return;
         }
 
@@ -75,11 +76,11 @@ public class BlackjackService {
         int playerScore = calculateHandValue(playerHand);
         int dealerScore = calculateHandValue(dealerHand);
     
-        BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, dealerHand, userName + " game Started", userBalance, betAmount, false, playerScore, dealerScore);
+        BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, dealerHand, userName + " game started", userBalance, betAmount, false, playerScore, dealerScore);
         MessageService.sendMessageFromClipboard(true);
     }
     
-    private static void hitCard(String userName) {
+    private static void hitCard(String userName, CommandContext context) {
         BlackjackGame game = BlackjackGameRepository.getGameByUserName(userName);
         if (game == null || !game.isGameInProgress()) {
             MessageService.sendMessage(userName + " no active game. Start a new game with /bot blackjack start [bet amount].");
@@ -95,8 +96,8 @@ public class BlackjackService {
         int userBalance = UserRepository.getUserBalance(userName, false);
         if ( playerScore > 21) {
             BlackjackGameRepository.updateGame(game);
-            endGame(userName, false, playerScore, dealerScore);
-            BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, game.getDealerHand(), userName + " you drew a card", userBalance, game.getBetAmount(), true, playerScore, 0);
+            endGame(userName, false, playerScore, dealerScore, context);
+            BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, game.getDealerHand(), userName + " you lost " + game.getBetAmount() + "!", userBalance, game.getBetAmount(), true, playerScore, 0);
             MessageService.sendMessageFromClipboard(true);
             return;
         }
@@ -107,7 +108,7 @@ public class BlackjackService {
         MessageService.sendMessageFromClipboard(true);
     }
     
-    private static void stand(String userName) {
+    private static void stand(String userName, CommandContext context) {
         BlackjackGame game = BlackjackGameRepository.getGameByUserName(userName);
         if (game == null || !game.isGameInProgress()) {
             MessageService.sendMessage(userName + " no active game. Start a new game with /bot blackjack start [bet amount].");
@@ -128,9 +129,9 @@ public class BlackjackService {
     
         String gameStatus;
         if (dealerScore > 21 || playerScore > dealerScore) {
-            gameStatus = endGame(userName, true, playerScore, dealerScore);
+            gameStatus = endGame(userName, true, playerScore, dealerScore, context);
         } else {
-            gameStatus = endGame(userName, false, playerScore, dealerScore);
+            gameStatus = endGame(userName, false, playerScore, dealerScore, context);
         }
     
         int userBalance = UserRepository.getUserBalance(userName, false);
@@ -139,7 +140,7 @@ public class BlackjackService {
         MessageService.sendMessageFromClipboard(true);
     }
 
-    private static String endGame(String userName, boolean win, int playerScore, int dealerScore) {
+    private static String endGame(String userName, boolean win, int playerScore, int dealerScore, CommandContext context) {
         BlackjackGame game = BlackjackGameRepository.getGameByUserName(userName);
         if (game == null) {
             return null;
@@ -151,8 +152,10 @@ public class BlackjackService {
             int winnings = game.getBetAmount() * 2;
             UserRepository.updateUserBalance(userName, userBalance + winnings);
             gameStatus = userName + " you won " + game.getBetAmount() + "!";
+            GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), game.getBetAmount(), userBalance + winnings, "Player hand: " + handToString(game.getPlayerHand()) + " Dealer hand: " + handToString(game.getDealerHand()));
         } else {
             gameStatus = userName + " you lost " + game.getBetAmount() + "!";
+            GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), game.getBetAmount(), userBalance, "Player hand: " + handToString(game.getPlayerHand()) + " Dealer hand: " + handToString(game.getDealerHand()));
         }
 
         BlackjackGameRepository.deleteGame(userName);

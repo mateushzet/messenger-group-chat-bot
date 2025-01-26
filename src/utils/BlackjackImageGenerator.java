@@ -10,7 +10,7 @@ import java.util.List;
 
 public class BlackjackImageGenerator {
 
-    private static final int CARD_WIDTH = 90;
+    private static final int CARD_WIDTH = 100;
     private static final int CARD_HEIGHT = 140;
     private static final int MARGIN = 20;
     
@@ -56,7 +56,7 @@ public class BlackjackImageGenerator {
         }
     
         g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 10));
+        g.setFont(new Font("Arial", Font.PLAIN, 14));
         if (gameStatus != null) {
             g.drawString(gameStatus, MARGIN, height/2 - 2*MARGIN);
         }
