@@ -51,6 +51,7 @@ public class CommandController {
         commands.put("race", HorseRaceBettingService::handleRaceCommand);
         commands.put("sports", MatchController::handleSportsBettingCommand);
         commands.put("blackjack", BlackjackService::handleBlackjackCommand);
+        commands.put("bj", BlackjackService::handleBlackjackCommand);
     }
 
     public static void processCommand(String userName, String message) {

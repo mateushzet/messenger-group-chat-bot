@@ -72,11 +72,9 @@ public class BlackjackService {
         BlackjackGame game = new BlackjackGame(userName, betAmount, playerHand, dealerHand, true, userBalance);
         BlackjackGameRepository.saveGame(game);
     
-        // Obliczanie sum punktów gracza i dealera
         int playerScore = calculateHandValue(playerHand);
         int dealerScore = calculateHandValue(dealerHand);
     
-        // Przekazanie sum punktów do generatora obrazu
         BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, dealerHand, userName + " game Started", userBalance, betAmount, false, playerScore, dealerScore);
         MessageService.sendMessageFromClipboard(true);
     }

@@ -67,7 +67,6 @@ public class BlackjackImageGenerator {
         g.setFont(new Font("Arial", Font.PLAIN, 14));
         g.drawString("Bet: " + betAmount, MARGIN, height/2);
     
-        // Wyświetlanie punktów gracza i dealera
         g.setFont(new Font("Arial", Font.PLAIN, 16));
         g.drawString("Player: " + playerScore, MARGIN, height/2 + MARGIN);
         if (revealDealerCard) {
@@ -84,29 +83,27 @@ public class BlackjackImageGenerator {
         g.setColor(Color.BLACK);
         g.drawRect(x, y, CARD_WIDTH, CARD_HEIGHT);
     
-        Color textColor = getCardTextColor(card); // Określenie koloru tekstu (czarny lub czerwony w zależności od koloru symbolu karty)
+        Color textColor = getCardTextColor(card); 
+
+        g.setFont(new Font("Arial", Font.BOLD, 20));
+        FontMetrics metrics = g.getFontMetrics();
     
-        g.setFont(new Font("Arial", Font.BOLD, 20)); // Ustawienie czcionki na gruby, większy tekst
-        FontMetrics metrics = g.getFontMetrics(); // Pobranie metryk czcionki
-    
-        // Wyodrębnienie wartości karty (np. "10", "A", "J") i symbolu karty
+
         String cardValue = card.substring(0, card.length() - 1); 
-        char suit = card.charAt(card.length() - 1); // Pobranie symbolu (ostatni znak karty)
+        char suit = card.charAt(card.length() - 1);
     
-        // Obliczanie pozycji tekstu, aby był wyśrodkowany
         int textX = x + (CARD_WIDTH - metrics.stringWidth(cardValue)) / 2;
         int textY = y + (CARD_HEIGHT + metrics.getHeight()) / 2 - 5;
     
-        g.setColor(textColor); // Ustawienie koloru tekstu (czerwony dla karo i serca, czarny dla pik i trefla)
-        g.drawString(cardValue, textX, textY); // Rysowanie wartości karty
+        g.setColor(textColor);
+        g.drawString(cardValue, textX, textY);
     
-        // Rysowanie symbolu karty (na górze i na dole karty)
-        g.setFont(new Font("Arial", Font.PLAIN, 14)); // Mniejsza czcionka na symbol
-        String symbol = String.valueOf(suit); // Zamienia znak na symbol
+
+        g.setFont(new Font("Arial", Font.PLAIN, 14));
+        String symbol = String.valueOf(suit);
     
-        // Rysowanie symbolu w lewym górnym rogu
         g.drawString(symbol, x + 5, y + 15);
-        // Rysowanie symbolu w prawym dolnym rogu
+        
         g.drawString(symbol, x + CARD_WIDTH - 20, y + CARD_HEIGHT - 5);
     }
 
