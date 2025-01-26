@@ -55,7 +55,7 @@ public class BlackjackImageGenerator {
             }
         }
     
-        g.setColor(Color.WHITE);
+        g.setColor(Color.BLACK);
         g.setFont(new Font("Arial", Font.PLAIN, 14));
         if (gameStatus != null) {
             g.drawString(gameStatus, MARGIN, height/2 - 2*MARGIN);
