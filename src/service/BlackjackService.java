@@ -92,13 +92,15 @@ public class BlackjackService {
     
         int dealerScore = calculateHandValue(game.getDealerHand());
         int playerScore = calculateHandValue(playerHand);
+        int userBalance = UserRepository.getUserBalance(userName, false);
         if ( playerScore > 21) {
             BlackjackGameRepository.updateGame(game);
             endGame(userName, false, playerScore, dealerScore);
+            BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, game.getDealerHand(), userName + " you drew a card", userBalance, game.getBetAmount(), true, playerScore, 0);
+            MessageService.sendMessageFromClipboard(true);
             return;
         }
     
-        int userBalance = UserRepository.getUserBalance(userName, false);
         BlackjackGameRepository.updateGame(game);
     
         BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, game.getDealerHand(), userName + " you drew a card", userBalance, game.getBetAmount(), false, playerScore, 0);
@@ -113,7 +115,8 @@ public class BlackjackService {
         }
     
         List<String> dealerHand = game.getDealerHand();
-        while (calculateHandValue(dealerHand) < 17) {
+        int playerHand = calculateHandValue(game.getPlayerHand()) ;
+        while (calculateHandValue(dealerHand) <= playerHand) {
             dealerHand.add(drawCard());
         }
     
@@ -147,9 +150,9 @@ public class BlackjackService {
         if (win) {
             int winnings = game.getBetAmount() * 2;
             UserRepository.updateUserBalance(userName, userBalance + winnings);
-            gameStatus = userName + "you won! Your new balance: " + (userBalance + winnings);
+            gameStatus = userName + " you won " + game.getBetAmount() + "!";
         } else {
-            gameStatus = userName + " you lost! Your new balance: " + userBalance;
+            gameStatus = userName + " you lost " + game.getBetAmount() + "!";
         }
 
         BlackjackGameRepository.deleteGame(userName);
