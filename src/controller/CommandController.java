@@ -8,6 +8,7 @@ import service.SlotsService;
 import service.roulette.RouletteService;
 import utils.ConfigReader;
 import utils.Logger;
+import service.BlackjackService;
 import service.CoinflipService;
 import service.ColorsService;
 import service.CommandService;
@@ -49,6 +50,7 @@ public class CommandController {
         commands.put("lotto", LottoService::handleLottoCommand);
         commands.put("race", HorseRaceBettingService::handleRaceCommand);
         commands.put("sports", MatchController::handleSportsBettingCommand);
+        commands.put("blackjack", BlackjackService::handleBlackjackCommand);
     }
 
     public static void processCommand(String userName, String message) {
