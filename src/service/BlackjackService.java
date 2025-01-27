@@ -22,12 +22,12 @@ public class BlackjackService {
             return;
         }
 
-        if (firstArg.equalsIgnoreCase("hit")) {
+        if (firstArg.equalsIgnoreCase("hit") || firstArg.equalsIgnoreCase("h")) {
             hitCard(userName, context);
             return;
         }
 
-        if (firstArg.equalsIgnoreCase("stand")) {
+        if (firstArg.equalsIgnoreCase("stand") || firstArg.equalsIgnoreCase("s")) {
             stand(userName, context);
             return;
         }
@@ -84,7 +84,7 @@ public class BlackjackService {
         if (playerScore == 21 ) {
             dealerScore = calculateHandValue(dealerHand);
             if(dealerScore != 21){
-            int winnings = (int) (betAmount * 2.5);
+            int winnings = (int) (betAmount * 1.5);
             UserRepository.updateUserBalance(userName, userBalance + winnings);
             String gameStatus = userName + " you won with Blackjack! You won " + winnings + "!";
             GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), betAmount, userBalance + winnings, "Player hand: " + handToString(playerHand) + " Dealer hand: " + handToString(dealerHand));
@@ -240,7 +240,7 @@ public class BlackjackService {
             }
         }
     
-        if (aces == 2) {
+        if (aces == 2 && hand.size() == 2) {
             isBlackjack = true;
             value = 21;
         }
