@@ -25,6 +25,7 @@ public class CommandController {
     
     private static final Map<String, Consumer<CommandContext>> commands = new HashMap<>();
     private static final String botCommand = ConfigReader.getBotCommand();
+    private static final String botAlternativeCommand = ConfigReader.getBotAlternativeCommand();
 
     static {
         commands.put("time", CommandService::handleTimeCommand);
@@ -70,6 +71,8 @@ public class CommandController {
         String commandAndArgs;
             if (message.startsWith(botCommand) && message.length() > botCommand.length()) {
                 commandAndArgs = message.substring(botCommand.length()+1).trim();
+            } else if (message.startsWith(botAlternativeCommand) && message.length() > botAlternativeCommand.length()){
+                commandAndArgs = message.substring(botAlternativeCommand.length()+1).trim();
             } else {
                 commandAndArgs = "";
                 Logger.logInfo("%s used empty command", "CommandController.processCommand()", userName);

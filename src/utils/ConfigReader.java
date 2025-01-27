@@ -185,6 +185,10 @@ public class ConfigReader {
         return getProperty("bot_command", "/bot");
     }
 
+    public static String getBotAlternativeCommand() {
+        return getProperty("bot_alternative_command", "/bot");
+    }
+
     public static String getMessageUserAvatarCssSelector() {
         return getProperty("message_user_avatar_css_selector", "img.x1rg5ohu");
     }

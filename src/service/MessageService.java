@@ -22,6 +22,7 @@ public class MessageService {
 
     private static WebDriver driver = WebDriverFactory.getDriver();
     private static final String botCommand = ConfigReader.getBotCommand();
+    private static final String botAlternativeCommand = ConfigReader.getBotAlternativeCommand();
     private static final String messageUserAvatarCssSelector = ConfigReader.getMessageUserAvatarCssSelector();
     private static final String messageCssSelector = ConfigReader.getMessageCssSelector();
     private static final String emojiButtonCssSelector = ConfigReader.getEmojiButtonCssSelector();
@@ -54,7 +55,7 @@ public class MessageService {
         //}
 
         // check if message starts with /bot
-        if (!text.startsWith(botCommand.toLowerCase())) {
+        if (!text.startsWith(botCommand.toLowerCase()) && !text.startsWith(botAlternativeCommand.toLowerCase())) {
             return false;
         }
     
@@ -156,7 +157,7 @@ public class MessageService {
                         if(!userName.isEmpty()){
 
                             String text = message.getText().toLowerCase();
-                            if (text.startsWith(botCommand.toLowerCase())) {
+                            if (text.startsWith(botCommand.toLowerCase()) || text.startsWith(botAlternativeCommand.toLowerCase())) {
                                 CommandController.processCommand(userName, text);
                             }
                     }  //else Get sender name error or two messages from the same sender in a row
