@@ -12,8 +12,11 @@ SELECT
     win_streak.max_streak AS Win_streak,
     lose_streak.max_streak AS Lose_streak,
 	COALESCE(red.Hits_by_red, 0) AS Hits_by_red,
+	COALESCE(bigwinred.Maximum_win_on_red, 0) AS Maximum_win_on_red,
 	COALESCE(black.Hits_by_black, 0) AS Hits_by_black,
+	COALESCE(bigwinblack.Maximum_win_on_black, 0) AS Maximum_win_on_black,
 	COALESCE(green.Hits_by_green, 0) AS Hits_by_green,
+	COALESCE(bigwingreen.Maximum_win_on_green, 0) AS Maximum_win_on_green,
 	COALESCE(number.Hits_by_number, 0) AS Hits_by_number
 	
 	
@@ -70,6 +73,30 @@ LEFT JOIN (
 	AND TRIM(substr(bet_command,-2,1)) = TRIM(substr(note,-2)) 
 	GROUP BY user_name
 	) number ON number.user_name = main.user_name
+LEFT JOIN (
+    SELECT user_name, MAX(result_amount) AS Maximum_win_on_red 
+    FROM game_history 
+    WHERE game_type = 'Roulette' 
+    AND result_amount > 0 
+    AND CAST(SUBSTR(note, -2) AS INTEGER) IN (1, 3, 5, 7, 9, 11)
+    GROUP BY user_name
+) bigwinred ON bigwinred.user_name = main.user_name
+LEFT JOIN (
+    SELECT user_name, MAX(result_amount) AS Maximum_win_on_black 
+    FROM game_history 
+    WHERE game_type = 'Roulette' 
+    AND result_amount > 0 
+    AND CAST(SUBSTR(note, -2) AS INTEGER) IN (2, 4, 6, 8, 10, 12)
+    GROUP BY user_name
+) bigwinblack ON bigwinblack.user_name = main.user_name
+LEFT JOIN (
+    SELECT user_name, MAX(result_amount) AS Maximum_win_on_green 
+    FROM game_history 
+    WHERE game_type = 'Roulette' 
+    AND result_amount > 0 
+    AND CAST(SUBSTR(note, -2) AS INTEGER) = 0 
+    GROUP BY user_name
+) bigwingreen ON bigwingreen.user_name = main.user_name
 
 WHERE main.game_type = 'Roulette'
 GROUP BY 
