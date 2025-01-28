@@ -50,7 +50,7 @@ public class LottoService {
             return;
         }
         
-        if (numbers.equals("random")) {
+        if (numbers.equals("random") || numbers.equals("r")) {
             playerNumbersParsed = generateNumbers();
         } else {
             playerNumbersParsed = validateAndParseNumbers(numbers);

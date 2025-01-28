@@ -48,9 +48,11 @@ public class CommandController {
         commands.put("h", CommandService::handleHourlyCommand); 
         commands.put("coinflip", CoinflipService::handleCoinflipCommand);
         commands.put("colors", ColorsService::handleColorsCommand);
+        commands.put("c", ColorsService::handleColorsCommand);
         commands.put("mines", MinesService::handleMinesCommand);
         commands.put("skins", SkinsService::handleSkinsCommand);
         commands.put("lotto", LottoService::handleLottoCommand);
+        commands.put("l", LottoService::handleLottoCommand);
         commands.put("race", HorseRaceBettingService::handleRaceCommand);
         commands.put("sports", MatchController::handleSportsBettingCommand);
         commands.put("blackjack", BlackjackService::handleBlackjackCommand);
