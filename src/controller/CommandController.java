@@ -37,6 +37,7 @@ public class CommandController {
         commands.put("status", CommandService::handleStatusCommand);
         commands.put("say", CommandService::handleSayCommand);
         commands.put("answer", CommandService::handleAnswerCommand);
+        commands.put("a", CommandService::handleAnswerCommand);
         commands.put("transfer", CommandService::handleTransferCommand);
         commands.put("rank", CommandService::handleRankCommand);
         commands.put("help", CommandService::handleHelpCommand);
@@ -44,6 +45,7 @@ public class CommandController {
         commands.put("buy", CommandController::handleBuyCommand);        
         commands.put("daily", CommandService::handleDailyCommand); 
         commands.put("hourly", CommandService::handleHourlyCommand); 
+        commands.put("h", CommandService::handleHourlyCommand); 
         commands.put("coinflip", CoinflipService::handleCoinflipCommand);
         commands.put("colors", ColorsService::handleColorsCommand);
         commands.put("mines", MinesService::handleMinesCommand);
@@ -70,9 +72,9 @@ public class CommandController {
     private static CommandContext parseCommand(String message, String userName) {
         String commandAndArgs;
             if (message.startsWith(botCommand) && message.length() > botCommand.length()) {
-                commandAndArgs = message.substring(botCommand.length()+1).trim();
+                commandAndArgs = message.substring(botCommand.length()).trim();
             } else if (message.startsWith(botAlternativeCommand) && message.length() > botAlternativeCommand.length()){
-                commandAndArgs = message.substring(botAlternativeCommand.length()+1).trim();
+                commandAndArgs = message.substring(botAlternativeCommand.length()).trim();
             } else {
                 commandAndArgs = "";
                 Logger.logInfo("%s used empty command", "CommandController.processCommand()", userName);
