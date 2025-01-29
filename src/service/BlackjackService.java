@@ -17,7 +17,7 @@ public class BlackjackService {
         String firstArg = context.getFirstArgument();
         String secondArg = context.getSecondArgument();
 
-        if (firstArg.equalsIgnoreCase("start")) {
+        if (firstArg.equalsIgnoreCase("bet") || firstArg.equalsIgnoreCase("b")) {
             startGame(userName, secondArg, context);
             return;
         }
@@ -32,7 +32,7 @@ public class BlackjackService {
             return;
         }
 
-        String helpMessage = "/bot blackjack start [bet amount]\n" +
+        String helpMessage = "/bot blackjack bet [bet amount]\n" +
                              "/bot blackjack hit\n" +
                              "/bot blackjack stand\n" +
                              "The goal is to get as close to 21 as possible without exceeding it.";
@@ -113,7 +113,7 @@ public class BlackjackService {
     private static void hitCard(String userName, CommandContext context) {
         BlackjackGame game = BlackjackGameRepository.getGameByUserName(userName);
         if (game == null || !game.isGameInProgress()) {
-            MessageService.sendMessage(userName + " no active game. Start a new game with /bot blackjack start [bet amount].");
+            MessageService.sendMessage(userName + " no active game. Start a new game with /bot blackjack bet [bet amount].");
             return;
         }
     
@@ -141,7 +141,7 @@ public class BlackjackService {
     private static void stand(String userName, CommandContext context) {
         BlackjackGame game = BlackjackGameRepository.getGameByUserName(userName);
         if (game == null || !game.isGameInProgress()) {
-            MessageService.sendMessage(userName + " no active game. Start a new game with /bot blackjack start [bet amount].");
+            MessageService.sendMessage(userName + " no active game. Start a new game with /bot blackjack bet [bet amount].");
             return;
         }
     
