@@ -12,3 +12,4 @@ CREATE TABLE match_odds (
     away_score INT DEFAULT NULL,
     UNIQUE(home_team, away_team, commence_time, bookmaker) 
 );
+select * from match_odds

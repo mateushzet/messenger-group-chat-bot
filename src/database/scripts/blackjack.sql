@@ -9,4 +9,3 @@ CREATE TABLE blackjack_game (
 );
 
 
-select * from blackjack_game
