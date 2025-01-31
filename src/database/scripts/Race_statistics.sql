@@ -25,14 +25,14 @@ SELECT
     COALESCE(favorite_horses.How_many_races, 0) AS Favorite_horse_races
 FROM 
     game_history AS main
--- Wygrane
+
 LEFT JOIN (
     SELECT user_name, SUM(result_amount) AS Total_winnings_from_race
     FROM game_history
     WHERE result_amount > 0 AND game_type = 'Race'
     GROUP BY user_name
 ) winnings ON main.user_name = winnings.user_name
--- Straty
+
 LEFT JOIN (
     SELECT user_name, SUM(result_amount) AS Total_chips_lost_on_race
     FROM game_history
@@ -41,7 +41,7 @@ LEFT JOIN (
 ) losses ON main.user_name = losses.user_name
 LEFT JOIN game_series AS win_streak ON win_streak.result_type = 1 AND win_streak.user_name = main.user_name AND win_streak.game_type = 'Race'
 LEFT JOIN game_series AS lose_streak ON lose_streak.result_type = -1 AND lose_streak.user_name = main.user_name AND lose_streak.game_type = 'Race'
--- Dodajemy informację o ulubionym koniu
+
 LEFT JOIN (
     SELECT user_name, Favorite_horse, How_many_races
     FROM RankedHorses

@@ -21,7 +21,7 @@ CREATE VIEW Main_global_statistics_view AS
 		FROM game_history
 		WHERE result_amount > 0 
 	) winnings ON 1=1
-	-- Straty
+
 	LEFT JOIN (
 		SELECT SUM(result_amount) AS Total_chips_lost
 		FROM game_history

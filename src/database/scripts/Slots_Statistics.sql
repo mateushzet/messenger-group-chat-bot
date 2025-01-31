@@ -18,21 +18,21 @@ SELECT
 	
 FROM 
     game_history AS main
--- Wygrane
+
 LEFT JOIN (
     SELECT user_name, SUM(result_amount) AS Total_winnings_from_slots
     FROM game_history
     WHERE result_amount > 0 AND game_type = 'Slots'
     GROUP BY user_name
 ) winnings ON main.user_name = winnings.user_name
--- Straty
+
 LEFT JOIN (
     SELECT user_name, SUM(result_amount) AS Total_chips_lost_on_slots
     FROM game_history
     WHERE result_amount < 0 AND game_type = 'Slots'
     GROUP BY user_name
 ) losses ON main.user_name = losses.user_name
--- Jackpoty
+
 LEFT JOIN (
     SELECT 
         user_name,

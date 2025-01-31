@@ -19,24 +19,24 @@ SELECT
     COALESCE(sextuple.Number_of_sextuple_hits, 0) AS Number_of_sextuple_hits
 FROM 
     game_history AS main
--- Wygrane
+
 LEFT JOIN (
     SELECT user_name, SUM(result_amount) AS Total_winnings_from_lotto
     FROM game_history
     WHERE result_amount > 0 AND game_type = 'Lotto'
     GROUP BY user_name
 ) winnings ON main.user_name = winnings.user_name
--- Straty
+
 LEFT JOIN (
     SELECT user_name, SUM(result_amount) AS Total_chips_lost_on_lotto
     FROM game_history
     WHERE result_amount < 0 AND game_type = 'Lotto'
     GROUP BY user_name
 ) losses ON main.user_name = losses.user_name
--- Serie zwycięstw
+
 LEFT JOIN game_series AS win_streak ON win_streak.result_type = 1 AND win_streak.user_name = main.user_name AND win_streak.game_type = 'Lotto'
 LEFT JOIN game_series AS lose_streak ON lose_streak.result_type = -1 AND lose_streak.user_name = main.user_name AND lose_streak.game_type = 'Lotto'
--- Trafienia pojedyncze
+
 LEFT JOIN (
     SELECT user_name, COUNT(*) AS Number_of_single_hits 
     FROM game_history 
@@ -44,7 +44,7 @@ LEFT JOIN (
     AND note LIKE '%Matches: 1%' 
     GROUP BY user_name
 ) single ON single.user_name = main.user_name
--- Trafienia podwójne
+
 LEFT JOIN (
     SELECT user_name, COUNT(*) AS Number_of_double_hits 
     FROM game_history 
@@ -52,7 +52,7 @@ LEFT JOIN (
     AND note LIKE '%Matches: 2%' 
     GROUP BY user_name
 ) double_hits ON double_hits.user_name = main.user_name
--- Trafienia potrójne
+
 LEFT JOIN (
     SELECT user_name, COUNT(*) AS Number_of_triple_hits 
     FROM game_history 
@@ -60,7 +60,7 @@ LEFT JOIN (
     AND note LIKE '%Matches: 3%' 
     GROUP BY user_name
 ) triple ON triple.user_name = main.user_name
--- Trafienia poczwórne
+
 LEFT JOIN (
     SELECT user_name, COUNT(*) AS Number_of_quadruple_hits 
     FROM game_history 
@@ -68,7 +68,7 @@ LEFT JOIN (
     AND note LIKE '%Matches: 4%' 
     GROUP BY user_name
 ) quadruple ON quadruple.user_name = main.user_name
--- Trafienia pięciokrotne
+
 LEFT JOIN (
     SELECT user_name, COUNT(*) AS Number_of_quintuple_hits 
     FROM game_history 
@@ -76,7 +76,7 @@ LEFT JOIN (
     AND note LIKE '%Matches: 5%' 
     GROUP BY user_name
 ) quintuple ON quintuple.user_name = main.user_name
--- Trafienia sześciokrotne
+
 LEFT JOIN (
     SELECT user_name, COUNT(*) AS Number_of_sextuple_hits 
     FROM game_history 

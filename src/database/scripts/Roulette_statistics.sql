@@ -23,14 +23,14 @@ SELECT
     
 FROM 
     game_history AS main
--- Wygrane
+
 LEFT JOIN (
     SELECT user_name, SUM(result_amount) AS Total_winnings_from_roulette
     FROM game_history
     WHERE result_amount > 0 AND game_type = 'Roulette'
     GROUP BY user_name
 ) winnings ON main.user_name = winnings.user_name
--- Straty
+
 LEFT JOIN (
     SELECT user_name, SUM(result_amount) AS Total_chips_lost_on_roulette
     FROM game_history

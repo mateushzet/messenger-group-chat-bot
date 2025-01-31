@@ -24,14 +24,14 @@ CREATE VIEW Global_statistics_view AS
 		WHERE result_amount > 0 
 		GROUP BY user_name
 	) winnings ON main.user_name = winnings.user_name
-	-- Straty
+
 	LEFT JOIN (
 		SELECT user_name, SUM(result_amount) AS Total_chips_lost
 		FROM game_history
 		WHERE result_amount < 0 
 		GROUP BY user_name
 	) losses ON main.user_name = losses.user_name
-	-- Serie zwycięstw
+
 	LEFT JOIN game_series_global AS win_streak ON win_streak.result_type = 1 AND win_streak.user_name = main.user_name 
 	LEFT JOIN game_series_global AS lose_streak ON lose_streak.result_type = -1 AND lose_streak.user_name = main.user_name 
 	LEFT JOIN Favourite_games AS Favourite_game_1st ON Favourite_game_1st.user_name = main.user_name AND Favourite_game_1st.rn = 1

@@ -7,8 +7,8 @@ WITH game_series AS (
     result_amount,
 	game_type,
     CASE
-      WHEN result_amount > 0 THEN 1 -- Wygrana
-      WHEN result_amount < 0 THEN -1 -- Przegrana
+      WHEN result_amount > 0 THEN 1
+      WHEN result_amount < 0 THEN -1
     END AS result_type,
     CASE
       WHEN result_amount > 0 AND LAG(result_amount) OVER (PARTITION BY user_name, game_type ORDER BY created_at) <= 0 THEN 1

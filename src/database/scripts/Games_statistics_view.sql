@@ -21,14 +21,14 @@ CREATE VIEW Games_statistics_view AS
 		WHERE result_amount > 0 
 		GROUP BY game_type
 	) winnings ON main.game_type = winnings.game_type
-	-- Straty
+
 	LEFT JOIN (
 		SELECT game_type, SUM(result_amount) AS Total_chips_lost
 		FROM game_history
 		WHERE result_amount < 0 
 		GROUP BY game_type
 	) losses ON main.game_type = losses.game_type
-	-- Serie zwycięstw
+
 	LEFT JOIN game_series_games AS win_streak ON win_streak.result_type = 1 AND win_streak.game_type = main.game_type 
 	LEFT JOIN game_series_games AS lose_streak ON lose_streak.result_type = -1 AND lose_streak.game_type = main.game_type 
 	GROUP BY 
