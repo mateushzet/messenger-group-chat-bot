@@ -5,6 +5,7 @@ import service.MessageService;
 import service.MinesService;
 import service.SkinsService;
 import service.SlotsService;
+import service.StatisticsService;
 import service.roulette.RouletteService;
 import utils.ConfigReader;
 import utils.Logger;
@@ -57,6 +58,8 @@ public class CommandController {
         commands.put("sports", MatchController::handleSportsBettingCommand);
         commands.put("blackjack", BlackjackService::handleBlackjackCommand);
         commands.put("bj", BlackjackService::handleBlackjackCommand);
+        commands.put("stats", StatisticsService::handleStatsCommand);
+        
     }
 
     public static void processCommand(String userName, String message) {
