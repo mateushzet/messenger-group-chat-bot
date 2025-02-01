@@ -13,11 +13,7 @@ public class PlinkoService {
         int betAmountParsed = parseBetAmount(betAmount);
         int currentBalance = UserRepository.getUserBalance(playerName, false);
 
-        if (betAmountParsed <= 0) {
-                MessageService.sendMessage("Invalid bet amount");
-                Logger.logInfo("Player %s attempted to place a bet of %d coins", "LottoService.HandlePlinkoCommand()", playerName, betAmountParsed);
-                return;
-            }   
+        if (betAmountParsed == -1) return; 
 
         if (currentBalance < betAmountParsed) {
                 MessageService.sendMessage("You can't afford it, your balance is: %d", currentBalance);

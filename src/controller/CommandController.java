@@ -59,8 +59,8 @@ public class CommandController {
         commands.put("sports", MatchController::handleSportsBettingCommand);
         commands.put("blackjack", BlackjackService::handleBlackjackCommand);
         commands.put("bj", BlackjackService::handleBlackjackCommand);
+        commands.put("plinko", PlinkoService::handlePlinkoCommand);
         commands.put("stats", StatisticsService::handleStatsCommand);
-        commands.put("stats", PlinkoService::handlePlinkoCommand);
         
     }
 

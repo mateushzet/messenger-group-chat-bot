@@ -43,10 +43,15 @@ public class PlinkoGifGenerator {
             ballY += 50;
             ballX += rand.nextBoolean() ? SLOT_WIDTH / 2 : -SLOT_WIDTH / 2;
             if(i == steps - 1) {
-                frames.add(generatePlinkoImage(ballX, ballY, i, ""));
-                frames.add(generatePlinkoImage(ballX, ballY, i, ""));
-            }
-            frames.add(generatePlinkoImage(ballX, ballY, i, ""));
+                BufferedImage frame = generatePlinkoImage(ballX, ballY, true);
+                frames.add(frame);
+                frames.add(frame);
+                frames.add(frame);
+                frames.add(frame);
+                frames.add(frame);
+                frames.add(frame);
+                frames.add(frame);
+            } else frames.add(generatePlinkoImage(ballX, ballY, false));
         }
 
         int finalSlot = Math.min(Math.max((ballX - (WIDTH / 2 - (COLUMNS * SLOT_WIDTH / 2))) / SLOT_WIDTH, 0), COLUMNS - 1);
@@ -60,7 +65,7 @@ public class PlinkoGifGenerator {
         return finalMultiplier;
     }
 
-    private static BufferedImage generatePlinkoImage(int ballX, int ballY, int currentStep, String finalMultiplier) {
+    private static BufferedImage generatePlinkoImage(int ballX, int ballY, boolean lastStep) {
         BufferedImage image = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
 
@@ -92,13 +97,14 @@ public class PlinkoGifGenerator {
             g.drawString(formatMultiplier(MULTIPLIERS[i]) + "x", x + SLOT_WIDTH / 4, y);
         }
 
-        if (currentStep == ROWS - 1) {
+        if (lastStep) {
             int finalSlot = Math.min(Math.max((ballX - (WIDTH / 2 - (COLUMNS * SLOT_WIDTH / 2))) / SLOT_WIDTH, 0), COLUMNS - 1);
             double finalMultiplierValue = MULTIPLIERS[finalSlot - 1];
 
-            g.setFont(new Font("Arial", Font.BOLD, 30));
+            g.setFont(new Font("Arial", Font.BOLD, 50));
             g.setColor(Color.YELLOW);
-            g.drawString(finalMultiplierValue + "x", WIDTH / 2 - 50, HEIGHT / 2);
+            g.drawString(finalMultiplierValue + "x", WIDTH / 2 - 30, HEIGHT / 2);
+            g.drawString("WON: " + ((int) (finalMultiplierValue * betAmount)), WIDTH / 2 - 80, HEIGHT / 2 + 100);
         }
 
         g.setColor(Color.WHITE);
@@ -126,7 +132,7 @@ public class PlinkoGifGenerator {
             
             BufferedImage finalFrame = generatePlinkoImage(frames.get(frames.size() - 1).getWidth() / 2, 
                                                            frames.get(frames.size() - 1).getHeight() - 50, 
-                                                           ROWS - 1, String.valueOf(finalMultiplier));
+                                                           false);
             encoder.addFrame(finalFrame);
             encoder.finish();
 
