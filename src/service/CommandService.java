@@ -142,9 +142,6 @@ public class CommandService {
             return;
         }
 
-        
-        RewardsRepository.updateHourlyReward(userName);
-
         if (RewardsRepository.hasReceivedHourlyReward(userName)) {
             MessageService.sendMessage("%s, you have already claimed your reward for this hour.", userName);
             return;
