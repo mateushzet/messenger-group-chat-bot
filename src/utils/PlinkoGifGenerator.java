@@ -26,6 +26,8 @@ public class PlinkoGifGenerator {
     private static String username = "";
     private static int betAmount = 0;
     private static int totalBalance = 0;
+    private static Paint gradient;
+    private static Paint gradientDark;
 
 
     public static Double playAndGenerateGif(String usernamePassed, int betAmountPassed, int totalBalancePassed) {
@@ -34,7 +36,8 @@ public class PlinkoGifGenerator {
         int steps = ROWS;
         Random rand = new Random();
         List<BufferedImage> frames = new ArrayList<>();
-
+        gradient = GradientGenerator.generateGradientFromUsername(usernamePassed, false, WIDTH, HEIGHT);
+        gradientDark = GradientGenerator.generateGradientFromUsername(usernamePassed, true, WIDTH, HEIGHT);
         username = usernamePassed;
         betAmount = betAmountPassed;
         totalBalance = totalBalancePassed;
@@ -69,7 +72,7 @@ public class PlinkoGifGenerator {
         BufferedImage image = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
 
-        g.setColor(new Color(20, 20, 40));
+        g.setPaint(gradient);
         g.fillRect(0, 0, WIDTH, HEIGHT);
 
         g.setColor(PEG_COLOR);
@@ -84,12 +87,12 @@ public class PlinkoGifGenerator {
         g.setColor(BALL_COLOR);
         g.fillOval(ballX - BALL_RADIUS, ballY - BALL_RADIUS, BALL_RADIUS * 2, BALL_RADIUS * 2);
 
-        g.setColor(Color.WHITE);
+        g.setColor(Color.BLACK);
         for (int i = 0; i < COLUMNS - 2; i++) {
             int x = WIDTH / 2 - (ROWS * SLOT_WIDTH / 2) + i * SLOT_WIDTH + 25;
             int y = HEIGHT - 50;
 
-            Color backgroundColor = getMultiplierBackgroundColor(i);
+            Color backgroundColor = getMultiplierBackgroundColor(i, gradientDark);
             g.setColor(backgroundColor);
             g.fillRect(x - 3 , y - 20, 40, 30);
 
@@ -107,7 +110,7 @@ public class PlinkoGifGenerator {
             g.drawString("WON: " + ((int) (finalMultiplierValue * betAmount)), WIDTH / 2 - 80, HEIGHT / 2 + 100);
         }
 
-        g.setColor(Color.WHITE);
+        g.setColor(Color.BLACK);
         g.setFont(new Font("Arial", Font.BOLD, 25));
         g.drawString("Username: " + username, 10, 50);
         g.drawString("Balance: " + totalBalance, 10, 90);
@@ -181,11 +184,27 @@ public class PlinkoGifGenerator {
         }
     }
 
-    private static Color getMultiplierBackgroundColor(int index) {
-        int distanceFromCenter = Math.abs(index - ((COLUMNS - 2) / 2));
-        int colorIntensity = Math.min(255, 255 - (distanceFromCenter * 30));
-
-        return new Color(colorIntensity, colorIntensity, 255);
+    private static Color getMultiplierBackgroundColor(int index, Paint paint) {
+        int maxIndex = COLUMNS - 3;
+        float position = index / (float) maxIndex;
+    
+        Color firstColor = GradientGenerator.getFirstColorFromGradient(paint);
+        Color secondColor = GradientGenerator.getSecondColorFromGradient(paint);
+    
+        float distance = Math.abs(position - 0.5f) * 2;
+        
+        return interpolateColor(secondColor, firstColor, distance);
+    }
+    
+    private static Color interpolateColor(Color c1, Color c2, float ratio) {
+        ratio = Math.max(0, Math.min(1, ratio));
+    
+        int r = (int) (c1.getRed() * (1 - ratio) + c2.getRed() * ratio);
+        int g = (int) (c1.getGreen() * (1 - ratio) + c2.getGreen() * ratio);
+        int b = (int) (c1.getBlue() * (1 - ratio) + c2.getBlue() * ratio);
+        int a = (int) (c1.getAlpha() * (1 - ratio) + c2.getAlpha() * ratio);
+    
+        return new Color(r, g, b, a);
     }
 
     private static String formatMultiplier(double multiplier) {

@@ -357,6 +357,25 @@ import service.MessageService;
         }
     }
 
+    public static Color getFirstColorFromGradient(Paint paint) {
+        if (paint instanceof GradientPaint) {
+            return ((GradientPaint) paint).getColor1();
+        } else if (paint instanceof LinearGradientPaint) {
+            return ((LinearGradientPaint) paint).getColors()[0];
+        }
+        return Color.WHITE;
+    }
+
+    public static Color getSecondColorFromGradient(Paint paint) {
+        if (paint instanceof GradientPaint) {
+            return ((GradientPaint) paint).getColor2();
+        } else if (paint instanceof LinearGradientPaint) {
+            Color[] colors = ((LinearGradientPaint) paint).getColors();
+            return colors.length > 1 ? colors[1] : colors[0];
+        }
+        return Color.GRAY;
+    }
+
     public static Paint generateImagePaint(String imageUrl, int width, int height, int x, int y) {
         try {
             URL url = new URL(imageUrl);
