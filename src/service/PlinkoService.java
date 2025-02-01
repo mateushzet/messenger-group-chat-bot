@@ -1,6 +1,7 @@
 package service;
 
 import model.CommandContext;
+import repository.GameHistoryRepository;
 import repository.UserRepository;
 import utils.Logger;
 import utils.PlinkoGifGenerator;
@@ -23,7 +24,10 @@ public class PlinkoService {
 
         Double multiplier = PlinkoGifGenerator.playAndGenerateGif(playerName, betAmountParsed, currentBalance - betAmountParsed);
         
-        UserRepository.updateUserBalance(playerName, (currentBalance - betAmountParsed) + ((int)(multiplier * betAmountParsed)));
+        int resultAmount = ((int)(multiplier * betAmountParsed));
+
+        GameHistoryRepository.addGameHistory(playerName, "Plinko", context.getFullCommand(), betAmountParsed, resultAmount, String.valueOf(multiplier));
+        UserRepository.updateUserBalance(playerName, currentBalance - betAmountParsed + resultAmount);
         MessageService.sendMessageFromClipboard(true);
     }
 
