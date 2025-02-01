@@ -39,7 +39,7 @@ public class RewardsRepository {
     }
 
     public static boolean hasReceivedHourlyReward(String userName) {
-        String query = "SELECT hourly_coins_claimed_at FROM users WHERE username = ?";
+        String query = "SELECT hourly_reward_claimed_at FROM users WHERE username = ?";
 
         try (Connection connection = DatabaseConnectionManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
@@ -51,7 +51,7 @@ public class RewardsRepository {
                 return false;
             }
 
-            String lastReceivedDate = resultSet.getString("hourly_coins_claimed_at");
+            String lastReceivedDate = resultSet.getString("hourly_reward_claimed_at");
             String today = getCurrentDateTime();
 
             return today.equals(lastReceivedDate);
@@ -110,7 +110,7 @@ public class RewardsRepository {
     }
 
     private static String getCurrentDateTime() {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH");
         return dateFormat.format(new Date());
     }
 }
