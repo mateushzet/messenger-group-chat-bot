@@ -95,7 +95,7 @@ import service.MessageService;
             color2 = darkenGradient(color2, 0.9f);
         }
     
-        GradientPaint gradient = new GradientPaint(0, 0, color1, width, height, color2);
+        GradientPaint gradient = new GradientPaint(0, 0, limitBrightnessAndSaturation(color1,600,30), width, height, limitBrightnessAndSaturation(color1,600,30));
         
         return gradient;
     }
@@ -137,10 +137,43 @@ import service.MessageService;
             color2 = darkenGradient(color2, 0.9f);
         }
     
-        GradientPaint gradient = new GradientPaint(x, y, color1, width, height, color2);
+        GradientPaint gradient = new GradientPaint(x, y, limitBrightnessAndSaturation(color1,600,30), width, height, limitBrightnessAndSaturation(color1,600,30));
         
         return gradient;
     }
+
+    private static Color limitBrightnessAndSaturation(Color color, int maxSum, int minDifference) {
+        int r = color.getRed();
+        int g = color.getGreen();
+        int b = color.getBlue();
+    
+        int sum = r + g + b;
+        if (sum > maxSum) {
+            float factor = (float) maxSum / sum;
+            r = Math.min((int) (r * factor), 255);
+            g = Math.min((int) (g * factor), 255);
+            b = Math.min((int) (b * factor), 255);
+        }
+    
+        int max = Math.max(r, Math.max(g, b));
+        int min = Math.min(r, Math.min(g, b));
+    
+        if (max - min < minDifference) {
+            if (r == max) r += 20;
+            else if (g == max) g += 20;
+            else if (b == max) b += 20;
+    
+            if (r == min) r -= 20;
+            else if (g == min) g -= 20;
+            else if (b == min) b -= 20;
+    
+            r = Math.max(0, Math.min(255, r));
+            g = Math.max(0, Math.min(255, g));
+            b = Math.max(0, Math.min(255, b));
+        }
+    
+        return new Color(r, g, b);
+    }  
 
     private static Paint getGradientForSkin(String skinId, int width, int height, int x, int y) {
         switch (skinId) {

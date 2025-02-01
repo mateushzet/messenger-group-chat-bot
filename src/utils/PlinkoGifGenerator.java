@@ -21,13 +21,15 @@ public class PlinkoGifGenerator {
     private static final int COLUMNS = 15;
     private static final int SLOT_WIDTH = 40;
     private static final Color BALL_COLOR = new Color(255, 200, 50);
-    private static final Color PEG_COLOR = Color.WHITE;
+    private static Color PEG_COLOR = Color.WHITE;
     private static final double[] MULTIPLIERS = {33., 11., 4., 2., 1.1, 0.6, 0.3, 0.6, 1.1, 2.0, 4.0, 11.0, 33.0};
     private static String username = "";
     private static int betAmount = 0;
     private static int totalBalance = 0;
     private static Paint gradient;
     private static Paint gradientDark;
+    private static Color colorNegative;
+    
 
 
     public static Double playAndGenerateGif(String usernamePassed, int betAmountPassed, int totalBalancePassed) {
@@ -41,6 +43,7 @@ public class PlinkoGifGenerator {
         username = usernamePassed;
         betAmount = betAmountPassed;
         totalBalance = totalBalancePassed;
+        colorNegative = GradientGenerator.getSecondColorFromGradient(gradient);
 
         for (int i = 0; i < steps; i++) {
             ballY += 50;
@@ -87,7 +90,7 @@ public class PlinkoGifGenerator {
         g.setColor(BALL_COLOR);
         g.fillOval(ballX - BALL_RADIUS, ballY - BALL_RADIUS, BALL_RADIUS * 2, BALL_RADIUS * 2);
 
-        g.setColor(Color.BLACK);
+        g.setColor(Color.WHITE);
         for (int i = 0; i < COLUMNS - 2; i++) {
             int x = WIDTH / 2 - (ROWS * SLOT_WIDTH / 2) + i * SLOT_WIDTH + 25;
             int y = HEIGHT - 50;
@@ -96,7 +99,7 @@ public class PlinkoGifGenerator {
             g.setColor(backgroundColor);
             g.fillRect(x - 3 , y - 20, 40, 30);
 
-            g.setColor(Color.BLACK);
+            g.setColor(Color.WHITE);
             g.drawString(formatMultiplier(MULTIPLIERS[i]) + "x", x + SLOT_WIDTH / 4, y);
         }
 
@@ -110,7 +113,7 @@ public class PlinkoGifGenerator {
             g.drawString("WON: " + ((int) (finalMultiplierValue * betAmount)), WIDTH / 2 - 80, HEIGHT / 2 + 100);
         }
 
-        g.setColor(Color.BLACK);
+        g.setColor(colorNegative);
         g.setFont(new Font("Arial", Font.BOLD, 25));
         g.drawString("Username: " + username, 10, 50);
         g.drawString("Balance: " + totalBalance, 10, 90);
@@ -213,6 +216,15 @@ public class PlinkoGifGenerator {
         } else {
             return String.format("%.1f", multiplier);
         }
+    }
+
+    private static Color getNegativeColor(Color color) {
+        int r = 255 - color.getRed();
+        int g = 255 - color.getGreen();
+        int b = 255 - color.getBlue();
+        int a = color.getAlpha();
+    
+        return new Color(r, g, b, a);
     }
 
 }
