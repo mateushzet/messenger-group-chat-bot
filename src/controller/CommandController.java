@@ -3,6 +3,7 @@ package controller;
 import model.CommandContext;
 import service.MessageService;
 import service.MinesService;
+import service.PlinkoService;
 import service.SkinsService;
 import service.SlotsService;
 import service.StatisticsService;
@@ -59,6 +60,7 @@ public class CommandController {
         commands.put("blackjack", BlackjackService::handleBlackjackCommand);
         commands.put("bj", BlackjackService::handleBlackjackCommand);
         commands.put("stats", StatisticsService::handleStatsCommand);
+        commands.put("stats", PlinkoService::handlePlinkoCommand);
         
     }
 
