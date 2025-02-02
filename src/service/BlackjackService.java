@@ -79,14 +79,14 @@ public class BlackjackService {
         BlackjackGameRepository.saveGame(game);
     
         int playerScore = calculateHandValue(playerHand);
-        int dealerScore = calculateHandValue(dealerHand);
+        int dealerScore = calculateSecondCardScore(dealerHand);
     
         if (playerScore == 21 ) {
             dealerScore = calculateHandValue(dealerHand);
             if(dealerScore != 21){
             int winnings = (int) (betAmount * 1.5);
             UserRepository.updateUserBalance(userName, userBalance + winnings);
-            String gameStatus = userName + " you won with Blackjack! You won " + winnings + "!";
+            String gameStatus = userName + " Blackjack! You won " + winnings + "!";
             GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), betAmount, userBalance + winnings, "Player hand: " + handToString(playerHand) + " Dealer hand: " + handToString(dealerHand));
             
             BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, dealerHand, gameStatus, userBalance, betAmount, true, playerScore, dealerScore);
@@ -133,8 +133,8 @@ public class BlackjackService {
         }
     
         BlackjackGameRepository.updateGame(game);
-    
-        BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, game.getDealerHand(), userName + " you drew a card", userBalance, game.getBetAmount(), false, playerScore, 0);
+        dealerScore = calculateSecondCardScore(game.getDealerHand());
+        BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, game.getDealerHand(), userName + " you drew a card", userBalance, game.getBetAmount(), false, playerScore, dealerScore);
         MessageService.sendMessageFromClipboard(true);
     }
     
@@ -260,4 +260,17 @@ public class BlackjackService {
     private static String handToString(List<String> hand) {
         return String.join(", ", hand);
     }
+
+    private static int calculateSecondCardScore(List<String> dealerHand) {
+        List<String> handCopy = new ArrayList<>(dealerHand);
+        
+        if (handCopy.size() >= 2) {
+            handCopy.remove(0);
+            
+            return calculateHandValue(handCopy);
+        }
+        
+        return 0;
+    }
+    
 }

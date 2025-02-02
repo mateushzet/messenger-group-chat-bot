@@ -6,6 +6,7 @@ import java.awt.datatransfer.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.List;
 
 public class BlackjackImageGenerator {
@@ -13,65 +14,40 @@ public class BlackjackImageGenerator {
     private static final int CARD_WIDTH = 100;
     private static final int CARD_HEIGHT = 140;
     private static final int MARGIN = 20;
-    
+    private static final int DEALER_Y = 20;
+    private static final int PLAYER_Y = 300;
+    private static final int INFO_BOX_Y = 180;
+    private static final int IMAGE_HEIGHT = 460;
     private static final String CARD_BACK_IMAGE_URL = "https://cdn.pixabay.com/photo/2012/05/07/18/53/card-game-48983_1280.png";
-    private static final Color PLAYER_COLOR = new Color(50, 200, 50);
-    private static final Color DEALER_COLOR = new Color(200, 50, 50);
-    
+
+
     public static void generateBlackjackImage(String userName, List<String> playerHand, List<String> dealerHand, String gameStatus, int playerBalance, int betAmount, boolean revealDealerCard, int playerScore, int dealerScore) {
-        int width = Math.max(playerHand.size(), dealerHand.size()) * CARD_WIDTH + 2 * MARGIN;
-        int height = 2 * CARD_HEIGHT + 3 * MARGIN + 100;
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        int maxCards = Math.max(playerHand.size(), dealerHand.size());
+        int imageWidth = Math.max(MARGIN * 2 + maxCards * CARD_WIDTH, 380);
+    
+        BufferedImage image = new BufferedImage(imageWidth, IMAGE_HEIGHT, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
-    
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        
-        g.setColor(new Color(0, 0, 0));
-        g.fillRect(0, 0, width, height);
     
-        Paint gradient = GradientGenerator.generateGradientFromUsername(userName, false, 220, 330);
+        Paint gradient = GradientGenerator.generateGradientFromUsername(userName, false, imageWidth, IMAGE_HEIGHT);
         g.setPaint(gradient);
-        g.fillRect(0, 0, width, height);
+        g.fillRect(0, 0, imageWidth, IMAGE_HEIGHT);
     
-        int playerX = MARGIN;
-        int playerY = height - CARD_HEIGHT - MARGIN;
+        int playerStartX = (imageWidth - playerHand.size() * CARD_WIDTH) / 2;
         for (int i = 0; i < playerHand.size(); i++) {
-            String card = playerHand.get(i);
-            g.setColor(PLAYER_COLOR);
-            g.fillRect(playerX + i * CARD_WIDTH, playerY, CARD_WIDTH, CARD_HEIGHT);
-            drawCard(g, card, playerX + i * CARD_WIDTH, playerY);
+            drawCard(g, playerHand.get(i), playerStartX + i * CARD_WIDTH, PLAYER_Y);
         }
     
-        int dealerX = MARGIN;
-        int dealerY = MARGIN;
+        int dealerStartX = (imageWidth - dealerHand.size() * CARD_WIDTH) / 2;
         for (int i = 0; i < dealerHand.size(); i++) {
-            String card = dealerHand.get(i);
-            g.setColor(DEALER_COLOR);
-            g.fillRect(dealerX + i * CARD_WIDTH, dealerY, CARD_WIDTH, CARD_HEIGHT);
             if (i == 0 && !revealDealerCard) {
-                drawCardBack(g, dealerX + i * CARD_WIDTH, dealerY);
+                drawCardBack(g, dealerStartX + i * CARD_WIDTH, DEALER_Y);
             } else {
-                drawCard(g, card, dealerX + i * CARD_WIDTH, dealerY);
+                drawCard(g, dealerHand.get(i), dealerStartX + i * CARD_WIDTH, DEALER_Y);
             }
         }
     
-        g.setColor(Color.BLACK);
-        g.setFont(new Font("Arial", Font.PLAIN, 14));
-        if (gameStatus != null) {
-            g.drawString(gameStatus, MARGIN, height/2 - 2*MARGIN);
-        }
-    
-        g.setFont(new Font("Arial", Font.PLAIN, 14));
-        g.drawString("Balance: " + playerBalance, MARGIN, height/2 - MARGIN);
-        
-        g.setFont(new Font("Arial", Font.PLAIN, 14));
-        g.drawString("Bet: " + betAmount, MARGIN, height/2);
-    
-        g.setFont(new Font("Arial", Font.PLAIN, 16));
-        g.drawString("Player: " + playerScore, MARGIN, height/2 + MARGIN);
-        if (revealDealerCard) {
-            g.drawString("Dealer: " + dealerScore, MARGIN, height/2 + 2*MARGIN);
-        }
+        drawGameInfo(g, gameStatus, playerBalance, betAmount, playerScore, dealerScore, revealDealerCard, imageWidth);
     
         g.dispose();
         setClipboardImage(image);
@@ -79,32 +55,20 @@ public class BlackjackImageGenerator {
 
     private static void drawCard(Graphics2D g, String card, int x, int y) {
         g.setColor(Color.WHITE);
-        g.fillRect(x, y, CARD_WIDTH, CARD_HEIGHT);
+        g.fillRoundRect(x, y, CARD_WIDTH, CARD_HEIGHT, 15, 15);
         g.setColor(Color.BLACK);
-        g.drawRect(x, y, CARD_WIDTH, CARD_HEIGHT);
-    
-        Color textColor = getCardTextColor(card); 
-
-        g.setFont(new Font("Arial", Font.BOLD, 20));
-        FontMetrics metrics = g.getFontMetrics();
-    
-
-        String cardValue = card.substring(0, card.length() - 1); 
-        char suit = card.charAt(card.length() - 1);
-    
-        int textX = x + (CARD_WIDTH - metrics.stringWidth(cardValue)) / 2;
-        int textY = y + (CARD_HEIGHT + metrics.getHeight()) / 2 - 5;
-    
-        g.setColor(textColor);
-        g.drawString(cardValue, textX, textY);
-    
-
-        g.setFont(new Font("Arial", Font.PLAIN, 14));
-        String symbol = String.valueOf(suit);
-    
-        g.drawString(symbol, x + 5, y + 15);
+        g.drawRoundRect(x, y, CARD_WIDTH, CARD_HEIGHT, 15, 15);
         
-        g.drawString(symbol, x + CARD_WIDTH - 20, y + CARD_HEIGHT - 5);
+        Color textColor = getCardTextColor(card);
+        g.setColor(textColor);
+        g.setFont(new Font("Arial", Font.BOLD, 20));
+        
+        String value = card.substring(0, card.length() - 1);
+        String suit = card.substring(card.length() - 1);
+        
+        g.drawString(suit, x + 5, y + 20);
+        g.drawString(suit, x + CARD_WIDTH - 20, y + CARD_HEIGHT - 5);
+        g.drawString(value, x + (CARD_WIDTH / 2) - 10, y + (CARD_HEIGHT / 2) + 5);
     }
 
     private static void drawCardBack(Graphics2D g, int x, int y) {
@@ -118,14 +82,39 @@ public class BlackjackImageGenerator {
             g.drawRect(x, y, CARD_WIDTH, CARD_HEIGHT);
         }
     }
-    
+
+    private static void drawGameInfo(Graphics2D g, String gameStatus, int playerBalance, int betAmount, int playerScore, int dealerScore, boolean revealDealerCard, int imageWidth) {
+        g.setFont(new Font("Arial", Font.BOLD, 16));
+        FontMetrics fm = g.getFontMetrics();
+        
+        String[] texts = {
+            gameStatus,
+            "Balance: " + playerBalance,
+            "Bet: " + betAmount,
+            "Player: " + playerScore,
+            "Dealer: " + dealerScore
+        };
+        
+        int maxWidth = Arrays.stream(texts)
+                .mapToInt(fm::stringWidth)
+                .max()
+                .orElse(200);
+        
+        int infoBoxX = (imageWidth - maxWidth - 40) / 2;
+        g.setColor(new Color(0, 0, 0, 150));
+        g.fillRoundRect(infoBoxX, INFO_BOX_Y, maxWidth + 40, 110, 20, 20);
+        g.setColor(Color.WHITE);
+        
+        for (int i = 0; i < texts.length; i++) {
+            if (!texts[i].isEmpty()) {
+                g.drawString(texts[i], infoBoxX + 20, INFO_BOX_Y + 20 + (i * 20));
+            }
+        }
+    }
+
     private static Color getCardTextColor(String card) {
         char suit = card.charAt(card.length() - 1);
-        if (suit == '♦' || suit == '♥') {
-            return Color.RED;
-        } else {
-            return Color.BLACK;
-        }
+        return (suit == '♦' || suit == '♥') ? Color.RED : Color.BLACK;
     }
 
     public static void setClipboardImage(final BufferedImage image) {
@@ -136,27 +125,13 @@ public class BlackjackImageGenerator {
 
     private static class TransferableImage implements Transferable {
         private final BufferedImage image;
-
-        public TransferableImage(BufferedImage image) {
-            this.image = image;
-        }
-
-        @Override
-        public DataFlavor[] getTransferDataFlavors() {
-            return new DataFlavor[]{DataFlavor.imageFlavor};
-        }
-
-        @Override
-        public boolean isDataFlavorSupported(DataFlavor flavor) {
-            return DataFlavor.imageFlavor.equals(flavor);
-        }
-
-        @Override
-        public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException, IOException {
-            if (!isDataFlavorSupported(flavor)) {
-                throw new UnsupportedFlavorException(flavor);
-            }
+        public TransferableImage(BufferedImage image) { this.image = image; }
+        @Override public DataFlavor[] getTransferDataFlavors() { return new DataFlavor[]{DataFlavor.imageFlavor}; }
+        @Override public boolean isDataFlavorSupported(DataFlavor flavor) { return DataFlavor.imageFlavor.equals(flavor); }
+        @Override public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException, IOException {
+            if (!isDataFlavorSupported(flavor)) throw new UnsupportedFlavorException(flavor);
             return image;
         }
     }
+
 }
