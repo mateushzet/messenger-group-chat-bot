@@ -17,7 +17,7 @@ public class RouletteImageGenerator  {
     private static final Color DARK_GRAY = new Color(25, 25, 25);
     private static final Color WIN_COLOR = new Color(50, 200, 50);
     private static final Color LOSE_COLOR = new Color(200, 50, 50);
-    private static final Color TEXT_COLOR = new Color(200, 200, 200);
+    private static final Color TEXT_COLOR = Color.WHITE;
     private static final Color HISTORY_COLOR_NULL = new Color(100, 100, 100);
     private static final Color GREEN_COLOR = new Color(50, 200, 50);
     private static final Color BLACK_COLOR = new Color(60, 60, 60);
