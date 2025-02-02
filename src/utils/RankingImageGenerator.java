@@ -31,17 +31,20 @@ public class RankingImageGenerator {
             String username = entry.getKey();
             int balance = entry.getValue();
 
+            Color transparentBlack = new Color(0, 0, 0, 127);
+            g.setColor(transparentBlack);
+            g.fillRect(10, yPosition - 35, imageWidth - 20, 40);
+
             if (i == 0) {
                 g.setColor(new Color(218, 165, 32));
             } else if (i == 1) {
                 g.setColor(new Color(169, 169, 169));
             } else if (i == 2) {
-                g.setColor(new Color(139, 69, 19));
+                g.setColor(new Color(180, 100, 60));
             } else {
-                g.setColor(new Color(64, 64, 64));
+                g.setColor(Color.WHITE); 
             }
 
-            // Rysowanie tekstu: miejsce, nazwa użytkownika i saldo
             g.drawString((i + 1) + ". " + username + " - " + balance + " coins", 20, yPosition);
 
             yPosition += 50;
@@ -82,6 +85,17 @@ public class RankingImageGenerator {
             }
             return image;
         }
+    }
+
+    public static void main(String[] args) {
+        List<Map.Entry<String, Integer>> sortedUsers = List.of(
+            Map.entry("Alice", 1200),
+            Map.entry("Bob", 900),
+            Map.entry("Charlie", 700),
+            Map.entry("Dave", 500)
+        );
+        
+        generateRankingImage(sortedUsers, "Alice");
     }
 
 }
