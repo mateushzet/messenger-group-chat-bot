@@ -95,7 +95,7 @@ import service.MessageService;
             color2 = darkenGradient(color2, 0.9f);
         }
     
-        GradientPaint gradient = new GradientPaint(0, 0, limitBrightnessAndSaturation(color1,600,30), width, height, limitBrightnessAndSaturation(color2,600,30));
+        GradientPaint gradient = new GradientPaint(0, 0, limitBrightnessAndSaturation(color1,550,50), width, height, limitBrightnessAndSaturation(color2,550,50));
         
         return gradient;
     }
@@ -137,7 +137,7 @@ import service.MessageService;
             color2 = darkenGradient(color2, 0.9f);
         }
     
-        GradientPaint gradient = new GradientPaint(x, y, limitBrightnessAndSaturation(color1,600,30), width, height, limitBrightnessAndSaturation(color2,600,30));
+        GradientPaint gradient = new GradientPaint(x, y, limitBrightnessAndSaturation(color1,550,50), width, height, limitBrightnessAndSaturation(color2,550,50));
         
         return gradient;
     }
