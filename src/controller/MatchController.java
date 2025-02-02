@@ -24,7 +24,7 @@ public class MatchController {
             break;
 
         default:
-            MessageService.sendMessage("Invalid command. Please try again with a valid command.");
+            MessageService.sendMessage("Invalid command. Avaiable commands: /sports bet <bet amount> <match id> <outcome: home, away, draw>, /sports checkresults, /sports showmatches");
             break;
     }
 }
