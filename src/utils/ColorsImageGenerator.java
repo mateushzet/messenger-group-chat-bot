@@ -90,8 +90,8 @@ public class ColorsImageGenerator {
                         
                         g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
 
-                        g.setFont(new Font("Arial", Font.BOLD, 40));
-                        g.setColor(red);
+                        g.setFont(new Font("Arial", Font.BOLD, 30));
+                        g.setColor(Color.WHITE);
                 
                         String winText = winAmount > 0 ? "WIN ":"LOSE ";
                         winText += winAmount;
