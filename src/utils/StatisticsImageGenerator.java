@@ -41,7 +41,7 @@ public class StatisticsImageGenerator {
         g.fillRect(20, yPosition - 30, imageWidth - 40, rowHeight); 
     
         g.setColor(Color.BLACK);
-        g.drawRect(19, 80 - 30, imageWidth - 40, yPosition + (data.size() * rowHeight) - 80);
+        g.drawRect(19, 80 - 30, imageWidth - 39, yPosition + (data.size() * rowHeight) - 80);
     
         g.setFont(new Font("Arial", Font.BOLD, 17));
         g.setColor(Color.BLACK);
