@@ -43,7 +43,7 @@ public class PlinkoGifGenerator {
         username = usernamePassed;
         betAmount = betAmountPassed;
         totalBalance = totalBalancePassed;
-        colorNegative = GradientGenerator.getSecondColorFromGradient(gradient);
+        colorNegative = getNegativeColor(GradientGenerator.getSecondColorFromGradient(gradient));
 
         for (int i = 0; i < steps; i++) {
             ballY += 50;
@@ -225,6 +225,10 @@ public class PlinkoGifGenerator {
         int a = color.getAlpha();
     
         return new Color(r, g, b, a);
+    }
+
+    public static void main(String[] args) {
+        
     }
 
 }
