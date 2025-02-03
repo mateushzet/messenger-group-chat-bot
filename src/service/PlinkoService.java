@@ -11,6 +11,7 @@ public class PlinkoService {
     public static void handlePlinkoCommand(CommandContext context) {
         String playerName = context.getUserName();
         String betAmount = context.getFirstArgument();
+        String risk = context.getSecondArgument().toLowerCase();
         int betAmountParsed = parseBetAmount(betAmount);
         int currentBalance = UserRepository.getUserBalance(playerName, false);
 
@@ -18,11 +19,15 @@ public class PlinkoService {
 
         if (currentBalance < betAmountParsed) {
                 MessageService.sendMessage("You can't afford it, your balance is: %d", currentBalance);
-                Logger.logInfo("Player %s can't afford the bet. Current balance: %d", "SlotsService.HandlePlinkoCommand()", playerName, currentBalance);
                 return;
             } 
 
-        Double multiplier = PlinkoGifGenerator.playAndGenerateGif(playerName, betAmountParsed, currentBalance - betAmountParsed);
+        if (!risk.equals("low") && !risk.equals("l") && !risk.equals("medium") && !risk.equals("m") && !risk.equals("high") && !risk.equals("h")) {
+                MessageService.sendMessage("Invalid game risk. Please choose from: low, medium, or high.");
+                return;
+            }  
+
+        Double multiplier = PlinkoGifGenerator.playAndGenerateGif(playerName, betAmountParsed, currentBalance - betAmountParsed, risk);
         
         int resultAmount = ((int)(multiplier * betAmountParsed));
 
