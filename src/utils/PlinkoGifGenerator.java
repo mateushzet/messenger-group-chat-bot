@@ -75,7 +75,7 @@ public class PlinkoGifGenerator {
         BufferedImage image = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
 
-        g.setPaint(gradient);
+        g.setPaint(Color.BLACK);
         g.fillRect(0, 0, WIDTH, HEIGHT);
 
         g.setColor(PEG_COLOR);
