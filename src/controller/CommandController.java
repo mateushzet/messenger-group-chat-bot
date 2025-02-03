@@ -33,6 +33,7 @@ public class CommandController {
         commands.put("time", CommandService::handleTimeCommand);
         commands.put("money", CommandService::handleMoneyCommand);
         commands.put("roulette", RouletteService::handleRouletteCommand);
+        commands.put("r", RouletteService::handleRouletteCommand);
         commands.put("kill", CommandService::handleKillCommand);
         commands.put("stop", CommandService::handleStopCommand);
         commands.put("start", CommandService::handleStartCommand);
@@ -41,17 +42,21 @@ public class CommandController {
         commands.put("answer", CommandService::handleAnswerCommand);
         commands.put("a", CommandService::handleAnswerCommand);
         commands.put("transfer", CommandService::handleTransferCommand);
+        commands.put("t", CommandService::handleTransferCommand);
         commands.put("rank", CommandService::handleRankCommand);
         commands.put("help", CommandService::handleHelpCommand);
         commands.put("slots", SlotsService::handleSlotsCommand);
+        commands.put("s", SlotsService::handleSlotsCommand);
         commands.put("buy", CommandController::handleBuyCommand);        
         commands.put("daily", CommandService::handleDailyCommand); 
+        commands.put("d", CommandService::handleDailyCommand); 
         commands.put("hourly", CommandService::handleHourlyCommand); 
         commands.put("h", CommandService::handleHourlyCommand); 
         commands.put("coinflip", CoinflipService::handleCoinflipCommand);
         commands.put("colors", ColorsService::handleColorsCommand);
         commands.put("c", ColorsService::handleColorsCommand);
         commands.put("mines", MinesService::handleMinesCommand);
+        commands.put("m", MinesService::handleMinesCommand);
         commands.put("skins", SkinsService::handleSkinsCommand);
         commands.put("lotto", LottoService::handleLottoCommand);
         commands.put("l", LottoService::handleLottoCommand);
@@ -60,6 +65,7 @@ public class CommandController {
         commands.put("blackjack", BlackjackService::handleBlackjackCommand);
         commands.put("bj", BlackjackService::handleBlackjackCommand);
         commands.put("plinko", PlinkoService::handlePlinkoCommand);
+        commands.put("p", PlinkoService::handlePlinkoCommand);
         commands.put("stats", StatisticsService::handleStatsCommand);
         
     }
