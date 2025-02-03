@@ -148,8 +148,8 @@ public class PlinkoGifGenerator {
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 36));
         g.drawString(username, 25, 50);
-        g.drawString("Balance: " + totalBalance, 25, 90);
-        g.drawString("Bet: " + betAmount, 25, 130);
+        g.drawString("Balance: " + totalBalance, 25, 100);
+        g.drawString("Bet: " + betAmount, 25, 120);
  
         g.dispose();
         return image;
