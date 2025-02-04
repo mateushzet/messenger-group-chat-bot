@@ -1,9 +1,7 @@
 package utils;
 
 import java.awt.*;
-import java.awt.datatransfer.*;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -51,51 +49,7 @@ public class RankingImageGenerator {
         }
 
         g.dispose();
-        saveImageToClipboard(image);
-    }
-
-    public static void saveImageToClipboard(BufferedImage image) {
-        TransferableImage transferable = new TransferableImage(image);
-        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-        clipboard.setContents(transferable, null);
-        System.out.println("Image saved to clipboard.");
-    }
-
-    private static class TransferableImage implements Transferable {
-        private final BufferedImage image;
-
-        public TransferableImage(BufferedImage image) {
-            this.image = image;
-        }
-
-        @Override
-        public DataFlavor[] getTransferDataFlavors() {
-            return new DataFlavor[]{DataFlavor.imageFlavor};
-        }
-
-        @Override
-        public boolean isDataFlavorSupported(DataFlavor flavor) {
-            return DataFlavor.imageFlavor.equals(flavor);
-        }
-
-        @Override
-        public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException, IOException {
-            if (!isDataFlavorSupported(flavor)) {
-                throw new UnsupportedFlavorException(flavor);
-            }
-            return image;
-        }
-    }
-
-    public static void main(String[] args) {
-        List<Map.Entry<String, Integer>> sortedUsers = List.of(
-            Map.entry("Alice", 1200),
-            Map.entry("Bob", 900),
-            Map.entry("Charlie", 700),
-            Map.entry("Dave", 500)
-        );
-        
-        generateRankingImage(sortedUsers, "Alice");
+        ImageUtils.setClipboardImage(image);
     }
 
 }

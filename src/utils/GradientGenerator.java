@@ -481,41 +481,10 @@ import service.MessageService;
         return image;
     }
 
-    public static void copyImageToClipboard(BufferedImage image) {
-        ImageSelection imageSelection = new ImageSelection(image);
-        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(imageSelection, null);
-    }
-
-    static class ImageSelection implements Transferable {
-        private final BufferedImage image;
-
-        public ImageSelection(BufferedImage image) {
-            this.image = image;
-        }
-
-        @Override
-        public DataFlavor[] getTransferDataFlavors() {
-            return new DataFlavor[]{DataFlavor.imageFlavor};
-        }
-
-        @Override
-        public boolean isDataFlavorSupported(DataFlavor flavor) {
-            return DataFlavor.imageFlavor.equals(flavor);
-        }
-
-        @Override
-        public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException {
-            if (!DataFlavor.imageFlavor.equals(flavor)) {
-                throw new UnsupportedFlavorException(flavor);
-            }
-            return image;
-        }
-    }
-
     public static void sendAvaiableSkinsImage(){
         try {
             BufferedImage image = generateGradientImage(150, 150);
-            copyImageToClipboard(image);
+            ImageUtils.setClipboardImage(image);
             MessageService.sendMessageFromClipboard(false);
         } catch (Exception e) {
             e.printStackTrace();

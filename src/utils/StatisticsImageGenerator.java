@@ -1,9 +1,7 @@
 package utils;
 
 import java.awt.*;
-import java.awt.datatransfer.*;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -102,7 +100,7 @@ public class StatisticsImageGenerator {
         }
     
         g.dispose();
-        saveImageToClipboard(image);
+        ImageUtils.setClipboardImage(image);
     }
     
     private static List<String[]> fetchViewData(String viewName) {
@@ -134,39 +132,6 @@ public class StatisticsImageGenerator {
             e.printStackTrace();
         }
         return data;
-    }
-
-    private static void saveImageToClipboard(BufferedImage image) {
-        TransferableImage transferable = new TransferableImage(image);
-        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-        clipboard.setContents(transferable, null);
-        System.out.println("Image saved to clipboard.");
-    }
-
-    private static class TransferableImage implements Transferable {
-        private final BufferedImage image;
-
-        public TransferableImage(BufferedImage image) {
-            this.image = image;
-        }
-
-        @Override
-        public DataFlavor[] getTransferDataFlavors() {
-            return new DataFlavor[]{DataFlavor.imageFlavor};
-        }
-
-        @Override
-        public boolean isDataFlavorSupported(DataFlavor flavor) {
-            return DataFlavor.imageFlavor.equals(flavor);
-        }
-
-        @Override
-        public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException, IOException {
-            if (!isDataFlavorSupported(flavor)) {
-                throw new UnsupportedFlavorException(flavor);
-            }
-            return image;
-        }
     }
 
     private static String[] wrapText(String text, int maxWidth, Graphics2D g) {

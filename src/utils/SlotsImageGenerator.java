@@ -5,11 +5,6 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Random;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
-
 import javax.imageio.ImageIO;
 
 
@@ -122,7 +117,7 @@ public class SlotsImageGenerator {
         
         g.dispose();
     
-        setClipboardImage(image);;
+        ImageUtils.setClipboardImage(image);;
     }
 
     private static String[] spinSlotsWithWildcard() {
@@ -133,38 +128,6 @@ public class SlotsImageGenerator {
             result[i] = symbols[rand.nextInt(symbols.length)];
         }
         return result;
-    }
-
-    public static void setClipboardImage(final BufferedImage image) {
-        TransferableImage transferable = new TransferableImage(image);
-        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-        clipboard.setContents(transferable, null);
-    }
-
-    private static class TransferableImage implements Transferable {
-        private final BufferedImage image;
-
-        public TransferableImage(BufferedImage image) {
-            this.image = image;
-        }
-
-        @Override
-        public DataFlavor[] getTransferDataFlavors() {
-            return new DataFlavor[]{DataFlavor.imageFlavor};
-        }
-
-        @Override
-        public boolean isDataFlavorSupported(DataFlavor flavor) {
-            return DataFlavor.imageFlavor.equals(flavor);
-        }
-
-        @Override
-        public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException, IOException {
-            if (!isDataFlavorSupported(flavor)) {
-                throw new UnsupportedFlavorException(flavor);
-            }
-            return image;
-        }
     }
 
 }

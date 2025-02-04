@@ -2,11 +2,6 @@ package utils;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
-import java.io.IOException;
 import java.text.DecimalFormat;
 
 public class LottoImageGenerator {
@@ -62,7 +57,7 @@ public class LottoImageGenerator {
 
         g.dispose();
 
-        setClipboardImage(image);
+        ImageUtils.setClipboardImage(image);
     }
 
     private static void drawPlayerNumbers(Graphics2D g, int[] drawnNumbers, int[] playerNumbers, int x, int y) {
@@ -128,38 +123,6 @@ public class LottoImageGenerator {
             g.setColor(Color.BLACK);
             g.setFont(new Font("Arial", Font.BOLD, 14));
             g.drawString(String.valueOf(i), ballX + 7, ballY + 20);
-        }
-    }
-
-    private static void setClipboardImage(final BufferedImage image) {
-        TransferableImage transferable = new TransferableImage(image);
-        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-        clipboard.setContents(transferable, null);
-    }
-
-    private static class TransferableImage implements Transferable {
-        private final BufferedImage image;
-
-        public TransferableImage(BufferedImage image) {
-            this.image = image;
-        }
-
-        @Override
-        public DataFlavor[] getTransferDataFlavors() {
-            return new DataFlavor[]{DataFlavor.imageFlavor};
-        }
-
-        @Override
-        public boolean isDataFlavorSupported(DataFlavor flavor) {
-            return DataFlavor.imageFlavor.equals(flavor);
-        }
-
-        @Override
-        public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException, IOException {
-            if (!isDataFlavorSupported(flavor)) {
-                throw new UnsupportedFlavorException(flavor);
-            }
-            return image;
         }
     }
 

@@ -1,13 +1,9 @@
 package utils;
 
 import com.madgag.gif.fmsware.AnimatedGifEncoder;
-
 import java.awt.*;
-import java.awt.datatransfer.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -31,7 +27,7 @@ public class PlinkoGifGenerator {
     public static Double playAndGenerateGif(String usernamePassed, int betAmountPassed, int totalBalancePassed, String risk) {
         int ballX = WIDTH / 2;
         int ballY = 50;
-        int steps = ROWS;
+        int steps = ROWS - 1;
         gradient = GradientGenerator.generateGradientFromUsername(usernamePassed, false, 300, 120);
 
         switch (risk) {
@@ -58,8 +54,9 @@ public class PlinkoGifGenerator {
         username = usernamePassed;
         betAmount = betAmountPassed;
         totalBalance = totalBalancePassed;
-
-        for (int i = 0; i < steps; i++) {
+        ballY = 150;
+        frames.add(generatePlinkoImage(ballX, ballY, false, risk));
+        for (int i = 1; i < steps; i++) {
             ballY += 50;
             ballX += rand.nextBoolean() ? SLOT_WIDTH / 2 : -SLOT_WIDTH / 2;
             if(i == steps - 1) {
@@ -80,7 +77,7 @@ public class PlinkoGifGenerator {
 
         byte[] gifBytes = createGif(frames, finalMultiplier, risk);
 
-        copyToClipboard(gifBytes);
+        ImageUtils.setClipboardGif(gifBytes);
 
         return finalMultiplier;
     }
@@ -179,43 +176,6 @@ public class PlinkoGifGenerator {
             e.printStackTrace();
         }
         return null;
-    }
-
-    private static void copyToClipboard(byte[] gifBytes) {
-        try {
-            Transferable transferable = new Transferable() {
-                @Override
-                public DataFlavor[] getTransferDataFlavors() {
-                    return new DataFlavor[]{DataFlavor.javaFileListFlavor};
-                }
-
-                @Override
-                public boolean isDataFlavorSupported(DataFlavor flavor) {
-                    return DataFlavor.javaFileListFlavor.equals(flavor);
-                }
-
-                @Override
-                public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException {
-                    try {
-                        File tempFile = File.createTempFile("plinko", ".gif");
-                        try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-                            fos.write(gifBytes);
-                        }
-                        return java.util.Collections.singletonList(tempFile);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        return null;
-                    }
-                }
-            };
-
-            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-            clipboard.setContents(transferable, null);
-
-            System.out.println("GIF skopiowano do schowka.");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
     private static Color getMultiplierBackgroundColor(int index, String risk) {

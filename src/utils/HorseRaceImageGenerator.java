@@ -2,7 +2,6 @@ package utils;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.awt.datatransfer.*;
 import java.awt.geom.AffineTransform;
 import java.io.File;
 import java.io.IOException;
@@ -63,7 +62,7 @@ public class HorseRaceImageGenerator {
 
         g.dispose();
 
-        setClipboardImage(result);
+        ImageUtils.setClipboardImage(result);
     }
 
     public static void showHorses() throws IOException {
@@ -111,39 +110,7 @@ public class HorseRaceImageGenerator {
    
        g.dispose();
    
-       setClipboardImage(result);
+       ImageUtils.setClipboardImage(result);
     }
     
-
-    private static void setClipboardImage(final BufferedImage image) {
-        TransferableImage transferable = new TransferableImage(image);
-        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-        clipboard.setContents(transferable, null);
-    }
-
-    private static class TransferableImage implements Transferable {
-        private final BufferedImage image;
-
-        public TransferableImage(BufferedImage image) {
-            this.image = image;
-        }
-
-        @Override
-        public DataFlavor[] getTransferDataFlavors() {
-            return new DataFlavor[]{DataFlavor.imageFlavor};
-        }
-
-        @Override
-        public boolean isDataFlavorSupported(DataFlavor flavor) {
-            return DataFlavor.imageFlavor.equals(flavor);
-        }
-
-        @Override
-        public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException, IOException {
-            if (!isDataFlavorSupported(flavor)) {
-                throw new UnsupportedFlavorException(flavor);
-            }
-            return image;
-        }
-    }
 }
