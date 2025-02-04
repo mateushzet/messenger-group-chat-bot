@@ -89,7 +89,7 @@ public class BlackjackService {
             String gameStatus = userName + " Blackjack! You won " + winnings + "!";
             GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), betAmount, winnings, "Player hand: " + handToString(playerHand) + " Dealer hand: " + handToString(dealerHand));
             
-            BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, dealerHand, gameStatus, userBalance, betAmount, true, playerScore, dealerScore);
+            BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, dealerHand, gameStatus, userBalance + winnings, betAmount, true, playerScore, dealerScore);
             MessageService.sendMessageFromClipboard(true);
             BlackjackGameRepository.deleteGame(userName);
             return;
@@ -225,7 +225,6 @@ public class BlackjackService {
     private static int calculateHandValue(List<String> hand) {
         int value = 0;
         int aces = 0;
-        boolean isBlackjack = false;
     
         for (String card : hand) {
             String cardValue = card.replaceAll("[♠♣♦♥]", "");
@@ -240,18 +239,9 @@ public class BlackjackService {
             }
         }
     
-        if (aces == 2 && hand.size() == 2) {
-            isBlackjack = true;
-            value = 21;
-        }
-    
         while (value > 21 && aces > 0) {
             value -= 10;
             aces--;
-        }
-    
-        if (isBlackjack) {
-            return 21;
         }
     
         return value;
