@@ -127,14 +127,16 @@ public class DiceImageGenerator {
 
         Object[][] combinations = {
             {new int[]{1, 1, 1}, 0.5},
-            {new int[]{1, 1, 2, 2, 2}, 1.},
-            {new int[]{1, 1, 1, 1}, 3.},
-            {new int[]{1, 1, 1, 2, 2, 2}, 4.},
-            {new int[]{1, 1, 2, 2, 3, 3}, 5.},
-            {new int[]{1, 1, 1, 1, 1}, 6.},
-            {new int[]{1, 2, 3, 4, 5, 6}, 7.},
-            {new int[]{1, 1, 1, 1, 1, 1}, 25.}
+            {new int[]{1, 1, 2, 2, 2}, 0.7},
+            {new int[]{1, 1, 1, 1}, 2.},
+            {new int[]{1, 1, 1, 2, 2, 2}, 2.},
+            {new int[]{1, 1, 2, 2, 3, 3}, 3.},
+            {new int[]{1, 1, 1, 1, 1}, 4.},
+            {new int[]{1, 2, 3, 4, 5, 6}, 5.},
+            {new int[]{1, 1, 1, 1, 1, 1}, 15.}
         };
+
+
 
         for (Object[] combination : combinations) {
             int[] pattern = (int[]) combination[0];
