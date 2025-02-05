@@ -14,6 +14,7 @@ import service.BlackjackService;
 import service.CoinflipService;
 import service.ColorsService;
 import service.CommandService;
+import service.DiceGameService;
 import service.HorseRaceBettingService;
 import service.LottoService;
 
@@ -67,7 +68,7 @@ public class CommandController {
         commands.put("plinko", PlinkoService::handlePlinkoCommand);
         commands.put("p", PlinkoService::handlePlinkoCommand);
         commands.put("stats", StatisticsService::handleStatsCommand);
-        
+        commands.put("dice", DiceGameService::handleDiceCommand);
     }
 
     public static void processCommand(String userName, String message) {

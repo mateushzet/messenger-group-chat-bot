@@ -3,8 +3,6 @@ package utils;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.text.DecimalFormat;
-import java.util.HashMap;
-import java.util.Map;
 
 public class DiceImageGenerator {
 
@@ -14,7 +12,7 @@ public class DiceImageGenerator {
     private static final Color BALL_COLOR = new Color(255, 200, 50);
     private static final Color BLACK_BACKGROUND = new Color(0, 0, 0, 180);
 
-    public static void drawDiceResults(int[] diceValues, int betAmount, int totalBalance, String playerName, int multiplier) {
+    public static void drawDiceResults(int[] diceValues, int betAmount, int totalBalance, String playerName, double multiplier, boolean showReward) {
         int width = 500;
         int height = 600;
 
@@ -40,45 +38,45 @@ public class DiceImageGenerator {
 
         drawDice(g, diceValues, 45, 150);
 
-            // Draw the background for the multiplier text (black semi-transparent rectangle)
         String multiplierText = "Multiplier: x" + multiplier;
         FontMetrics metrics = g.getFontMetrics();
         int textWidth = metrics.stringWidth(multiplierText);
         int textHeight = metrics.getHeight();
         
-        // Calculate position to center the text
         int xPosition = (width - textWidth) / 2;
         int yPosition = 120;
 
-        g.setColor(new Color(0, 0, 0, 180));  // Semi-transparent black
-        g.fillRect(xPosition - 5, yPosition - textHeight, textWidth + 40, textHeight + 10);  // Background rectangle
+        g.setColor(new Color(0, 0, 0, 180));
+        g.fillRect(xPosition - 5, yPosition - textHeight, textWidth + 40, textHeight + 10);
 
-        // Draw the text itself
         g.setFont(new Font("Arial", Font.BOLD, 19));
         g.setColor(multiplier > 1 ? WIN_COLOR : LOSE_COLOR);
         g.drawString(multiplierText, xPosition, yPosition);
 
 
+
+        if(showReward){
         String rewardText = "" + (int)(multiplier * betAmount);
         textWidth = metrics.stringWidth(rewardText);
         xPosition = (220 - textWidth) / 2 + 277;
         yPosition = 420;
 
         g.setColor(new Color(0, 0, 0, 180));
-        g.fillRect(xPosition - 5, yPosition - textHeight - 30, textWidth + 20, 2 * textHeight + 20);
+        g.fillRect(xPosition - 35, yPosition - textHeight - 30, textWidth + 105, 2 * textHeight + 20);
         g.setColor(multiplier > 1 ? WIN_COLOR : LOSE_COLOR);
+        g.setFont(new Font("Arial", Font.BOLD, 24));
         g.drawString("REWARD", 350, 390);
         g.drawString(rewardText, xPosition, yPosition);
 
         g.setFont(new Font("Arial", Font.PLAIN, 14));
         g.setColor(TEXT_COLOR);
+        }
 
         drawMultiplierInfo(g);
 
         g.dispose();
 
-        // Możliwość zapisania lub wyświetlenia obrazu
-        ImageUtils.setClipboardImage(image);  // Jeśli chcesz skopiować do schowka
+        ImageUtils.setClipboardImage(image);
     }
 
     private static void drawDice(Graphics2D g, int[] diceValues, int startX, int startY) {
@@ -127,11 +125,10 @@ public class DiceImageGenerator {
         int diceSize = 25;
         int margin = 10;
 
-        // Defining the combinations and multipliers
         Object[][] combinations = {
-            {new int[]{1, 1, 1}, 1.5},
-            {new int[]{1, 1, 1, 1}, 3.5},
-            {new int[]{1, 1, 1, 2, 2, 2}, 4.0},
+            {new int[]{1, 1, 1}, 0.5},
+            {new int[]{1, 1, 1, 1}, 3.},
+            {new int[]{1, 1, 1, 2, 2, 2}, 4.},
             {new int[]{1, 1, 2, 2, 3, 3}, 5.},
             {new int[]{1, 1, 1, 1, 1}, 6.},
             {new int[]{1, 2, 3, 4, 5, 6}, 7.},
@@ -149,21 +146,12 @@ public class DiceImageGenerator {
                 drawDiceFace(g, startX + i * offsetX, startY, pattern[i], diceSize, 5);
             }
 
-            // Draw the multiplier next to the dice pattern
             g.setFont(new Font("Arial", Font.PLAIN, 14));
             g.setColor(TEXT_COLOR);
             g.drawString("x" + multiplier, startX + pattern.length * offsetX + 5, startY + diceSize / 2);
-            startY += 40;  // Move down for the next combination
+            startY += 40;
         }
 
     }
 
-    public static void main(String[] args) {
-        int[] diceValues = {4, 2, 5, 5, 3, 4};
-        int betAmount = 50;
-        int totalBalance = 1000;
-        String playerName = "Player1";
-
-        drawDiceResults(diceValues, betAmount, totalBalance, playerName, 100000000);
-    }
 }
