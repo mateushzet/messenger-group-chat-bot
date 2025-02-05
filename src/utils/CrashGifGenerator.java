@@ -6,7 +6,6 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 public class CrashGifGenerator {
     private static final int WIDTH = 800;
@@ -82,7 +81,12 @@ public class CrashGifGenerator {
         g.setFont(new Font("Arial", Font.BOLD, 30));
         g.drawString("Multiplier: " + String.format("%.2f x", multiplier), 25, 50);
         g.drawString("Username: " + username, 25, 100);
-        g.drawString("Balance: " + totalBalance, 25, 150);
+        if (isCashout) g.setColor(Color.GREEN);
+        else g.setColor(Color.RED);
+        if(isCrashPoint&&!isCashout) g.drawString("Balance: " + (totalBalance - betAmount), 25, 150);
+        else g.drawString("Balance: " + (totalBalance + (int)(betAmount*multiplier)), 25, 150);
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 30));
         g.drawString("Bet: " + betAmount, 25, 200);
 
         if (isCashout) {
@@ -118,14 +122,4 @@ public class CrashGifGenerator {
         return null;
     }
 
-    public static void main(String[] args) {
-        String username = "TestUser";
-        int betAmount = 100;
-        int totalBalance = 5000;
-        double playerCashout = 12.0; // Gracz wypłaca przy 10x
-        double crashMultiplier = 5.0; // Crash następuje przy 50x
-
-        double finalMultiplier = playAndGenerateGif(username, betAmount, totalBalance, playerCashout, crashMultiplier);
-        System.out.println("Crash multiplier: " + finalMultiplier);
-    }
 }
