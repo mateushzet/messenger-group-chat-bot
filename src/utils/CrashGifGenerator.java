@@ -84,7 +84,7 @@ public class CrashGifGenerator {
         if (isCashout) g.setColor(Color.GREEN);
         else g.setColor(Color.RED);
         if(isCrashPoint&&!isCashout) g.drawString("Balance: " + (totalBalance - betAmount), 25, 150);
-        else g.drawString("Balance: " + (totalBalance + (int)(betAmount*multiplier)), 25, 150);
+        else g.drawString("Balance: " + (totalBalance + (int)(betAmount*multiplier) - betAmount), 25, 150);
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 30));
         g.drawString("Bet: " + betAmount, 25, 200);
