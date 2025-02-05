@@ -168,6 +168,7 @@ public class DiceGameService {
         if (pairs == 3) return 5;
         if (threes == 2) return 4;
         if (hasFourOfSame) return 3;
+        if (pairs == 1 && threes == 1) return 1;
         if (threes == 1) return 0.5;
     
         return 0;

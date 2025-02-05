@@ -14,7 +14,7 @@ public class DiceImageGenerator {
 
     public static void drawDiceResults(int[] diceValues, int betAmount, int totalBalance, String playerName, double multiplier, boolean showReward) {
         int width = 500;
-        int height = 600;
+        int height = 630;
 
         BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
@@ -118,7 +118,7 @@ public class DiceImageGenerator {
     private static void drawMultiplierInfo(Graphics2D g) {
 
         g.setColor(new Color(0, 0, 0, 180));
-        g.fillRect(10, 290, 270, 285);
+        g.fillRect(10, 290, 270, 355);
 
         int startX = 20;
         int startY = 300;
@@ -127,6 +127,7 @@ public class DiceImageGenerator {
 
         Object[][] combinations = {
             {new int[]{1, 1, 1}, 0.5},
+            {new int[]{1, 1, 2, 2, 2}, 1.},
             {new int[]{1, 1, 1, 1}, 3.},
             {new int[]{1, 1, 1, 2, 2, 2}, 4.},
             {new int[]{1, 1, 2, 2, 3, 3}, 5.},
