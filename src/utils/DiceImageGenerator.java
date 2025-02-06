@@ -126,8 +126,8 @@ public class DiceImageGenerator {
         int margin = 10;
 
         Object[][] combinations = {
-            {new int[]{1, 1, 1}, 0.1},
-            {new int[]{1, 1, 2, 2, 2}, 0.2},
+            {new int[]{1, 1, 1}, 0.2},
+            {new int[]{1, 1, 2, 2, 2}, 0.4},
             {new int[]{1, 1, 1, 1}, 1.5},
             {new int[]{1, 1, 1, 2, 2, 2}, 1.5},
             {new int[]{1, 1, 2, 2, 3, 3}, 2.},
