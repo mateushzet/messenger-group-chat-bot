@@ -1,8 +1,11 @@
-package utils;
+package games.lotto;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.text.DecimalFormat;
+
+import utils.GradientGenerator;
+import utils.ImageUtils;
 
 public class LottoImageGenerator {
 

@@ -1,6 +1,9 @@
-package utils;
+package games.crash;
 
 import com.madgag.gif.fmsware.AnimatedGifEncoder;
+
+import utils.ImageUtils;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;

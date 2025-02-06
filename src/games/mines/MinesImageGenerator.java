@@ -1,6 +1,10 @@
-package utils;
+package games.mines;
 
 import javax.imageio.ImageIO;
+
+import utils.GradientGenerator;
+import utils.ImageUtils;
+
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.DataFlavor;

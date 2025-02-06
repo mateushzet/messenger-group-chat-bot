@@ -1,10 +1,11 @@
-package utils;
+package games.coinflip;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.List;
 
 import model.CoinflipGame;
+import utils.ImageUtils;
 
 public class CoinflipGamesImageGenerator {
     

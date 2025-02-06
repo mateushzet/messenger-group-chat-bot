@@ -1,11 +1,10 @@
-package service;
+package games.mines;
 
 import repository.UserRepository;
+import service.MessageService;
 import repository.GameHistoryRepository;
-import repository.MinesGameRepository;
 import model.CommandContext;
 import model.MinesGame;
-import utils.MinesImageGenerator;
 
 import java.util.ArrayList;
 import java.util.Collections;

@@ -1,6 +1,10 @@
-package utils;
+package games.plinko;
 
 import com.madgag.gif.fmsware.AnimatedGifEncoder;
+
+import utils.GradientGenerator;
+import utils.ImageUtils;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;

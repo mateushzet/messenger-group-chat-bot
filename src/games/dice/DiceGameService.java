@@ -1,11 +1,10 @@
-package service;
+package games.dice;
 
 import model.DiceGame;
 import model.CommandContext;
-import repository.DiceGameRepository;
 import repository.GameHistoryRepository;
 import repository.UserRepository;
-import utils.DiceImageGenerator;
+import service.MessageService;
 
 public class DiceGameService {
 

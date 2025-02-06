@@ -1,4 +1,4 @@
-package utils;
+package games.slots;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -6,6 +6,9 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Random;
 import javax.imageio.ImageIO;
+
+import utils.GradientGenerator;
+import utils.ImageUtils;
 
 
 public class SlotsImageGenerator {

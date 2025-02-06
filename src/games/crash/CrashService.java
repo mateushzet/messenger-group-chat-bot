@@ -1,8 +1,8 @@
-package service;
+package games.crash;
 
 import repository.GameHistoryRepository;
 import repository.UserRepository;
-import utils.CrashGifGenerator;
+import service.MessageService;
 import model.CommandContext;
 
 import java.util.Random;

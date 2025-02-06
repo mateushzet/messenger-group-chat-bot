@@ -1,15 +1,13 @@
-package service;
+package games.slots;
 
 import java.util.Random;
 
 import model.CommandContext;
 import utils.ConfigReader;
 import utils.Logger;
-import utils.SlotsImageGenerator;
-import repository.SlotsRepository;
 import repository.UserRepository;
+import service.MessageService;
 import repository.GameHistoryRepository;
-import repository.JackpotRepository;
 
 public class SlotsService {
 

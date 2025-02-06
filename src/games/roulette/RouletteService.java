@@ -1,7 +1,8 @@
-package service;
+package games.roulette;
 
 import repository.GameHistoryRepository;
-import utils.RouletteImageGenerator;
+import service.MessageService;
+import service.UserService;
 import model.CommandContext;
 
 import java.util.Random;

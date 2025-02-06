@@ -1,4 +1,4 @@
-package repository;
+package games.slots;
 
 import java.sql.*;
 

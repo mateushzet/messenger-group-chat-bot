@@ -1,4 +1,4 @@
-package repository;
+package games.coinflip;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

@@ -1,12 +1,11 @@
-package service;
+package games.colors;
 
 import java.util.Random;
 
 import model.CommandContext;
-import repository.ColorsRepository;
 import repository.GameHistoryRepository;
 import repository.UserRepository;
-import utils.ColorsImageGenerator;
+import service.MessageService;
 import utils.ConfigReader;
 import utils.Logger;
 

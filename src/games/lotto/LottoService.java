@@ -1,4 +1,4 @@
-package service;
+package games.lotto;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -7,8 +7,8 @@ import java.util.Random;
 import model.CommandContext;
 import repository.GameHistoryRepository;
 import repository.UserRepository;
+import service.MessageService;
 import utils.Logger;
-import utils.LottoImageGenerator;
 
 public class LottoService {
 

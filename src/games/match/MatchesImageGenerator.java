@@ -1,8 +1,10 @@
-package utils;
+package games.match;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.List;
+
+import utils.ImageUtils;
 
 public class MatchesImageGenerator {
 

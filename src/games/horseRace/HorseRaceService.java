@@ -1,11 +1,11 @@
-package service;
+package games.horseRace;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import model.Horse;
-import utils.HorseRaceImageGenerator;
+import service.MessageService;
 
 public class HorseRaceService {
     private final static int horseLength = 270;

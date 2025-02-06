@@ -1,4 +1,4 @@
-package utils;
+package games.horseRace;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -10,7 +10,7 @@ import java.util.List;
 import javax.imageio.ImageIO;
 
 import model.Horse;
-import service.HorseRaceBettingService;
+import utils.ImageUtils;
 
 public class HorseRaceImageGenerator {
 
@@ -18,10 +18,10 @@ public class HorseRaceImageGenerator {
 
     public static void drawHorseRace(List<Horse> allHorses) throws IOException {
         int trackLength = 600;
-        BufferedImage background = ImageIO.read(new File("src/utils/horseRace/background.png"));
+        BufferedImage background = ImageIO.read(new File("src/games/horseRace/horseRaceImages/background.png"));
         BufferedImage[] horses = new BufferedImage[9];
         for (int i = 0; i < horses.length; i++) {
-            horses[i] = ImageIO.read(new File("src/utils/horseRace/horse" + (i + 1) + ".png"));
+            horses[i] = ImageIO.read(new File("src/games/horseRace/horseRaceImages/horse" + (i + 1) + ".png"));
         }
 
         int width = background.getWidth();
@@ -71,7 +71,7 @@ public class HorseRaceImageGenerator {
 
        BufferedImage[] horseImages = new BufferedImage[horseCount];
        for (int i = 0; i < horseCount; i++) {
-           horseImages[i] = ImageIO.read(new File("src/utils/horseRace/horse" + (i + 1) + ".png"));
+           horseImages[i] = ImageIO.read(new File("src/games/horseRace/horseRaceImages/horse" + (i + 1) + ".png"));
        }
    
        int imageWidth = 700;

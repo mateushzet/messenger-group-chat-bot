@@ -1,4 +1,4 @@
-package repository;
+package games.dice;
 
 import java.sql.*;
 import model.DiceGame;

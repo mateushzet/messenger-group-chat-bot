@@ -1,4 +1,4 @@
-package repository;
+package games.mines;
 
 import java.sql.*;
 import database.DatabaseConnectionManager;

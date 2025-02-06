@@ -1,4 +1,4 @@
-package utils.horseRace;
+package games.horseRace.horseRaceImages;
 
 import javax.imageio.ImageIO;
 

@@ -1,6 +1,10 @@
-package utils;
+package games.roulette;
 
 import java.util.Queue;
+
+import utils.GradientGenerator;
+import utils.ImageUtils;
+
 import java.util.LinkedList;
 import java.awt.*;
 import java.awt.geom.Arc2D;

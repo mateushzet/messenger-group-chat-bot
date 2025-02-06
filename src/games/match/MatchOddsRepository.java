@@ -1,4 +1,4 @@
-package repository;
+package games.match;
 
 import database.DatabaseConnectionManager;
 

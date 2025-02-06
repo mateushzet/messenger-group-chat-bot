@@ -1,11 +1,11 @@
-package service;
+package games.blackjack;
 
 import model.BlackjackGame;
 import model.CommandContext;
-import repository.BlackjackGameRepository;
 import repository.GameHistoryRepository;
 import repository.UserRepository;
-import utils.BlackjackImageGenerator;
+import service.MessageService;
+import service.UserService;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,8 +1,8 @@
 package controller;
 
+import games.match.SportsBettingService;
 import model.CommandContext;
 import service.MessageService;
-import service.SportsBettingService;
 
 public class MatchController {
     

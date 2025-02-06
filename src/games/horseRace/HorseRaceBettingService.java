@@ -1,4 +1,4 @@
-package service;
+package games.horseRace;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -8,7 +8,7 @@ import model.CommandContext;
 import model.Horse;
 import repository.GameHistoryRepository;
 import repository.UserRepository;
-import utils.HorseRaceImageGenerator;
+import service.MessageService;
 
 public class HorseRaceBettingService {
     
@@ -32,7 +32,7 @@ public class HorseRaceBettingService {
             String betAmmount = context.getSecondArgument();
             String horseNumber = context.getThirdArgument();
          
-            if(raceCommand.isEmpty() || (!raceCommand.equals("bet") && raceCommand.equals("horses"))){
+            if(raceCommand.isEmpty() || (!raceCommand.equals("bet") && !raceCommand.equals("horses"))){
                 MessageService.sendMessage("Avaiable race commands: /race horses,  /race <bet amount> <horse number>");
                 return;
             }

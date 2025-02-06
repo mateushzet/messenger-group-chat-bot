@@ -1,4 +1,4 @@
-package repository;
+package games.blackjack;
 
 import java.sql.*;
 import java.util.ArrayList;

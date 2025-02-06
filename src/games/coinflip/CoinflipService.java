@@ -1,9 +1,8 @@
-package service;
+package games.coinflip;
 
-import repository.CoinflipRepository;
 import repository.GameHistoryRepository;
 import repository.UserRepository;
-import utils.CoinflipGamesImageGenerator;
+import service.MessageService;
 import utils.Logger;
 import model.CoinflipGame;
 import model.CommandContext;

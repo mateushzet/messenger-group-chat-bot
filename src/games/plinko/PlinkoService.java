@@ -1,10 +1,10 @@
-package service;
+package games.plinko;
 
 import model.CommandContext;
 import repository.GameHistoryRepository;
 import repository.UserRepository;
+import service.MessageService;
 import utils.Logger;
-import utils.PlinkoGifGenerator;
 
 public class PlinkoService {
     

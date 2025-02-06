@@ -1,9 +1,8 @@
-package service;
+package games.match;
 
 import model.CommandContext;
-import repository.MatchOddsRepository;
 import repository.UserRepository;
-import utils.MatchesImageGenerator;
+import service.MessageService;
 import database.DatabaseConnectionManager;
 
 import java.text.ParseException;

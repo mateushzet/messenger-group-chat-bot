@@ -1,9 +1,12 @@
-package utils;
+package games.colors;
 import java.awt.*;
 import java.awt.geom.Arc2D;
 import java.awt.image.BufferedImage;
 
 import java.util.Queue;
+
+import utils.GradientGenerator;
+import utils.ImageUtils;
 
 public class ColorsImageGenerator {
 

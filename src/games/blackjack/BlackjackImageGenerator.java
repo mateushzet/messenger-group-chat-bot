@@ -1,6 +1,10 @@
-package utils;
+package games.blackjack;
 
 import javax.imageio.ImageIO;
+
+import utils.GradientGenerator;
+import utils.ImageUtils;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;

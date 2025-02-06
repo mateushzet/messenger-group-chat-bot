@@ -10,5 +10,3 @@ CREATE TABLE user_bets (
     FOREIGN KEY (user_name) REFERENCES users(username),
     FOREIGN KEY (match_id) REFERENCES match_odds(match_id)
 );
-
-select * from users

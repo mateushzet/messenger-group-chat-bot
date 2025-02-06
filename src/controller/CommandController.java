@@ -2,28 +2,29 @@ package controller;
 
 import model.CommandContext;
 import service.MessageService;
-import service.MinesService;
-import service.PlinkoService;
-import service.RouletteService;
 import service.SkinsService;
-import service.SlotsService;
 import service.StatisticsService;
 import utils.ConfigReader;
 import utils.Logger;
-import service.BlackjackService;
-import service.CoinflipService;
-import service.ColorsService;
 import service.CommandService;
-import service.CrashService;
-import service.DiceGameService;
-import service.HorseRaceBettingService;
-import service.LottoService;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+
+import games.blackjack.BlackjackService;
+import games.coinflip.CoinflipService;
+import games.colors.ColorsService;
+import games.crash.CrashService;
+import games.dice.DiceGameService;
+import games.horseRace.HorseRaceBettingService;
+import games.lotto.LottoService;
+import games.mines.MinesService;
+import games.plinko.PlinkoService;
+import games.roulette.RouletteService;
+import games.slots.SlotsService;
 
 public class CommandController {
     
