@@ -162,14 +162,14 @@ public class DiceGameService {
             if (c != 1) hasStrit = false;
         }
     
-        if (hasSixOfSame) return 10;
-        if (hasStrit) return 10;
-        if (hasFiveOfSame) return 4;
-        if (pairs == 3) return 3;
-        if (threes == 2) return 2;
-        if (hasFourOfSame) return 2;
-        if (pairs == 1 && threes == 1) return 0.7;
-        if (threes == 1) return 0.5;
+        if (hasSixOfSame) return 5;
+        if (hasStrit) return 5;
+        if (hasFiveOfSame) return 3;
+        if (pairs == 3) return 2;
+        if (threes == 2) return 1.5;
+        if (hasFourOfSame) return 1.5;
+        if (pairs == 1 && threes == 1) return 0.2;
+        if (threes == 1) return 0.1;
     
         return 0;
     }
