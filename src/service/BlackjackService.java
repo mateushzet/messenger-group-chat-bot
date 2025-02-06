@@ -168,16 +168,15 @@ public class BlackjackService {
         }
 
         String gameStatus;
-        int userBalance = UserRepository.getCurrentUserBalance(userName, true);
         if (draw){
             int winnings = game.getBetAmount();
-            userBalance = UserService.updateAndRetriveUserBalance(userName, winnings);
+            UserService.updateAndRetriveUserBalance(userName, winnings);
             gameStatus = userName + " draw!";
             GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), game.getBetAmount(), winnings, "Player hand: " + handToString(game.getPlayerHand()) + " Dealer hand: " + handToString(game.getDealerHand()));
         }
         else if (win) {
             int winnings = game.getBetAmount() * 2;
-            userBalance = UserService.updateAndRetriveUserBalance(userName, winnings);
+            UserService.updateAndRetriveUserBalance(userName, winnings);
             gameStatus = userName + " you won " + game.getBetAmount() + "!";
             GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), game.getBetAmount(), winnings, "Player hand: " + handToString(game.getPlayerHand()) + " Dealer hand: " + handToString(game.getDealerHand()));
         } else {

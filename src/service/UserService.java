@@ -4,7 +4,7 @@ import repository.UserRepository;
 
 public class UserService {
     
-    public static boolean validateBetAmount(String username, String betAmountString){
+    public static int validateAndParseBetAmount(String username, String betAmountString){
         int paresdBetAmount;
         int currentBalnace = UserRepository.getCurrentUserBalance(username, false);
 
@@ -12,20 +12,20 @@ public class UserService {
             paresdBetAmount = Integer.parseInt(betAmountString);
         } catch (NumberFormatException e) {
             MessageService.sendMessage(username + " invalid bet amount format!");
-            return false;
+            return -1;
         }
 
         if(paresdBetAmount <= 0){
             MessageService.sendMessage(username + " bet amount must be greater than 0!");
-            return false;
+            return -1;
         }
 
         if(paresdBetAmount < currentBalnace){
             MessageService.sendMessage(username + " insufficient balance! Current balance: " + currentBalnace);
-            return false;
+            return -1;
         }
 
-        return true;
+        return paresdBetAmount;
     }
 
     public static int updateAndRetriveUserBalance(String username, int amount){
