@@ -47,27 +47,14 @@ public class BlackjackService {
             return;
         }
     
-        int betAmount;
-        try {
-            betAmount = Integer.parseInt(betAmountArg);
-        } catch (NumberFormatException e) {
-            MessageService.sendMessage(userName + " invalid bet amount. Please provide a valid number.");
-            return;
-        }
+        int betAmount = UserService.validateAndParseBetAmount(userName, betAmountArg);
 
-        if(betAmount <= 0){
-            MessageService.sendMessage(userName + " invalid bet amount. Please provide a valid number.");
+        if (betAmount == -1) {
             return;
         }
-    
-        int userBalance = UserRepository.getCurrentUserBalance(userName, true);
-        if (userBalance < betAmount) {
-            MessageService.sendMessage(userName + " you don't have enough balance to place this bet.");
-            return;
-        }
-    
-        UserRepository.updateUserBalance(userName, userBalance - betAmount);
-    
+        
+        int userBalance = UserService.updateAndRetriveUserBalance(userName, -betAmount);
+
         List<String> playerHand = new ArrayList<>();
         List<String> dealerHand = new ArrayList<>();
     
@@ -85,11 +72,12 @@ public class BlackjackService {
             dealerScore = calculateHandValue(dealerHand);
             if(dealerScore != 21){
             int winnings = (int) (betAmount * 1.5);
-            UserRepository.updateUserBalance(userName, userBalance + winnings);
+            userBalance = UserService.updateAndRetriveUserBalance(userName, winnings);
+
             String gameStatus = userName + " Blackjack! You won " + winnings + "!";
             GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), betAmount, winnings, "Player hand: " + handToString(playerHand) + " Dealer hand: " + handToString(dealerHand));
             
-            BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, dealerHand, gameStatus, userBalance + winnings, betAmount, true, playerScore, dealerScore);
+            BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, dealerHand, gameStatus, userBalance, betAmount, true, playerScore, dealerScore);
             MessageService.sendMessageFromClipboard(true);
             BlackjackGameRepository.deleteGame(userName);
             return;
@@ -98,7 +86,7 @@ public class BlackjackService {
                 String gameStatus = userName + " draw!";
                 GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), betAmount, betAmount, "Player hand: " + handToString(playerHand) + " Dealer hand: " + handToString(dealerHand));
                 
-                UserRepository.updateUserBalance(userName, userBalance + betAmount);
+                userBalance = UserService.updateAndRetriveUserBalance(userName, betAmount);
 
                 BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, dealerHand, gameStatus, userBalance, betAmount, true, playerScore, dealerScore);
                 MessageService.sendMessageFromClipboard(true);
@@ -183,13 +171,13 @@ public class BlackjackService {
         int userBalance = UserRepository.getCurrentUserBalance(userName, true);
         if (draw){
             int winnings = game.getBetAmount();
-            UserRepository.updateUserBalance(userName, userBalance + winnings);
+            userBalance = UserService.updateAndRetriveUserBalance(userName, winnings);
             gameStatus = userName + " draw!";
             GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), game.getBetAmount(), winnings, "Player hand: " + handToString(game.getPlayerHand()) + " Dealer hand: " + handToString(game.getDealerHand()));
         }
         else if (win) {
             int winnings = game.getBetAmount() * 2;
-            UserRepository.updateUserBalance(userName, userBalance + winnings);
+            userBalance = UserService.updateAndRetriveUserBalance(userName, winnings);
             gameStatus = userName + " you won " + game.getBetAmount() + "!";
             GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), game.getBetAmount(), winnings, "Player hand: " + handToString(game.getPlayerHand()) + " Dealer hand: " + handToString(game.getDealerHand()));
         } else {
