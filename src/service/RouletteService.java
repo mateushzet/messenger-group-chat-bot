@@ -31,17 +31,16 @@ public class RouletteService {
         }
 
         int randomNumber = new Random().nextInt(13); // 0-12
-        int userBalance = UserService.updateAndRetriveUserBalance(username, -betAmountParsed);
-        processRouletteOutcome(field, randomNumber, betAmountParsed, userBalance, username, context);
+        processRouletteOutcome(field, randomNumber, betAmountParsed, username, context);
     }
 
-    private static void processRouletteOutcome(int field, int randomNumber, int amount, int userBalance, String username, CommandContext context) {
+    private static void processRouletteOutcome(int field, int randomNumber, int amount, String username, CommandContext context) {
         int winAmount = calculateBalanceChange(field, randomNumber, amount);
 
-        int updatedBalance = UserService.updateAndRetriveUserBalance(username, winAmount);
+        int userBalance = UserService.updateAndRetriveUserBalance(username, winAmount);
         GameHistoryRepository.addGameHistory(username, "Roulette", context.getFullCommand(), amount, winAmount, "Result: " + randomNumber);
 
-        RouletteImageGenerator.generateImage(randomNumber, winAmount, updatedBalance, username, amount, null);
+        RouletteImageGenerator.generateImage(randomNumber, winAmount, userBalance, username, amount, GameHistoryRepository.getGameHistory(13, "Roulette"));
         MessageService.sendMessageFromClipboard(false);
     }
 

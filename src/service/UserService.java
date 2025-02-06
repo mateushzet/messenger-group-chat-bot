@@ -20,7 +20,7 @@ public class UserService {
             return -1;
         }
 
-        if(paresdBetAmount < currentBalnace){
+        if(paresdBetAmount > currentBalnace){
             MessageService.sendMessage(username + " insufficient balance! Current balance: " + currentBalnace);
             return -1;
         }
