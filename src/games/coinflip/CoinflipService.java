@@ -3,6 +3,7 @@ package games.coinflip;
 import repository.GameHistoryRepository;
 import repository.UserRepository;
 import service.MessageService;
+import service.UserService;
 import utils.Logger;
 import model.CoinflipGame;
 import model.CommandContext;
@@ -15,10 +16,11 @@ public class CoinflipService {
     public static void handleCoinflipCommand(CommandContext context) {
         String command = context.getFirstArgument();
         String username = context.getUserName();
+        String secondArgument = context.getSecondArgument();
         int userBalance = UserRepository.getCurrentUserBalance(username, false);
 
         if (command.equalsIgnoreCase("bet")) {
-            handleBetCommand(context, username, userBalance);
+            handleBetCommand(context, username, secondArgument);
         } else if (command.equalsIgnoreCase("accept")) {
             handleAcceptCommand(context, username, userBalance);
         } else if (command.equalsIgnoreCase("cancel")) {
@@ -30,28 +32,19 @@ public class CoinflipService {
         }
     }
 
-    private static void handleBetCommand(CommandContext context, String username, int userBalance) {
-        try {
-            int coinFlipAmount = Integer.parseInt(context.getSecondArgument());
-            if (coinFlipAmount <= 0) {
-                MessageService.sendMessage("Invalid bet amount.");
-                return;
-            }
-            if (userBalance < coinFlipAmount) {
-                MessageService.sendMessage("Insufficient balance.");
+    private static void handleBetCommand(CommandContext context, String username, String betAmountString) {
+            int betAmountParsed = UserService.validateAndParseBetAmount(username, betAmountString);
+            if (betAmountParsed == -1) {
                 return;
             }
 
-            Integer gameId = CoinflipRepository.addCoinflipGame(username, coinFlipAmount);
+            Integer gameId = CoinflipRepository.addCoinflipGame(username, betAmountParsed);
             if (gameId != null) {
-                UserRepository.updateUserBalance(username, userBalance - coinFlipAmount);
-                MessageService.sendMessage("%s has started a coinflip with a bet of %d and ID: %d", username, coinFlipAmount, gameId);
+                UserService.updateAndRetriveUserBalance(username, -betAmountParsed);
+                MessageService.sendMessage("%s has started a coinflip with a bet of %d and ID: %d", username, betAmountParsed, gameId);
             } else {
                 MessageService.sendMessage("Failed to start the coinflip");
             }
-        } catch (NumberFormatException e) {
-            MessageService.sendMessage("Invalid bet amount");
-        }
     }
 
     private static void handleAcceptCommand(CommandContext context, String username, int userBalance) {
@@ -84,7 +77,7 @@ public class CoinflipService {
             GameHistoryRepository.addGameHistory(username, "Coinflip", context.getFullCommand(), betAmount, -betAmount, "Result: " + result);
         }
         CoinflipRepository.updateGameResult(gameIdParsed, winner);
-        UserRepository.updateUserBalance(winner, UserRepository.getCurrentUserBalance(winner, false) + betAmount);
+        UserService.updateAndRetriveUserBalance(winner, betAmount);
         MessageService.sendMessage("%s won %d in the coinflip battle!", winner, betAmount);
     }
 
@@ -104,7 +97,7 @@ public class CoinflipService {
 
         if (owner.equals(username)) {
             CoinflipRepository.cancelGame(gameIdParsed);
-            UserRepository.updateUserBalance(username, userBalance + betAmount);
+            UserService.updateAndRetriveUserBalance(username, betAmount);
             MessageService.sendMessage("%s has canceled the coinflip.", username);
         } else {
             MessageService.sendMessage("You can only cancel the game if you're the host.");
