@@ -56,7 +56,7 @@ public class DiceGameService {
             return;
         }
 
-        int userBalance = UserRepository.getUserBalance(userName, true);
+        int userBalance = UserRepository.getCurrentUserBalance(userName, true);
         if (userBalance < betAmount) {
             MessageService.sendMessage(userName + " you don't have enough balance to place this bet.");
             return;
@@ -114,7 +114,7 @@ public class DiceGameService {
             return;
         }
 
-        int userBalance = UserRepository.getUserBalance(userName, false);
+        int userBalance = UserRepository.getCurrentUserBalance(userName, false);
         double multiplier = calculateMultiplier(game.getDiceValues());
         int winnings = (int) (game.getBetAmount() * multiplier);
 

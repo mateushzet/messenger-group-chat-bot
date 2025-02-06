@@ -13,7 +13,7 @@ public class PlinkoService {
         String betAmount = context.getFirstArgument();
         String risk = context.getSecondArgument().toLowerCase();
         int betAmountParsed = parseBetAmount(betAmount);
-        int currentBalance = UserRepository.getUserBalance(playerName, false);
+        int currentBalance = UserRepository.getCurrentUserBalance(playerName, false);
 
         if (betAmountParsed == -1) return; 
 

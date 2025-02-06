@@ -200,7 +200,7 @@ public class SportsBettingService {
             return;
         }
 
-        int currentBalance = UserRepository.getUserBalance(playerName, true);
+        int currentBalance = UserRepository.getCurrentUserBalance(playerName, true);
         if (currentBalance < betAmountParsed) {
             MessageService.sendMessage("Insufficient funds. Your balance: " + currentBalance);
             return;
@@ -306,7 +306,7 @@ public class SportsBettingService {
             if (isBetWon) {
                 double odds = MatchOddsRepository.getOddsForMatchAndOutcome(matchId, playerName);
                 double winnings = betAmount * odds;
-                int currentBalance = UserRepository.getUserBalance(playerName, true);
+                int currentBalance = UserRepository.getCurrentUserBalance(playerName, true);
                 int newBalance = (int) (currentBalance + winnings);
                 UserRepository.updateUserBalance(playerName, newBalance);
         

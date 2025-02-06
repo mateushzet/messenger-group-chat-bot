@@ -61,7 +61,7 @@ public class LottoService {
 
         betAmountParsed = parseBetAmount(betAmount);
         if(betAmountParsed == -1) return;
-        int currentBalance = UserRepository.getUserBalance(playerName, false);
+        int currentBalance = UserRepository.getCurrentUserBalance(playerName, false);
 
         if (betAmountParsed < 10) {
             MessageService.sendMessage("Your bet amount must be greater than 10");

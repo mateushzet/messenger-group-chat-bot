@@ -23,8 +23,8 @@ public class UserRepository {
 
         addUserIfNotExists(senderName);
 
-        int balanceSender = getUserBalance(senderName, true);
-        int balanceReceiver = getUserBalance(receiverName, false);
+        int balanceSender = getCurrentUserBalance(senderName, true);
+        int balanceReceiver = getCurrentUserBalance(receiverName, false);
 
         return processTransaction(senderName, receiverName, balanceSender, balanceReceiver, transferAmount);
     }
@@ -105,7 +105,7 @@ public class UserRepository {
         Logger.logWarning("Sender and receiver are the same: %s = %s", "UserRepository.notifySameSenderAndReceiver()", senderName, receiverName);
     }
 
-    public static int getUserBalance(String userName, boolean createNewUser) {
+    public static int getCurrentUserBalance(String userName, boolean createNewUser) {
         String query = "SELECT account_balance FROM users WHERE username = ?";
         try (Connection connection = DatabaseConnectionManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {

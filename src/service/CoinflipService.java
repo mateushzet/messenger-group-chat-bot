@@ -16,7 +16,7 @@ public class CoinflipService {
     public static void handleCoinflipCommand(CommandContext context) {
         String command = context.getFirstArgument();
         String username = context.getUserName();
-        int userBalance = UserRepository.getUserBalance(username, false);
+        int userBalance = UserRepository.getCurrentUserBalance(username, false);
 
         if (command.equalsIgnoreCase("bet")) {
             handleBetCommand(context, username, userBalance);
@@ -85,7 +85,7 @@ public class CoinflipService {
             GameHistoryRepository.addGameHistory(username, "Coinflip", context.getFullCommand(), betAmount, -betAmount, "Result: " + result);
         }
         CoinflipRepository.updateGameResult(gameIdParsed, winner);
-        UserRepository.updateUserBalance(winner, UserRepository.getUserBalance(winner, false) + betAmount);
+        UserRepository.updateUserBalance(winner, UserRepository.getCurrentUserBalance(winner, false) + betAmount);
         MessageService.sendMessage("%s won %d in the coinflip battle!", winner, betAmount);
     }
 

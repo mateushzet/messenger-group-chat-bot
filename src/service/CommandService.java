@@ -23,7 +23,7 @@ public class CommandService {
 
     public static void handleMoneyCommand(CommandContext context) {
         String userName = context.getUserName();
-        int balance = UserRepository.getUserBalance(userName, true);
+        int balance = UserRepository.getCurrentUserBalance(userName, true);
         MessageService.sendMessage("%s, current balance: %d", userName ,balance);
         Logger.logInfo("%s, current balance: %d","CommandService.handleMoneyCommand()", userName, balance);
     }
@@ -119,7 +119,7 @@ public class CommandService {
                 return;
             }
             
-            int currentBalance = UserRepository.getUserBalance(userName, true);
+            int currentBalance = UserRepository.getCurrentUserBalance(userName, true);
             int newBalance = currentBalance + dailyRewardPrize;
     
             UserRepository.updateUserBalance(userName, newBalance);
@@ -150,7 +150,7 @@ public class CommandService {
         RewardsRepository.updateHourlyReward(userName);
 
         try {
-            int currentBalance = UserRepository.getUserBalance(userName, true);
+            int currentBalance = UserRepository.getCurrentUserBalance(userName, true);
             int newBalance = currentBalance + hourlyRewardPrize;
 
             UserRepository.updateUserBalance(userName, newBalance);
@@ -177,7 +177,7 @@ public class CommandService {
                         return;
                     }
     
-                    int userBalance = UserRepository.getUserBalance(username, false);
+                    int userBalance = UserRepository.getCurrentUserBalance(username, false);
                     if (userBalance < coinFlipAmount) {
                         MessageService.sendMessage("Insufficient balance. You have %d coins, but your bet is %d.", userBalance, coinFlipAmount);
                         return;
@@ -194,7 +194,7 @@ public class CommandService {
         } else if (command.equalsIgnoreCase("accept")) {
             if (!coinFlipCurrentPlayer.isEmpty()) {
                 int result = new Random().nextInt(2); // 50% chance
-                int userBalance = UserRepository.getUserBalance(username, false);
+                int userBalance = UserRepository.getCurrentUserBalance(username, false);
     
                 if (userBalance < coinFlipAmount) {
                     MessageService.sendMessage("Insufficient balance to accept the coinflip. You need at least %d coins.", coinFlipAmount);
@@ -204,11 +204,11 @@ public class CommandService {
                 if (result == 1) {
                     MessageService.sendMessage("%s won %d coins!", username, coinFlipAmount);
                     userBalance += coinFlipAmount;
-                    UserRepository.updateUserBalance(coinFlipCurrentPlayer, UserRepository.getUserBalance(coinFlipCurrentPlayer, false) - coinFlipAmount);
+                    UserRepository.updateUserBalance(coinFlipCurrentPlayer, UserRepository.getCurrentUserBalance(coinFlipCurrentPlayer, false) - coinFlipAmount);
                 } else {
                     MessageService.sendMessage("%s won %d coins!", coinFlipCurrentPlayer, coinFlipAmount);
                     userBalance -= coinFlipAmount;
-                    UserRepository.updateUserBalance(coinFlipCurrentPlayer, UserRepository.getUserBalance(coinFlipCurrentPlayer, false) + coinFlipAmount);
+                    UserRepository.updateUserBalance(coinFlipCurrentPlayer, UserRepository.getCurrentUserBalance(coinFlipCurrentPlayer, false) + coinFlipAmount);
                 }
     
                 UserRepository.updateUserBalance(username, userBalance);
@@ -221,7 +221,7 @@ public class CommandService {
             }
         } else if (command.equalsIgnoreCase("cancel")) {
             if (username.equals(coinFlipCurrentPlayer)) {
-                UserRepository.updateUserBalance(coinFlipCurrentPlayer, UserRepository.getUserBalance(coinFlipCurrentPlayer, false) + coinFlipAmount);
+                UserRepository.updateUserBalance(coinFlipCurrentPlayer, UserRepository.getCurrentUserBalance(coinFlipCurrentPlayer, false) + coinFlipAmount);
                 coinFlipAmount = 0;
                 coinFlipCurrentPlayer = "";
                 MessageService.sendMessage("%s canceled the coinflip game.", username);

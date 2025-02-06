@@ -60,7 +60,7 @@ public class BlackjackService {
             return;
         }
     
-        int userBalance = UserRepository.getUserBalance(userName, true);
+        int userBalance = UserRepository.getCurrentUserBalance(userName, true);
         if (userBalance < betAmount) {
             MessageService.sendMessage(userName + " you don't have enough balance to place this bet.");
             return;
@@ -123,7 +123,7 @@ public class BlackjackService {
     
         int dealerScore = calculateHandValue(game.getDealerHand());
         int playerScore = calculateHandValue(playerHand);
-        int userBalance = UserRepository.getUserBalance(userName, false);
+        int userBalance = UserRepository.getCurrentUserBalance(userName, false);
         if ( playerScore > 21) {
             BlackjackGameRepository.updateGame(game);
             endGame(userName, false, false, playerScore, dealerScore, context);
@@ -167,7 +167,7 @@ public class BlackjackService {
             gameStatus = endGame(userName, false, false, playerScore, dealerScore, context);
         }
     
-        int userBalance = UserRepository.getUserBalance(userName, false);
+        int userBalance = UserRepository.getCurrentUserBalance(userName, false);
     
         BlackjackImageGenerator.generateBlackjackImage(userName, game.getPlayerHand(), dealerHand, gameStatus, userBalance, game.getBetAmount(), true, playerScore, dealerScore);
         MessageService.sendMessageFromClipboard(true);
@@ -180,7 +180,7 @@ public class BlackjackService {
         }
 
         String gameStatus;
-        int userBalance = UserRepository.getUserBalance(userName, true);
+        int userBalance = UserRepository.getCurrentUserBalance(userName, true);
         if (draw){
             int winnings = game.getBetAmount();
             UserRepository.updateUserBalance(userName, userBalance + winnings);

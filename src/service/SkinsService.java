@@ -95,7 +95,7 @@ public class SkinsService {
         }
     
         int skinPrice = (int) skin.get("price");
-        int userBalance = UserRepository.getUserBalance(userName, false);
+        int userBalance = UserRepository.getCurrentUserBalance(userName, false);
     
         if (userBalance < skinPrice) {
             MessageService.sendMessage("You don't have enough coins to buy this skin.");

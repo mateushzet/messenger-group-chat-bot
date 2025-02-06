@@ -41,7 +41,7 @@ public class RouletteService {
             return;
         }
 
-        int userBalance = UserRepository.getUserBalance(userName, true);
+        int userBalance = UserRepository.getCurrentUserBalance(userName, true);
 
         int amountInteger = Integer.parseInt(amount.trim());
         int fieldParsed = parseFieldArgument(field);

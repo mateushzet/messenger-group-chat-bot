@@ -103,7 +103,7 @@ public class MinesService {
             return;
         }
     
-        int userBalance = UserRepository.getUserBalance(userName, true);
+        int userBalance = UserRepository.getCurrentUserBalance(userName, true);
         if (userBalance < bet) {
             MessageService.sendMessage(userName + " you don't have enough balance to play.");
             return;
@@ -193,7 +193,7 @@ public class MinesService {
         int betAmount = game.getBetAmount();
         int totalBombs = game.getTotalBombs();
         Double multiplier = calculateMultiplier(game);
-        int userBalance = UserRepository.getUserBalance(userName, false);
+        int userBalance = UserRepository.getCurrentUserBalance(userName, false);
 
         if (game.getBombBoard()[row][col]) {
             endGame(userName, false, game, context);
@@ -216,7 +216,7 @@ public class MinesService {
     private static void endGame(String userName, boolean win, MinesGame game, CommandContext context) {
         if (game != null) {
             if (win) {
-                int userBalance = UserRepository.getUserBalance(userName, true);
+                int userBalance = UserRepository.getCurrentUserBalance(userName, true);
                 int totalAmount = (int) Math.round(game.getBetAmount() * calculateMultiplier(game));
                 UserRepository.updateUserBalance(userName, userBalance + totalAmount);
                 MessageService.sendMessage(userName + " has cashed out " + totalAmount + "!" + " Current balance: " + (userBalance + totalAmount));
@@ -324,7 +324,7 @@ public class MinesService {
             int betAmount = game.getBetAmount();
             int totalBombs = game.getTotalBombs();
             Double multiplier = calculateMultiplier(game);
-            int userBalance = UserRepository.getUserBalance(userName, false);
+            int userBalance = UserRepository.getCurrentUserBalance(userName, false);
     
             MinesGameRepository.updateGame(game);
     

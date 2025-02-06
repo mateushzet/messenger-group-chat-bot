@@ -69,7 +69,7 @@ public class MathQuestionService {
     }
 
     private static void rewardUser(String userName) {
-        int userBalance = UserRepository.getUserBalance(userName, true);
+        int userBalance = UserRepository.getCurrentUserBalance(userName, true);
         UserRepository.updateUserBalance(userName, userBalance + mathQuestionPrize);
         MessageService.sendMessage("%s correct answer! You earn %d coins! Current balance: %d", userName, mathQuestionPrize, (userBalance + mathQuestionPrize));
         Logger.logInfo("%s solved math question and earned %d coins, previous balance: %d", "MathQuestionService.rewardUser()", userName, mathQuestionPrize, userBalance);

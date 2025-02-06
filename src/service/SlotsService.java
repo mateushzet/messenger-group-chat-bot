@@ -65,7 +65,7 @@ public class SlotsService {
         }
 
         String betAmount = firstArgument;
-        int currentBalance = UserRepository.getUserBalance(playerName, false);
+        int currentBalance = UserRepository.getCurrentUserBalance(playerName, false);
 
         if (validateSlotsGame(playerName, betAmount, currentBalance)) {
             int betAmountInt = Integer.parseInt(firstArgument);
@@ -116,7 +116,7 @@ public class SlotsService {
     }
 
     private static void buySlotsAccess(String userName) {
-        int balance = UserRepository.getUserBalance(userName, true);
+        int balance = UserRepository.getCurrentUserBalance(userName, true);
         Logger.logInfo("%s is attempting to buy slots.", "SlotsService.buySlotsAccess()", userName);
 
         if (balance < slotsAccessCost) {

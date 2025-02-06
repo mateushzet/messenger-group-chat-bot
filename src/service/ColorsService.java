@@ -17,7 +17,7 @@ public class ColorsService {
     public static void handleColorsCommand(CommandContext context) {
         String playerName = context.getUserName();
         String betColor = context.getSecondArgument();
-        int currentBalance = UserRepository.getUserBalance(playerName, false);
+        int currentBalance = UserRepository.getCurrentUserBalance(playerName, false);
     
         if (!ColorsRepository.hasColorsAccess(playerName)) {
             MessageService.sendMessage("You need to purchase access to play colors. Cost: %d coins. /bot buy colors", colorsAccessCost);
@@ -204,7 +204,7 @@ public class ColorsService {
     }
 
     private static void buyColorsAccess(String userName) {
-        int balance = UserRepository.getUserBalance(userName, true);
+        int balance = UserRepository.getCurrentUserBalance(userName, true);
         Logger.logToConsole("INFO", userName + " is attempting to buy colors.", "ColorsService.buyColorsAccess()");
 
         if (balance < colorsAccessCost) {

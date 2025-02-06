@@ -38,7 +38,7 @@ public class HorseRaceBettingService {
             }
 
             if(raceCommand.equals("bet")){
-            int currentBalance = UserRepository.getUserBalance(playerName, false);
+            int currentBalance = UserRepository.getCurrentUserBalance(playerName, false);
             int betAmountParesd = parseBetAmount(betAmmount);
             int horseNumberParesd = parseHorseNumber(horseNumber);
 
@@ -52,12 +52,12 @@ public class HorseRaceBettingService {
                 return;
             }        
 
-            int UserBalance = UserRepository.getUserBalance(playerName, false);
+            int UserBalance = UserRepository.getCurrentUserBalance(playerName, false);
             int newBalance = UserBalance - betAmountParesd;
             UserRepository.updateUserBalance(playerName, newBalance);
 
             int winner = HorseRaceService.startRace(horseNumberParesd);
-            UserBalance = UserRepository.getUserBalance(playerName, false);
+            UserBalance = UserRepository.getCurrentUserBalance(playerName, false);
 
             Horse horse = allHorses.get(winner-1);
             String horseName = horse.getName();
