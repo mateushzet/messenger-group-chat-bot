@@ -52,7 +52,6 @@ public class CommandController {
         commands.put("s", SlotsService::handleSlotsCommand);
         commands.put("buy", CommandController::handleBuyCommand);        
         commands.put("daily", CommandService::handleDailyCommand); 
-        commands.put("d", CommandService::handleDailyCommand); 
         commands.put("hourly", CommandService::handleHourlyCommand); 
         commands.put("h", CommandService::handleHourlyCommand); 
         commands.put("coinflip", CoinflipService::handleCoinflipCommand);
@@ -71,6 +70,7 @@ public class CommandController {
         commands.put("p", PlinkoService::handlePlinkoCommand);
         commands.put("stats", StatisticsService::handleStatsCommand);
         commands.put("dice", DiceGameService::handleDiceCommand);
+        commands.put("d", DiceGameService::handleDiceCommand); 
         commands.put("crash", CrashService::handleCrashCommand);
     }
 
