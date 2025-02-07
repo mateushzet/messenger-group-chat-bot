@@ -121,22 +121,23 @@ public class DiceImageGenerator {
     private static void drawMultiplierInfo(Graphics2D g) {
 
         g.setColor(new Color(0, 0, 0, 180));
-        g.fillRect(10, 290, 270, 355);
+        g.fillRect(10, 260, 270, 400);
 
         int startX = 20;
-        int startY = 300;
+        int startY = 270;
         int diceSize = 25;
         int margin = 10;
 
         Object[][] combinations = {
             {new int[]{1, 1, 1}, 0.2},
-            {new int[]{1, 1, 2, 2, 2}, 0.4},
+            {new int[]{1, 1, 6, 6, 6}, 0.4},
             {new int[]{1, 1, 1, 1}, 1.5},
-            {new int[]{1, 1, 1, 2, 2, 2}, 1.5},
-            {new int[]{1, 1, 2, 2, 3, 3}, 2.},
+            {new int[]{1, 1, 1, 6, 6, 6}, 1.5},
+            {new int[]{1, 1, 1, 1, 6, 6}, 2.},
+            {new int[]{1, 1, 6, 6, 2, 2}, 3.},
             {new int[]{1, 1, 1, 1, 1}, 3.},
-            {new int[]{1, 2, 3, 4, 5, 6}, 5.},
-            {new int[]{1, 1, 1, 1, 1, 1}, 5.}
+            {new int[]{1, 2, 3, 4, 5, 6}, 7.},
+            {new int[]{1, 1, 1, 1, 1, 1}, 7.}
         };
 
 
