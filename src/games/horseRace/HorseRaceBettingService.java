@@ -33,7 +33,7 @@ public class HorseRaceBettingService {
             String horseNumber = context.getThirdArgument();
          
             if(raceCommand.isEmpty() || (!raceCommand.equals("bet") && !raceCommand.equals("horses"))){
-                MessageService.sendMessage("Avaiable race commands: /race horses,  /race <bet amount> <horse number>");
+                MessageService.sendMessage("Avaiable race commands: /race horses,  /race bet <bet amount> <horse number>");
                 return;
             }
 
@@ -43,7 +43,7 @@ public class HorseRaceBettingService {
             int horseNumberParesd = parseHorseNumber(horseNumber);
 
             if(betAmountParesd == -1 || horseNumberParesd == -1){
-                MessageService.sendMessage("Invalid arguments. Please use /race <bet amount> <horse number>");
+                MessageService.sendMessage("Invalid arguments. Please use /race bet <bet amount> <horse number>");
                 return;
             }
 
