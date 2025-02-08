@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import games.blackjack.BlackjackService;
+import games.caseopening.CaseOpeningService;
 import games.coinflip.CoinflipService;
 import games.colors.ColorsService;
 import games.crash.CrashService;
@@ -72,6 +73,8 @@ public class CommandController {
         commands.put("dice", DiceGameService::handleDiceCommand);
         commands.put("d", DiceGameService::handleDiceCommand); 
         commands.put("crash", CrashService::handleCrashCommand);
+        commands.put("case", CaseOpeningService::handleCaseCommand);
+        
     }
 
     public static void processCommand(String userName, String message) {

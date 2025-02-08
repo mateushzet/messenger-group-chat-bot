@@ -24,7 +24,7 @@ public class CaseOpeningGifGenerator {
     );
     private static final List<String> STATTRAK_STATUSES = Arrays.asList("StatTrak", "No");
 
-    public static String generateCaseOpeningGif(String playerName, int totalBalance, boolean includeStatraks) throws IOException {
+    public static int generateCaseOpeningGif(String playerName, int totalBalance, boolean includeStatraks) throws IOException {
         Map<BufferedImage, String> skins = loadSkins();
         if (skins.isEmpty()) throw new IOException("No skins found in " + SKIN_FOLDER);
 
@@ -59,7 +59,8 @@ public class CaseOpeningGifGenerator {
                 else skinPrice = SkinPriceRepository.getSkinPrice(skinName, condition, "No");
                 if (skinPrice > 0) {
                     skinCondition = condition;
-                    skinStattrakStatus = stattrakStatus;
+                    if(includeStatraks) skinStattrakStatus = stattrakStatus;
+                    else skinStattrakStatus = "No";
                     break outerLoop;
                 }
             }
@@ -72,7 +73,7 @@ public class CaseOpeningGifGenerator {
             ImageUtils.setClipboardGif(gifBytes);
         }
 
-        return skinNames.get(2);
+        return skinPrice;
     }
 
     private static Map<BufferedImage, String> loadSkins() throws IOException {
@@ -162,7 +163,7 @@ public class CaseOpeningGifGenerator {
             g.setFont(new Font("Arial", Font.BOLD, 16));
             g.drawString("$", 115, 145);
 
-            g.drawString(playerName + ": " + (totalBalance + skinPrice), 515, 230);
+            g.drawString(playerName + ": " + (totalBalance + skinPrice), 490, 230);
 
             g.setColor(new Color(255, 255, 255, 100));
             g.setStroke(new BasicStroke(2));
