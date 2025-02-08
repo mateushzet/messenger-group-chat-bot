@@ -1,6 +1,7 @@
 package games.caseopening;
 
 import model.CommandContext;
+import repository.GameHistoryRepository;
 import repository.UserRepository;
 import service.MessageService;
 
@@ -28,6 +29,7 @@ public class CaseOpeningService {
             userBalance += winnings;
             UserRepository.updateUserBalance(userName, userBalance);
 
+            GameHistoryRepository.addGameHistory(userName, "Case", context.getFullCommand(), caseCost, winnings, "");
             MessageService.sendMessageFromClipboard(true);
 
         } catch (Exception e) {
