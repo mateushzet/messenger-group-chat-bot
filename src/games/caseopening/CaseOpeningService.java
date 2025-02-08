@@ -7,34 +7,26 @@ import service.MessageService;
 
 public class CaseOpeningService {
 
+    private static final int CASE_COST = 100;
+
     public static void handleCaseCommand(CommandContext context) {
         String userName = context.getUserName();
-        String caseCostInput = context.getFirstArgument();
-
         int userBalance = UserRepository.getCurrentUserBalance(userName, true);
 
         try {
-            if (!caseCostInput.equals("200") && !caseCostInput.equals("150")) {
-                MessageService.sendMessage(userName + " you must choose which case to open: 200 (StatTraks included) or 150 (no StatTraks)");
+            if (userBalance < CASE_COST) {
+                MessageService.sendMessage(userName + " insufficient balance: " + userBalance + ", this case costs: " + CASE_COST);
                 return;
             }
 
-            int caseCost = Integer.parseInt(caseCostInput);
-            boolean isStatTrak = caseCost == 200;
-
-            if (userBalance < caseCost) {
-                MessageService.sendMessage(userName + " insufficient balance: " + userBalance + ", this case costs: " + caseCost);
-                return;
-            }
-
-            userBalance -= caseCost;
+            userBalance -= CASE_COST;
             UserRepository.updateUserBalance(userName, userBalance);
 
-            int winnings = CaseOpeningGifGenerator.generateCaseOpeningGif(userName, userBalance, isStatTrak);
+            int winnings = CaseOpeningGifGenerator.generateCaseOpeningGif(userName, userBalance);
             userBalance += winnings;
             UserRepository.updateUserBalance(userName, userBalance);
 
-            GameHistoryRepository.addGameHistory(userName, "Case", context.getFullCommand(), caseCost, winnings, "");
+            GameHistoryRepository.addGameHistory(userName, "Case", context.getFullCommand(), CASE_COST, winnings, "");
             MessageService.sendMessageFromClipboard(true);
 
         } catch (Exception e) {

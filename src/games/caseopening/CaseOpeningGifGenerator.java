@@ -24,7 +24,7 @@ public class CaseOpeningGifGenerator {
     );
     private static final List<String> STATTRAK_STATUSES = Arrays.asList("StatTrak", "No");
 
-    public static int generateCaseOpeningGif(String playerName, int totalBalance, boolean includeStatraks) throws IOException {
+    public static int generateCaseOpeningGif(String playerName, int totalBalance) throws IOException {
         Map<BufferedImage, String> skins = loadSkins();
         if (skins.isEmpty()) throw new IOException("No skins found in " + SKIN_FOLDER);
 
@@ -55,12 +55,10 @@ public class CaseOpeningGifGenerator {
         outerLoop:
         for (String condition : CONDITIONS) {
             for (String stattrakStatus : STATTRAK_STATUSES) {
-                if(includeStatraks) skinPrice = SkinPriceRepository.getSkinPrice(skinName, condition, stattrakStatus);
-                else skinPrice = SkinPriceRepository.getSkinPrice(skinName, condition, "No");
+                skinPrice = SkinPriceRepository.getSkinPrice(skinName, condition, stattrakStatus);
                 if (skinPrice > 0) {
                     skinCondition = condition;
-                    if(includeStatraks) skinStattrakStatus = stattrakStatus;
-                    else skinStattrakStatus = "No";
+                    skinStattrakStatus = stattrakStatus;
                     break outerLoop;
                 }
             }
