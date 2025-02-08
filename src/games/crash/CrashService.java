@@ -8,7 +8,7 @@ import model.CommandContext;
 import java.util.Random;
 
 public class CrashService {
-    private static final double HOUSE_EDGE = 0.0;
+    private static final double HOUSE_EDGE = 0.01;
     private static final double MAX_MULTIPLIER = 100.0;
 
     public static void handleCrashCommand(CommandContext context) {
