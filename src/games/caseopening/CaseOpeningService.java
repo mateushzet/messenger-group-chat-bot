@@ -9,13 +9,18 @@ public class CaseOpeningService {
 
     public static void handleCaseCommand(CommandContext context) {
         String userName = context.getUserName();
-        String stattrak = context.getFirstArgument();
+        String caseCostInput = context.getFirstArgument();
 
         int userBalance = UserRepository.getCurrentUserBalance(userName, true);
 
         try {
-            boolean isStatTrak = stattrak.equalsIgnoreCase("stattrak") || stattrak.equalsIgnoreCase("s");
-            int caseCost = isStatTrak ? 230 : 190;
+            if (!caseCostInput.equals("200") && !caseCostInput.equals("150")) {
+                MessageService.sendMessage(userName + " you must choose which case to open: 200 (StatTraks included) or 150 (no StatTraks)");
+                return;
+            }
+
+            int caseCost = Integer.parseInt(caseCostInput);
+            boolean isStatTrak = caseCost == 200;
 
             if (userBalance < caseCost) {
                 MessageService.sendMessage(userName + " insufficient balance: " + userBalance + ", this case costs: " + caseCost);

@@ -40,7 +40,7 @@ public class CaseOpeningGifGenerator {
         }
 
         Random random = new Random();
-        int randomStopOffset = random.nextInt(121) - 70;
+        int randomStopOffset = random.nextInt(201) - 80;
 
         Collections.shuffle(CONDITIONS);
         Collections.shuffle(STATTRAK_STATUSES);
@@ -163,7 +163,7 @@ public class CaseOpeningGifGenerator {
             g.setFont(new Font("Arial", Font.BOLD, 16));
             g.drawString("$", 115, 145);
 
-            g.drawString(playerName + ": " + (totalBalance + skinPrice), 490, 230);
+            g.drawString(playerName + ": " + (totalBalance + skinPrice), 470, 230);
 
             g.setColor(new Color(255, 255, 255, 100));
             g.setStroke(new BasicStroke(2));
