@@ -148,9 +148,9 @@ public class LottoService {
     private static int calculateWinnings(int matches, int betAmount, int prizePool) {
         switch (matches) {
             case 1:
-                return -betAmount;
-            case 2:
                 return -betAmount + ((int) calculateProportionalValueB(prizePool,0, betAmount + 1));
+            case 2:
+                return -betAmount + ((int) calculateProportionalValueB(prizePool,betAmount/2, betAmount + betAmount/2));
             case 3:
                 return (int) (calculateProportionalValueB(prizePool,25,30) * betAmount);
             case 4:
