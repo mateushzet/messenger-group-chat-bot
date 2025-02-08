@@ -125,9 +125,12 @@ public class PlinkoGifGenerator {
             g.drawString(multiplierText, x+5, y);
         }
 
+        double finalMultiplierValue;
+        int winnings = 0;
+
         if (lastStep) {
             int finalSlot = Math.min(Math.max((ballX - (WIDTH / 2 - (COLUMNS * SLOT_WIDTH / 2))) / SLOT_WIDTH, 0), COLUMNS - 1);
-            double finalMultiplierValue = MULTIPLIERS[finalSlot - 1];
+            finalMultiplierValue = MULTIPLIERS[finalSlot - 1];
 
             g.setFont(new Font("Arial", Font.BOLD, 90));
             g.setColor(Color.YELLOW);
@@ -139,7 +142,9 @@ public class PlinkoGifGenerator {
             int textY = HEIGHT / 3 + 70;
             g.drawString(multiplierText, textX, textY);
 
-            String wonText = "WON: " + ((int) (finalMultiplierValue * betAmount));
+            winnings = (int) (finalMultiplierValue * betAmount);
+
+            String wonText = "WON: " + winnings;
             textWidth = metrics.stringWidth(wonText);
             textX = (WIDTH - textWidth) / 2;
             int wonTextY = HEIGHT / 3 + 170;
@@ -149,7 +154,8 @@ public class PlinkoGifGenerator {
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 36));
         g.drawString(username, 25, 55);
-        g.drawString("Balance: " + totalBalance, 25, 105);
+        if (lastStep) g.drawString("Balance: " + (totalBalance + winnings), 25, 105);
+        else g.drawString("Balance: " + totalBalance, 25, 105);
         g.drawString("Bet: " + betAmount, 25, 155);
  
         g.dispose();
