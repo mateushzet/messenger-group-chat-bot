@@ -1,6 +1,8 @@
 package games.caseopening;
 
 import com.madgag.gif.fmsware.AnimatedGifEncoder;
+
+import utils.GradientGenerator;
 import utils.ImageUtils;
 
 import javax.imageio.ImageIO;
@@ -18,6 +20,7 @@ public class CaseOpeningGifGenerator {
     private static final int SKIN_HEIGHT = 192;
     private static final int SKIN_SPACING = 270;
     private static final String SKIN_FOLDER = "src/games/caseopening/skins";
+    private static Paint gradient;
 
     private static final List<String> CONDITIONS = Arrays.asList(
             "Factory New", "Minimal Wear", "Field-Tested", "Well-Worn", "Battle-Scarred"
@@ -25,6 +28,8 @@ public class CaseOpeningGifGenerator {
     private static final List<String> STATTRAK_STATUSES = Arrays.asList("StatTrak", "No");
 
     public static int generateCaseOpeningGif(String playerName, int totalBalance) throws IOException {
+        gradient = GradientGenerator.generateGradientFromUsername(playerName, true, WIDTH, HEIGHT);
+
         Map<BufferedImage, String> skins = loadSkins();
         if (skins.isEmpty()) throw new IOException("No skins found in " + SKIN_FOLDER);
 
@@ -119,7 +124,7 @@ public class CaseOpeningGifGenerator {
         BufferedImage image = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
 
-        g.setColor(Color.BLACK);
+        g.setPaint(gradient);
         g.fillRect(0, 0, WIDTH, HEIGHT);
 
         int totalSkins = skins.size();
