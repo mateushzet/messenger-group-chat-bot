@@ -27,10 +27,10 @@ public class CaseOpeningGifGenerator {
     );
     private static final List<String> STATTRAK_STATUSES = Arrays.asList("StatTrak", "No");
 
-    public static int generateCaseOpeningGif(String playerName, int totalBalance) throws IOException {
+    public static int generateCaseOpeningGif(String playerName, int totalBalance, int priceMin, int priceMax) throws IOException {
         gradient = GradientGenerator.generateGradientFromUsername(playerName, true, WIDTH, HEIGHT);
 
-        Map<BufferedImage, String> skins = loadSkins();
+        Map<BufferedImage, String> skins = loadSkins(priceMin, priceMax);
         if (skins.isEmpty()) throw new IOException("No skins found in " + SKIN_FOLDER);
 
         List<Map.Entry<BufferedImage, String>> skinEntries = new ArrayList<>(skins.entrySet());
@@ -45,7 +45,8 @@ public class CaseOpeningGifGenerator {
         }
 
         Random random = new Random();
-        int randomStopOffset = random.nextInt(201) - 80;
+        int randomStopOffset = random.nextInt(220) - 160;
+        int randomEndSpeed = random.nextInt(301);
 
         Collections.shuffle(CONDITIONS);
         Collections.shuffle(STATTRAK_STATUSES);
@@ -61,7 +62,7 @@ public class CaseOpeningGifGenerator {
         for (String condition : CONDITIONS) {
             for (String stattrakStatus : STATTRAK_STATUSES) {
                 skinPrice = SkinPriceRepository.getSkinPrice(skinName, condition, stattrakStatus);
-                if (skinPrice > 0) {
+                if (skinPrice > 0 && skinPrice >= priceMin && skinPrice <= priceMax) {
                     skinCondition = condition;
                     skinStattrakStatus = stattrakStatus;
                     break outerLoop;
@@ -69,7 +70,7 @@ public class CaseOpeningGifGenerator {
             }
         }
 
-        List<BufferedImage> frames = generateFrames(skinsImages, randomStopOffset, skinName, skinCondition, skinStattrakStatus, skinPrice, playerName, totalBalance);
+        List<BufferedImage> frames = generateFrames(skinsImages, randomStopOffset, skinName, skinCondition, skinStattrakStatus, skinPrice, playerName, totalBalance, randomEndSpeed);
 
         byte[] gifBytes = createGif(frames);
         if (gifBytes != null) {
@@ -79,24 +80,29 @@ public class CaseOpeningGifGenerator {
         return skinPrice;
     }
 
-    private static Map<BufferedImage, String> loadSkins() throws IOException {
+    private static Map<BufferedImage, String> loadSkins(int minPrice, int maxPrice) throws IOException {
+        List<String> skinsFilesNames = SkinPriceRepository.getSkinsFilesNames(minPrice, maxPrice);
+
         File[] skinFiles = new File(SKIN_FOLDER).listFiles();
         if (skinFiles == null) {
             throw new IOException("Skins folder is empty or does not exist: " + SKIN_FOLDER);
         }
-
+    
         Map<BufferedImage, String> skins = new HashMap<>();
         for (File skinFile : skinFiles) {
-            BufferedImage skin = ImageIO.read(skinFile);
-            if (skin != null) {
-                skins.put(skin, skinFile.getName());
+            if (skinsFilesNames.contains(skinFile.getName())) {
+                BufferedImage skin = ImageIO.read(skinFile);
+                if (skin != null) {
+                    skins.put(skin, skinFile.getName());
+                }
             }
         }
         return skins;
     }
+    
 
     private static List<BufferedImage> generateFrames(List<BufferedImage> skins, int randomStopOffset, String skinName, String skinCondition, 
-                                                        String skinStattrakStatus, int skinPrice, String playerName, int totalBalance) {
+                                                        String skinStattrakStatus, int skinPrice, String playerName, int totalBalance, int endSpeed) {
         List<BufferedImage> frames = new ArrayList<>();
 
         double speed = 8000;
@@ -111,8 +117,8 @@ public class CaseOpeningGifGenerator {
             }
             frames.add(generateFrame(skins, (int) speed, randomStopOffset, skinName, skinCondition, skinStattrakStatus, skinPrice, finalFrames, playerName, totalBalance));
             speed *= deceleration;
-            if (speed <= 200) {
-                speed = 200;
+            if (speed <= endSpeed) {
+                speed = endSpeed;
             }
         }
         
@@ -207,6 +213,10 @@ public class CaseOpeningGifGenerator {
         g.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
         g.dispose();
         return resizedImage;
+    }
+
+    public static void main(String[] args) throws IOException {
+        generateCaseOpeningGif("test", 200, 0, 2000);
     }
 
 }
