@@ -1,6 +1,8 @@
 # MessengerGroupChatBot
 
-MessengerGroupChatBot is a bot designed to providie interactive features like math challenges, virtual money system, a slot machine game with a growing jackpot pool, a roulette game, and simple commands.
+MessengerGroupChatBot is a bot designed to providie interactive features like virtual money system, math challenges, gambling games, and simple commands.
+
+![GAMES](https://github.com/user-attachments/assets/c46714f0-0dea-4016-bf0d-4abf500b31ee)
 
 ## Technologies Used
 - Java 11
