@@ -25,20 +25,21 @@ public class SlotsImageGenerator {
 
     private static final Color RED_COLOR = new Color(200, 50, 50);
     private static final Color GREEN_COLOR = new Color(50, 200, 50);
-    private static final Color DARK_GRAY = new Color(25, 25, 25);
+    private static final int IMAGE_HEIGHT = 330;
+    private static final int IMAGE_WIDTH = 300;
+    private static final int PADDING = 30;
     
+
     public static void generateSlotsResultImage(int[] result, String playerName, int amount, int totalBalance, int betAmount, int jackpotAmount) {
         String[] resultsImages = {symbols[result[0]], symbols[result[1]], symbols[result[2]]};
         
-        int width = 300;
-        int height = 330;
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage image = new BufferedImage(IMAGE_HEIGHT, IMAGE_HEIGHT, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
     
-        Paint gradient = GradientGenerator.generateGradientFromUsername(playerName, false, width, height);
+        Paint gradient = GradientGenerator.generateGradientFromUsername(playerName, false, IMAGE_WIDTH, IMAGE_HEIGHT);
         
-        int symbolWidth = width / 3;
-        int symbolHeight = width / 3;
+        int symbolWidth = IMAGE_WIDTH / 3;
+        int symbolHeight = IMAGE_WIDTH / 3;
     
         g.setColor(new Color(230,230,230));
         g.fillRect(0, 0, 300, 300);
@@ -52,7 +53,7 @@ public class SlotsImageGenerator {
     
                 if (i < 2) {
                     g.setColor(Color.GRAY);
-                    g.drawLine((i + 1) * symbolWidth, 0, (i + 1) * symbolWidth, height);
+                    g.drawLine((i + 1) * symbolWidth, 0, (i + 1) * symbolWidth, IMAGE_HEIGHT);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -67,7 +68,7 @@ public class SlotsImageGenerator {
     
                 if (i < 2) {
                     g.setColor(Color.GRAY);
-                    g.drawLine((i + 1) * symbolWidth, symbolWidth - (symbolHeight / 2), (i + 1) * symbolWidth, height);
+                    g.drawLine((i + 1) * symbolWidth, symbolWidth - (symbolHeight / 2), (i + 1) * symbolWidth, IMAGE_HEIGHT);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -83,45 +84,53 @@ public class SlotsImageGenerator {
     
                 if (i < 2) {
                     g.setColor(Color.GRAY);
-                    g.drawLine((i + 1) * symbolWidth, 2 * symbolWidth - (symbolHeight / 2), (i + 1) * symbolWidth, height);
+                    g.drawLine((i + 1) * symbolWidth, 2 * symbolWidth - (symbolHeight / 2), (i + 1) * symbolWidth, IMAGE_HEIGHT);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
         
-        g.setColor(DARK_GRAY);
-        g.setStroke(new BasicStroke(10));
-        g.drawRect(0, 0, width - 1, height - 1 - (symbolHeight / 2) - 80);
-    
-        g.setColor(Color.DARK_GRAY);
-        g.setFont(new Font("Arial", Font.BOLD, 24));
-        g.fillRect(0, 202, 300, 130);
-
         g.setPaint(gradient);
         g.fillRect(0, 200, 300, 200);
 
-        if (amount > 0) {
-            g.setColor(GREEN_COLOR);
-            g.drawString("WIN " + amount, 10, 230);
-        } else {
-            g.setColor(RED_COLOR);
-            g.drawString("LOSE " + amount, 10, 230);
-        }
+        drawInfoPanel(g, playerName, amount, totalBalance, betAmount, jackpotAmount);
 
-        g.setColor(Color.WHITE);
-        g.drawString(playerName, 10, 260);
-        g.drawString("Total: " + totalBalance, 10, 290);
-        g.drawString("Jackpot: " + jackpotAmount, 10, 320);
-
-        g.setFont(new Font("Arial", Font.BOLD, 14));
-
-        g.drawString("Bet: " + betAmount, 200, 320);
-        
         g.dispose();
     
         ImageUtils.setClipboardImage(image);;
     }
+
+    private static void drawInfoPanel(Graphics2D g, String playerName, int amount, int totalBalance, int betAmount, int jackpotAmount) {
+        int panelY = IMAGE_HEIGHT - 150;
+        g.setColor(new Color(0, 0, 0, 150));
+        g.fillRoundRect(PADDING, panelY + 20, IMAGE_WIDTH - 2 * PADDING, 140, 20, 20);
+
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 24));
+
+        FontMetrics metrics = g.getFontMetrics();
+        String winLoseText = amount > 0 ? "WIN " + amount : "LOSE " + amount;
+        int textWidth = metrics.stringWidth(winLoseText);
+        int x = (IMAGE_WIDTH - textWidth) / 2;
+
+        if (amount > 0) {
+            g.setColor(GREEN_COLOR);
+        } else {
+            g.setColor(RED_COLOR);
+        }
+        g.drawString(winLoseText, x, panelY + 45);
+
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.PLAIN, 18));
+        g.drawString(playerName, PADDING + 10, panelY + 70);
+        g.drawString("Total: " + totalBalance, PADDING + 10, panelY + 100);
+        g.drawString("Jackpot: " + jackpotAmount, PADDING + 10, panelY + 130);
+
+        g.setFont(new Font("Arial", Font.BOLD, 16));
+        g.drawString("Bet: " + betAmount, IMAGE_WIDTH - PADDING - 100, panelY + 130);
+    }
+
 
     private static String[] spinSlotsWithWildcard() {
         Random rand = new Random();
