@@ -16,39 +16,39 @@ public class HorseRaceImageGenerator {
 
     private static final Color TEXT_COLOR = new Color(50, 50, 50);
 
-    public static void drawHorseRace(List<Horse> allHorses) throws IOException {
+    public static BufferedImage drawHorseRace(List<Horse> allHorses, int selectedHorse, boolean lastFrame, int userBalance, int betAmount, String playerName) throws IOException {
         int trackLength = 600;
         BufferedImage background = ImageIO.read(new File("src/games/horseRace/horseRaceImages/background.png"));
         BufferedImage[] horses = new BufferedImage[9];
         for (int i = 0; i < horses.length; i++) {
             horses[i] = ImageIO.read(new File("src/games/horseRace/horseRaceImages/horse" + (i + 1) + ".png"));
         }
-
+    
         int width = background.getWidth();
         int height = background.getHeight();
-
+    
         BufferedImage result = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = result.createGraphics();
-
+    
         g.drawImage(background, 0, 0, null);
-
+    
         double scale = 0.3;
         int scaledWidth, scaledHeight;
-
+    
         int startY = 50;
         int endY = 350;
         int stepY = (endY - startY) / (allHorses.size() - 1);
-
+    
         for (int i = 0; i < allHorses.size(); i++) {
             Horse horse = allHorses.get(i);
             int x = (int) (horse.getPosition() * (width / (double) trackLength));
             int y = startY + i * stepY;
-            BufferedImage horseImage = horses[horse.getImageNumber()-1];
-
+            BufferedImage horseImage = horses[horse.getImageNumber() - 1];
+    
             scaledWidth = (int) (horseImage.getWidth() * scale);
             scaledHeight = (int) (horseImage.getHeight() * scale);
             Image scaledHorse = horseImage.getScaledInstance(scaledWidth, scaledHeight, Image.SCALE_SMOOTH);
-
+    
             if (horse.isFallen()) {
                 AffineTransform transform = AffineTransform.getScaleInstance(1, -1);
                 transform.translate(0, -scaledHeight);
@@ -59,10 +59,42 @@ public class HorseRaceImageGenerator {
                 g.drawImage(scaledHorse, x, y, null);
             }
         }
+    
+        if (lastFrame) {
+            Horse winner = allHorses.stream()
+                    .max((h1, h2) -> Integer.compare(h1.getPosition(), h2.getPosition()))
+                    .orElse(null);
+    
+            if (winner != null) {
+                boolean isWinner = winner.getImageNumber() == selectedHorse;
+                int winnings = isWinner ? betAmount * 6 : 0;
+                int newBalance = userBalance + winnings;
+    
+                g.setFont(new Font("Arial", Font.BOLD, 24));
+                g.setColor(Color.WHITE);
+    
+                g.setColor(new Color(0, 0, 0, 150));
+                g.fillRoundRect(100, 100, 600, 350, 20, 20);
+    
+                g.setColor(Color.WHITE);
+                g.drawString("Winner: Horse #" + winner.getImageNumber() + " - " + winner.getName(), 120, 150);
+                g.drawString(playerName + ", your balance: " + (isWinner ? newBalance + betAmount : newBalance), 120, 180);
+                g.drawString("You " + (isWinner ? "won: " + winnings : "lost: " + betAmount), 120, 210);
+    
 
+                BufferedImage winnerImage = horses[winner.getImageNumber() - 1];
+                double winnerScale = 0.1;
+                int winnerWidth = (int) (winnerImage.getWidth() * winnerScale);
+                int winnerHeight = (int) (winnerImage.getHeight() * winnerScale);
+                Image scaledWinner = winnerImage.getScaledInstance(winnerWidth, winnerHeight, Image.SCALE_SMOOTH);
+    
+                g.drawImage(scaledWinner, 120, 230, null);
+            }
+        }
+    
         g.dispose();
-
-        ImageUtils.setClipboardImage(result);
+    
+        return result;
     }
 
     public static void showHorses() throws IOException {

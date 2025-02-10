@@ -15,15 +15,15 @@ public class HorseRaceBettingService {
     public static List<Horse> allHorses = new ArrayList<>();
 
     static {
-        allHorses.add(new Horse("Thunderbolt", 50, 180, 0.12, 1));
-        allHorses.add(new Horse("Lightning", 70, 180, 0.12, 2));
-        allHorses.add(new Horse("Shadow", 60, 170, 0.01, 3));
-        allHorses.add(new Horse("Blaze", 60, 190, 0.185, 4));
-        allHorses.add(new Horse("Spirit", 90, 160, 0.075, 5));
-        allHorses.add(new Horse("Flash", 50, 170, 0, 6));
-        allHorses.add(new Horse("Storm", 80, 200, 0.385, 7));
-        allHorses.add(new Horse("Comet", 95, 180, 0.325, 8));
-        allHorses.add(new Horse("Fury", 80, 180, 0.25, 9));
+        allHorses.add(new Horse("Thunderbolt", 20, 48, 0.12, 1));
+        allHorses.add(new Horse("Lightning", 28, 48, 0.12, 2));
+        allHorses.add(new Horse("Shadow", 24, 47, 0.01, 3));
+        allHorses.add(new Horse("Blaze", 24, 49, 0.185, 4));
+        allHorses.add(new Horse("Spirit", 36, 46, 0.075, 5));
+        allHorses.add(new Horse("Flash", 20, 47, 0, 6));
+        allHorses.add(new Horse("Storm", 36, 60, 0.385, 7));
+        allHorses.add(new Horse("Comet", 36, 48, 0.325, 8));
+        allHorses.add(new Horse("Fury", 32, 48, 0.25, 9));
     }
 
         public static void handleRaceCommand(CommandContext context) {
@@ -56,7 +56,7 @@ public class HorseRaceBettingService {
             int newBalance = UserBalance - betAmountParesd;
             UserRepository.updateUserBalance(playerName, newBalance);
 
-            int winner = HorseRaceService.startRace(horseNumberParesd);
+            int winner = HorseRaceService.generateFrames(horseNumberParesd, newBalance, betAmountParesd, playerName);
             UserBalance = UserRepository.getCurrentUserBalance(playerName, false);
 
             Horse horse = allHorses.get(winner-1);
@@ -65,10 +65,10 @@ public class HorseRaceBettingService {
             if(winner == horseNumberParesd){
                 int winnings = betAmountParesd * 5;
                 UserRepository.updateUserBalance(playerName, UserBalance + winnings);
-                MessageService.sendMessage("#%d %s won, you earnd %d coins, current balance: %d", winner, horseName, winnings, UserBalance + winnings);
+                //MessageService.sendMessage("#%d %s won, you earnd %d coins, current balance: %d", winner, horseName, winnings, UserBalance + winnings);
                 GameHistoryRepository.addGameHistory(playerName, "Race", context.getFullCommand(), betAmountParesd, winnings, "Horse number " + winner + " won" );
             } else {
-                MessageService.sendMessage("#%d %s won, you lost %d coins, current balance: %d", winner, horseName, betAmountParesd, UserBalance);
+                //MessageService.sendMessage("#%d %s won, you lost %d coins, current balance: %d", winner, horseName, betAmountParesd, UserBalance);
                 GameHistoryRepository.addGameHistory(playerName, "Race", context.getFullCommand(), betAmountParesd, -betAmountParesd, "Horse number " + winner + " won" );
             }
         }
