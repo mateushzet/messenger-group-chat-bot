@@ -15,13 +15,13 @@ public class HorseRaceBettingService {
     public static List<Horse> allHorses = new ArrayList<>();
 
     static {
-        allHorses.add(new Horse("Thunderbolt", 20, 48, 0.12, 1));
-        allHorses.add(new Horse("Lightning", 28, 48, 0.12, 2));
+        allHorses.add(new Horse("Thunderbolt", 23, 48, 0.09, 1));
+        allHorses.add(new Horse("Lightning", 28, 45, 0.12, 2));
         allHorses.add(new Horse("Shadow", 24, 47, 0.01, 3));
         allHorses.add(new Horse("Blaze", 24, 49, 0.185, 4));
-        allHorses.add(new Horse("Spirit", 36, 46, 0.075, 5));
-        allHorses.add(new Horse("Flash", 20, 47, 0, 6));
-        allHorses.add(new Horse("Storm", 36, 60, 0.385, 7));
+        allHorses.add(new Horse("Spirit", 28, 40, 0.075, 5));
+        allHorses.add(new Horse("Flash", 20, 40, 0, 6));
+        allHorses.add(new Horse("Storm", 32, 45, 0.385, 7));
         allHorses.add(new Horse("Comet", 36, 48, 0.325, 8));
         allHorses.add(new Horse("Fury", 32, 48, 0.25, 9));
     }
@@ -59,11 +59,8 @@ public class HorseRaceBettingService {
             int winner = HorseRaceService.generateFrames(horseNumberParesd, newBalance, betAmountParesd, playerName);
             UserBalance = UserRepository.getCurrentUserBalance(playerName, false);
 
-            Horse horse = allHorses.get(winner-1);
-            String horseName = horse.getName();
-
             if(winner == horseNumberParesd){
-                int winnings = betAmountParesd * 5;
+                int winnings = betAmountParesd + (betAmountParesd * 5);
                 UserRepository.updateUserBalance(playerName, UserBalance + winnings);
                 //MessageService.sendMessage("#%d %s won, you earnd %d coins, current balance: %d", winner, horseName, winnings, UserBalance + winnings);
                 GameHistoryRepository.addGameHistory(playerName, "Race", context.getFullCommand(), betAmountParesd, winnings, "Horse number " + winner + " won" );

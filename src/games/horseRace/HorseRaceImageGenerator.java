@@ -67,7 +67,7 @@ public class HorseRaceImageGenerator {
     
             if (winner != null) {
                 boolean isWinner = winner.getImageNumber() == selectedHorse;
-                int winnings = isWinner ? betAmount * 6 : 0;
+                int winnings = isWinner ? betAmount * 5 : 0;
                 int newBalance = userBalance + winnings;
     
                 g.setFont(new Font("Arial", Font.BOLD, 24));
