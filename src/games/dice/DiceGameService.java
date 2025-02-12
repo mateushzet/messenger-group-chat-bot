@@ -115,12 +115,13 @@ public class DiceGameService {
 
         int userBalance = UserRepository.getCurrentUserBalance(userName, false);
         double multiplier = calculateMultiplier(game.getDiceValues());
-        int winnings = (int) (game.getBetAmount() * multiplier);
+        int betAmount = game.getBetAmount();
+        int winnings = (int) (betAmount * multiplier);
 
         UserRepository.updateUserBalance(userName, userBalance + winnings);
 
         String gameStatus = userName + " you won " + winnings + "!";
-        GameHistoryRepository.addGameHistory(userName, "Dice", context.getFullCommand(), game.getBetAmount(), winnings, gameStatus);
+        GameHistoryRepository.addGameHistory(userName, "Dice", context.getFullCommand(), game.getBetAmount(), winnings - betAmount, gameStatus);
 
         DiceGameRepository.deleteGame(userName);
 
