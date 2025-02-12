@@ -51,7 +51,7 @@ public class ColorsService {
 
             for (int i = 0; i < 5; i++) {
                 try {
-                    Thread.sleep(200);
+                    Thread.sleep(300);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
