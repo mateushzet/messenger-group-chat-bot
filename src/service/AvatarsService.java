@@ -9,8 +9,10 @@ public class AvatarsService {
     public static void handleAvatarsCommand(CommandContext context) {
         String userName = context.getUserName();
         String firstArg = context.getFirstArgument();
-        String secondArg = context.getSecondArgument();
+        String secondArg = context.getArgumentsJoined();
         
+        System.out.println(secondArg);
+
         if (firstArg == null) {
             MessageService.sendMessage("Available commands: set, list");
             return;

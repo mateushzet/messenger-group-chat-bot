@@ -7,6 +7,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import javax.imageio.ImageIO;
+
+import repository.UserAvatarRepository;
+
 public class ImageUtils {
 
     public static void setClipboardImage(final BufferedImage image) {
@@ -77,4 +81,24 @@ public class ImageUtils {
             e.printStackTrace();
         }
     }
+    
+    public static void drawUserAvatar(Graphics2D g, String username, int x, int y, int width, int height) {
+        try {
+            String avatarName = UserAvatarRepository.getActiveAvatarForUser(username);
+            if (avatarName == null || avatarName.isEmpty()) return;
+
+            File avatarFile = new File("src\\resources\\user_avatars\\" + avatarName + ".png");
+            if (!avatarFile.exists()) return;
+
+            BufferedImage avatar = ImageIO.read(avatarFile);
+
+            Image scaledAvatar = avatar.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+
+            g.drawImage(scaledAvatar, x, y, null);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 }

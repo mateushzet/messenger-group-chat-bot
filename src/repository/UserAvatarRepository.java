@@ -9,22 +9,32 @@ import utils.Logger;
 
 public class UserAvatarRepository {
     public static boolean assignAvatarToUser(String username, String avatarId) {
-        String query = "INSERT INTO user_avatars (user_name, avatar_id) VALUES (?, ?)";
-    
+        String checkQuery = "SELECT COUNT(*) FROM user_avatars WHERE user_name = ? AND avatar_id = ?";
+        String insertQuery = "INSERT INTO user_avatars (user_name, avatar_id) VALUES (?, ?)";
+        
         try (Connection connection = DatabaseConnectionManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(query)) {
+             PreparedStatement checkStatement = connection.prepareStatement(checkQuery);
+             PreparedStatement insertStatement = connection.prepareStatement(insertQuery)) {
+            
+            checkStatement.setString(1, username);
+            checkStatement.setString(2, avatarId);
+            ResultSet resultSet = checkStatement.executeQuery();
+            
+            if (resultSet.next() && resultSet.getInt(1) > 0) {
+                return false;
+            }
     
-            statement.setString(1, username);
-            statement.setString(2, avatarId);
-    
-            int rowsAffected = statement.executeUpdate();
+            insertStatement.setString(1, username);
+            insertStatement.setString(2, avatarId);
+            int rowsAffected = insertStatement.executeUpdate();
+            
             return rowsAffected > 0;
         } catch (SQLException e) {
-            Logger.logError("Error while assigning avatar to user", "UserAvatarRepository.assignAvatarsToUser()", e);
+            Logger.logError("Error while assigning avatar to user", "UserAvatarRepository.assignAvatarToUser()", e);
             return false;
         }
     }
-
+    
     public static List<String> getAllAvatarsForUser(String username) {
         String query = "SELECT avatar_id FROM user_avatars WHERE user_name = ?";
         List<String> avatars = new ArrayList<>();

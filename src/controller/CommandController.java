@@ -6,6 +6,7 @@ import service.SkinsService;
 import service.StatisticsService;
 import utils.ConfigReader;
 import utils.Logger;
+import service.AvatarsService;
 import service.CommandService;
 
 import java.util.ArrayList;
@@ -74,7 +75,8 @@ public class CommandController {
         commands.put("d", DiceGameService::handleDiceCommand); 
         commands.put("crash", CrashService::handleCrashCommand);
         commands.put("case", CaseOpeningService::handleCaseCommand);
-        
+        commands.put("avatar", AvatarsService::handleAvatarsCommand);
+
     }
 
     public static void processCommand(String userName, String message) {

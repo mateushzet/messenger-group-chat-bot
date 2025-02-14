@@ -123,4 +123,11 @@ public class CommandContext {
         }
     }
 
+    public String getArgumentsJoined() {
+        if (this.arguments == null || this.arguments.size() <= 1) {
+            return "";
+        }
+        return String.join(" ", this.arguments.subList(1, this.arguments.size()));
+    }
+
 }
