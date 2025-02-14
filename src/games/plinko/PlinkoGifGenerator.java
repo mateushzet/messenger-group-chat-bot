@@ -2,6 +2,7 @@ package games.plinko;
 
 import com.madgag.gif.fmsware.AnimatedGifEncoder;
 
+import repository.UserAvatarRepository;
 import utils.GradientGenerator;
 import utils.ImageUtils;
 
@@ -131,6 +132,8 @@ public class PlinkoGifGenerator {
         if (lastStep) {
             int finalSlot = Math.min(Math.max((ballX - (WIDTH / 2 - (COLUMNS * SLOT_WIDTH / 2))) / SLOT_WIDTH, 0), COLUMNS - 1);
             finalMultiplierValue = MULTIPLIERS[finalSlot - 1];
+
+            if((finalSlot - 1) == 0 || (finalSlot - 1) == 14) UserAvatarRepository.assignAvatarToUser(username, "plinko");
 
             g.setFont(new Font("Arial", Font.BOLD, 90));
             g.setColor(Color.YELLOW);

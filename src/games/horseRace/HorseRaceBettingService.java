@@ -7,6 +7,7 @@ import java.util.List;
 import model.CommandContext;
 import model.Horse;
 import repository.GameHistoryRepository;
+import repository.UserAvatarRepository;
 import repository.UserRepository;
 import service.MessageService;
 
@@ -64,6 +65,7 @@ public class HorseRaceBettingService {
                 UserRepository.updateUserBalance(playerName, UserBalance + winnings);
                 //MessageService.sendMessage("#%d %s won, you earnd %d coins, current balance: %d", winner, horseName, winnings, UserBalance + winnings);
                 GameHistoryRepository.addGameHistory(playerName, "Race", context.getFullCommand(), betAmountParesd, winnings, "Horse number " + winner + " won" );
+                UserAvatarRepository.assignAvatarToUser(playerName, "horse");
             } else {
                 //MessageService.sendMessage("#%d %s won, you lost %d coins, current balance: %d", winner, horseName, betAmountParesd, UserBalance);
                 GameHistoryRepository.addGameHistory(playerName, "Race", context.getFullCommand(), betAmountParesd, -betAmountParesd, "Horse number " + winner + " won" );

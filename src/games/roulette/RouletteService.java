@@ -1,6 +1,7 @@
 package games.roulette;
 
 import repository.GameHistoryRepository;
+import repository.UserAvatarRepository;
 import service.MessageService;
 import service.UserService;
 import model.CommandContext;
@@ -32,6 +33,7 @@ public class RouletteService {
         }
 
         int randomNumber = new Random().nextInt(13); // 0-12
+        if(randomNumber == 0) UserAvatarRepository.assignAvatarToUser(username, "roulette green");
         processRouletteOutcome(field, randomNumber, betAmountParsed, username, context);
     }
 

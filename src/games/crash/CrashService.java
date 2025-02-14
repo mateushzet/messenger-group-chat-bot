@@ -1,6 +1,7 @@
 package games.crash;
 
 import repository.GameHistoryRepository;
+import repository.UserAvatarRepository;
 import repository.UserRepository;
 import service.MessageService;
 import model.CommandContext;
@@ -38,6 +39,8 @@ public class CrashService {
         
         double finalMultiplier = CrashGifGenerator.playAndGenerateGif(username, betAmount, userBalance, playerCashout, crashMultiplier);
         
+        if(finalMultiplier >= 99) UserAvatarRepository.assignAvatarToUser(username, "crash");
+
         GameHistoryRepository.addGameHistory(username, "Crash", context.getFullCommand(), betAmount, winnings, String.valueOf(finalMultiplier));
         UserRepository.updateUserBalance(username, userBalance - betAmount + winnings);
         MessageService.sendMessageFromClipboard(true);

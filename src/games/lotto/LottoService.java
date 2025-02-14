@@ -6,6 +6,7 @@ import java.util.Random;
 
 import model.CommandContext;
 import repository.GameHistoryRepository;
+import repository.UserAvatarRepository;
 import repository.UserRepository;
 import service.MessageService;
 import utils.Logger;
@@ -84,7 +85,7 @@ public class LottoService {
         int matches = countMatches(playerNumbers, winningNumbers);
         int prizePool = getPrizePool();
 
-        int winnings = calculateWinnings(matches, betAmount, prizePool);
+        int winnings = calculateWinnings(matches, betAmount, prizePool, playerName);
         int newBalance = currentBalance + winnings;
         UserRepository.updateUserBalance(playerName, newBalance);
     
@@ -145,7 +146,7 @@ public class LottoService {
         return matches;
     }
     
-    private static int calculateWinnings(int matches, int betAmount, int prizePool) {
+    private static int calculateWinnings(int matches, int betAmount, int prizePool, String playerName) {
         switch (matches) {
             case 1:
                 return -betAmount + ((int) calculateProportionalValueB(prizePool,0, betAmount + 1));
@@ -154,10 +155,13 @@ public class LottoService {
             case 3:
                 return (int) (calculateProportionalValueB(prizePool,25,30) * betAmount);
             case 4:
+                UserAvatarRepository.assignAvatarToUser(playerName, "lotto 4");
                 return (int) (calculateProportionalValueB(prizePool,500,600) * betAmount);
             case 5:
+                UserAvatarRepository.assignAvatarToUser(playerName, "lotto 5");
                 return (int) (0.001 * prizePool * betAmount);
             case 6:
+                UserAvatarRepository.assignAvatarToUser(playerName, "lotto 6");
                 return (int) (0.01 * prizePool * betAmount);
             default:
                 return -betAmount;

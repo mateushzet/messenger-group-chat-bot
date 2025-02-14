@@ -3,6 +3,7 @@ package games.mines;
 import repository.UserRepository;
 import service.MessageService;
 import repository.GameHistoryRepository;
+import repository.UserAvatarRepository;
 import model.CommandContext;
 import model.MinesGame;
 
@@ -200,6 +201,7 @@ public class MinesService {
         }
     
         if (checkIfAllSafeFieldsRevealed(game)) {
+            UserAvatarRepository.assignAvatarToUser(userName, "mines");
             endGame(userName, true, game, context);
             gameStatus = "You won " + (int) Math.round(multiplier * betAmount);
         }
@@ -312,6 +314,7 @@ public class MinesService {
             game.setRevealedFields(game.getRevealedFields() + 1);
     
             if (checkIfAllSafeFieldsRevealed(game)) {
+                UserAvatarRepository.assignAvatarToUser(userName, "mines");
                 int betAmount = game.getBetAmount();
                 Double multiplier = calculateMultiplier(game);
                 endGame(userName, true, game, context);

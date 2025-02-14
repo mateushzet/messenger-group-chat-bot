@@ -4,6 +4,7 @@ import java.util.Random;
 
 import model.CommandContext;
 import repository.GameHistoryRepository;
+import repository.UserAvatarRepository;
 import repository.UserRepository;
 import service.MessageService;
 import utils.ConfigReader;
@@ -73,12 +74,15 @@ public class ColorsService {
             betResult = handleSingleColorBet(context, currentBalance, resultColorNumber, betColor);
         }
 
+        if(resultColorNumber == 3) UserAvatarRepository.assignAvatarToUser(playerName, "colors gold");
         if(betResult == null) return;
 
         winnings = betResult[0];
         balanceChange = betResult[1];
         betAmount = betResult[2];
     
+        
+
         int updatedBalance = currentBalance + balanceChange;
         UserRepository.updateUserBalance(playerName, updatedBalance);
 

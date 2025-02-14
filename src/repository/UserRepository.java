@@ -180,7 +180,15 @@ public class UserRepository {
         List<Map.Entry<String, Integer>> sortedUsers = new ArrayList<>(userBalances.entrySet());
         sortedUsers.removeIf(entry -> entry.getValue() == 0);
         sortedUsers.sort((entry1, entry2) -> Integer.compare(entry2.getValue(), entry1.getValue()));
-
+        if (!sortedUsers.isEmpty()) {
+            UserAvatarRepository.assignAvatarToUser(sortedUsers.get(0).getKey(), "1st");
+        }
+        if (sortedUsers.size() > 1) {
+            UserAvatarRepository.assignAvatarToUser(sortedUsers.get(1).getKey(), "2nd");
+        }
+        if (sortedUsers.size() > 2) {
+            UserAvatarRepository.assignAvatarToUser(sortedUsers.get(2).getKey(), "3rd");
+        }
         return sortedUsers;
     }
 

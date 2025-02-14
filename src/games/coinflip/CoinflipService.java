@@ -1,6 +1,7 @@
 package games.coinflip;
 
 import repository.GameHistoryRepository;
+import repository.UserAvatarRepository;
 import repository.UserRepository;
 import service.MessageService;
 import service.UserService;
@@ -69,10 +70,12 @@ public class CoinflipService {
         String winner;
         if(result == 1){
             winner = username;
+            UserAvatarRepository.assignAvatarToUser(username, "coin");
             GameHistoryRepository.addGameHistory(opponent, "Coinflip", context.getFullCommand(), betAmount, -betAmount, "Result: " + result);
             GameHistoryRepository.addGameHistory(username, "Coinflip", context.getFullCommand(), betAmount, betAmount, "Result: " + result);
         } else {
             winner = opponent;
+            UserAvatarRepository.assignAvatarToUser(opponent, "coin");
             GameHistoryRepository.addGameHistory(opponent, "Coinflip", context.getFullCommand(), betAmount, betAmount, "Result: " + result);
             GameHistoryRepository.addGameHistory(username, "Coinflip", context.getFullCommand(), betAmount, -betAmount, "Result: " + result);
         }

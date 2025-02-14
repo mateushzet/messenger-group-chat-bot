@@ -3,6 +3,7 @@ package games.blackjack;
 import model.BlackjackGame;
 import model.CommandContext;
 import repository.GameHistoryRepository;
+import repository.UserAvatarRepository;
 import repository.UserRepository;
 import service.MessageService;
 import service.UserService;
@@ -73,6 +74,8 @@ public class BlackjackService {
             if(dealerScore != 21){
             int winnings = (int) (betAmount * 1.5);
             userBalance = UserService.updateAndRetriveUserBalance(userName, winnings);
+
+            UserAvatarRepository.assignAvatarToUser(userName, "blackjack");
 
             String gameStatus = userName + " Blackjack! You won " + winnings + "!";
             GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), betAmount, winnings + betAmount, "Player hand: " + handToString(playerHand) + " Dealer hand: " + handToString(dealerHand));

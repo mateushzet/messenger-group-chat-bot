@@ -8,6 +8,7 @@ import utils.Logger;
 import repository.UserRepository;
 import service.MessageService;
 import repository.GameHistoryRepository;
+import repository.UserAvatarRepository;
 
 public class SlotsService {
 
@@ -145,9 +146,12 @@ public class SlotsService {
         double multiplier = getMultiplier(result);
 
         int winnings;
-        if (!isJackpot(result)) winnings = (int) (betAmount * multiplier);
-        else winnings = (int) ((betAmount * 5) + multiplier);
-
+        if (!isJackpot(result)){
+            winnings = (int) (betAmount * multiplier);
+        } else {
+            winnings = (int) ((betAmount * 5) + multiplier);
+            UserAvatarRepository.assignAvatarToUser(playerName, "jackpot");
+        }
         newBalance += winnings;
         if(winnings == 0) winnings = betAmount * -1;
 

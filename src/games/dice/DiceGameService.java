@@ -3,6 +3,7 @@ package games.dice;
 import model.DiceGame;
 import model.CommandContext;
 import repository.GameHistoryRepository;
+import repository.UserAvatarRepository;
 import repository.UserRepository;
 import service.MessageService;
 
@@ -64,7 +65,7 @@ public class DiceGameService {
         UserRepository.updateUserBalance(userName, userBalance - betAmount);
 
         int[] diceValues = generateDiceRoll();
-        double multiplier = calculateMultiplier(diceValues);
+        double multiplier = calculateMultiplier(diceValues,userName);
 
         DiceGame game = new DiceGame(userName, betAmount, diceValues, true, userBalance);
         DiceGameRepository.saveGame(game);
@@ -114,7 +115,7 @@ public class DiceGameService {
         }
 
         int userBalance = UserRepository.getCurrentUserBalance(userName, false);
-        double multiplier = calculateMultiplier(game.getDiceValues());
+        double multiplier = calculateMultiplier(game.getDiceValues(), userName);
         int betAmount = game.getBetAmount();
         int winnings = (int) (betAmount * multiplier);
 
@@ -138,7 +139,7 @@ public class DiceGameService {
         return diceValues;
     }
 
-    private static double calculateMultiplier(int[] diceValues) {
+    private static double calculateMultiplier(int[] diceValues, String username) {
 
         int[] count = new int[6];
         
@@ -162,8 +163,14 @@ public class DiceGameService {
             if (c != 1) hasStrit = false;
         }
     
-        if (hasSixOfSame) return 7;
-        if (hasStrit) return 7;
+        if (hasSixOfSame){ 
+            UserAvatarRepository.assignAvatarToUser(username, "dice 6");
+            return 7;
+        }
+        if (hasStrit){
+            UserAvatarRepository.assignAvatarToUser(username, "dice strit");
+            return 7;
+        }
         if (hasFiveOfSame) return 3;
         if (pairs == 3) return 3;
         if (hasFourOfSame && pairs == 1) return 2;

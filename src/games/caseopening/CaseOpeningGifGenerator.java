@@ -71,7 +71,7 @@ public class CaseOpeningGifGenerator {
             }
         }
 
-        UserAvatarRepository.assignAvatarToUser(playerName, (skinName+" "+skinCondition+(skinStattrakStatus.equals("StatTrak")?" ST":"")).toLowerCase());
+        if(skinPrice>=50)UserAvatarRepository.assignAvatarToUser(playerName, (skinName+" "+skinCondition+(skinStattrakStatus.equals("StatTrak")?" ST":"")).toLowerCase());
 
         List<BufferedImage> frames = generateFrames(skinsImages, randomStopOffset, skinName, skinCondition, skinStattrakStatus, skinPrice, playerName, totalBalance, randomEndSpeed);
 

@@ -1,6 +1,7 @@
 package games.match;
 
 import model.CommandContext;
+import repository.UserAvatarRepository;
 import repository.UserRepository;
 import service.MessageService;
 import database.DatabaseConnectionManager;
@@ -312,6 +313,7 @@ public class SportsBettingService {
                 MatchOddsRepository.updateBetAsPaid(betId);
         
                 response.append(String.format("You won on match %d! Your winnings: %.2f. New balance: %d\n", matchId, winnings, newBalance));
+                UserAvatarRepository.assignAvatarToUser(playerName, "sports");
             } else {
                 response.append(String.format("You lost on match %d. No winnings.\n", matchId));
             }

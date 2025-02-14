@@ -2,6 +2,7 @@ package service;
 
 import repository.UserRepository;
 import repository.RewardsRepository;
+import repository.UserAvatarRepository;
 
 import java.time.LocalTime;
 import java.util.List;
@@ -24,6 +25,11 @@ public class CommandService {
     public static void handleMoneyCommand(CommandContext context) {
         String userName = context.getUserName();
         int balance = UserRepository.getCurrentUserBalance(userName, true);
+        if(balance >= 1000) UserAvatarRepository.assignAvatarToUser(userName, "1000");
+        if(balance >= 10000) UserAvatarRepository.assignAvatarToUser(userName, "10000");
+        if(balance >= 100000) UserAvatarRepository.assignAvatarToUser(userName, "100000");
+        if(balance >= 1000000) UserAvatarRepository.assignAvatarToUser(userName, "1000000");
+        if(balance >= 10000000) UserAvatarRepository.assignAvatarToUser(userName, "10000000");
         MessageService.sendMessage("%s, current balance: %d", userName ,balance);
         Logger.logInfo("%s, current balance: %d","CommandService.handleMoneyCommand()", userName, balance);
     }
