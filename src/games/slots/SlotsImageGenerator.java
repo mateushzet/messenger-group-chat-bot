@@ -94,6 +94,8 @@ public class SlotsImageGenerator {
         g.setPaint(gradient);
         g.fillRect(0, 200, 300, 200);
 
+        ImageUtils.drawUserAvatar(g, playerName, 210, 10, 90, 90);
+
         drawInfoPanel(g, playerName, amount, totalBalance, betAmount, jackpotAmount);
 
         g.dispose();

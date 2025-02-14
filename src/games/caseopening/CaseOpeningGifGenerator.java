@@ -2,6 +2,7 @@ package games.caseopening;
 
 import com.madgag.gif.fmsware.AnimatedGifEncoder;
 
+import repository.UserAvatarRepository;
 import utils.GradientGenerator;
 import utils.ImageUtils;
 
@@ -69,6 +70,8 @@ public class CaseOpeningGifGenerator {
                 }
             }
         }
+
+        UserAvatarRepository.assignAvatarToUser(playerName, (skinName+" "+skinCondition+(skinStattrakStatus.equals("StatTrak")?" ST":"")).toLowerCase());
 
         List<BufferedImage> frames = generateFrames(skinsImages, randomStopOffset, skinName, skinCondition, skinStattrakStatus, skinPrice, playerName, totalBalance, randomEndSpeed);
 

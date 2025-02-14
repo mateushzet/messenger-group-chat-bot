@@ -26,6 +26,8 @@ public class DiceImageGenerator {
         g.setPaint(gradient);
         g.fillRect(0, 0, width, height);
 
+        ImageUtils.drawUserAvatar(g, playerName, 340, 500, 100, 100);
+
         DecimalFormat formatter = new DecimalFormat("#,###");
         String formattedBalance = formatter.format(totalBalance);
 

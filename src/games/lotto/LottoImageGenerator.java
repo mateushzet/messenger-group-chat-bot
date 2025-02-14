@@ -26,6 +26,8 @@ public class LottoImageGenerator {
         g.setPaint(gradient);
         g.fillRect(0, 0, width, height);
 
+        ImageUtils.drawUserAvatar(g, playerName, 260, 0, 80, 80);
+
         DecimalFormat formatter = new DecimalFormat("#,###");
         String formattedPrizePool = formatter.format(prizePool);
 

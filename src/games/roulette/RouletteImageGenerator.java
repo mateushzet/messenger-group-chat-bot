@@ -31,6 +31,8 @@ public class RouletteImageGenerator  {
         g.setPaint(gradient);
         g.fillRect(0, 0, 600, 660);
     
+        ImageUtils.drawUserAvatar(g, username, 510, 90, 80, 80);
+
         int centerX = 300, centerY = 345, radius = 250;  
         drawRouletteWheel(g, centerX, centerY, radius, result);
     

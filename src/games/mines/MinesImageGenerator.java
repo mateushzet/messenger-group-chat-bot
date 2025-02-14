@@ -6,10 +6,6 @@ import utils.GradientGenerator;
 import utils.ImageUtils;
 
 import java.awt.*;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
-import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
@@ -41,6 +37,8 @@ public class MinesImageGenerator {
 
         g.setPaint(gradient);
         g.fillRect(0, 0, 220, 330);
+
+        ImageUtils.drawUserAvatar(g, username, 160, 220, 40, 40);
 
         for (int row = 0; row < BOARD_SIZE; row++) {
             for (int col = 0; col < BOARD_SIZE; col++) {

@@ -36,6 +36,8 @@ public class BlackjackImageGenerator {
         g.setPaint(gradient);
         g.fillRect(0, 0, imageWidth, IMAGE_HEIGHT);
     
+        ImageUtils.drawUserAvatar(g, userName, 220, 220, 40, 40);
+
         int playerStartX = (imageWidth - playerHand.size() * CARD_WIDTH) / 2;
         for (int i = 0; i < playerHand.size(); i++) {
             drawCard(g, playerHand.get(i), playerStartX + i * CARD_WIDTH, PLAYER_Y);

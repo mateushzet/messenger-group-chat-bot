@@ -2,9 +2,13 @@ package games.colors;
 import java.awt.*;
 import java.awt.geom.Arc2D;
 import java.awt.image.BufferedImage;
-
+import java.io.File;
+import java.io.IOException;
 import java.util.Queue;
 
+import javax.imageio.ImageIO;
+
+import repository.UserAvatarRepository;
 import utils.GradientGenerator;
 import utils.ImageUtils;
 
@@ -32,6 +36,8 @@ public class ColorsImageGenerator {
         
         g.setPaint(gradient);
         g.fillRect(0, 0, width, height);
+
+        ImageUtils.drawUserAvatar(g, userName, 490, 10, 100, 100);
 
         int centerX = width / 2;
         int centerY = height / 2;
@@ -181,5 +187,5 @@ public class ColorsImageGenerator {
         }
         return rotated;
     }
-        
+
 }
