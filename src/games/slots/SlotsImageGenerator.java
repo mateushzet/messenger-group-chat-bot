@@ -151,42 +151,6 @@ public class SlotsImageGenerator {
         ImageUtils.setClipboardImage(image);
     }
 
-    public static BufferedImage generateSingleSlotsResultImage(int[] result, String playerName, int amount, int totalBalance, int betAmount, int jackpotAmount) {
-        String[] resultsImages = {symbols[result[0]], symbols[result[1]], symbols[result[2]]};
-        
-        BufferedImage image = new BufferedImage(IMAGE_HEIGHT, IMAGE_HEIGHT, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = image.createGraphics();
-    
-        Paint gradient = GradientGenerator.generateGradientFromUsername(playerName, false, IMAGE_WIDTH, IMAGE_HEIGHT);
-        g.setPaint(gradient);
-        g.fillRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
-    
-        int symbolWidth = IMAGE_WIDTH / 3;
-        int symbolHeight = IMAGE_HEIGHT / 3;
-    
-        for (int i = 0; i < resultsImages.length; i++) {
-            try {
-                URL imageUrl = new URL(resultsImages[i]);
-                Image symbolImage = ImageIO.read(imageUrl);
-                g.drawImage(symbolImage, i * symbolWidth, symbolHeight, symbolWidth, symbolHeight, null);
-    
-                if (i < 2) {
-                    g.setColor(Color.GRAY);
-                    g.drawLine((i + 1) * symbolWidth, 0, (i + 1) * symbolWidth, IMAGE_HEIGHT);
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-    
-        ImageUtils.drawUserAvatar(g, playerName, IMAGE_WIDTH - 70, 10, 60, 60);
-    
-        drawInfoPanel(g, playerName, amount, totalBalance, betAmount, jackpotAmount);
-    
-        g.dispose();
-        return image;
-    }
-
     private static void drawInfoPanel(Graphics2D g, String playerName, int amount, int totalBalance, int betAmount, int jackpotAmount) {
         int panelY = IMAGE_HEIGHT - 150;
         g.setColor(new Color(0, 0, 0, 150));
