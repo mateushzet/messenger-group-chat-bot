@@ -14,8 +14,8 @@ public class CaseOpeningService {
         int userBalance = UserRepository.getCurrentUserBalance(userName, true);
 
         try {
-            if (!caseCostInput.equals("100") && !caseCostInput.equals("10")) {
-                MessageService.sendMessage(userName + ", you must choose which case to open: 100 or 10");
+            if (!caseCostInput.equals("1000") && !caseCostInput.equals("100") && !caseCostInput.equals("10")) {
+                MessageService.sendMessage(userName + ", you must choose which case to open: 1000 or 100 or 10");
                 return;
             }
 
@@ -25,7 +25,10 @@ public class CaseOpeningService {
             if (caseCost == 100) {
                 minPrice = 0;
                 maxPrice = 1400;
-            } else {
+            } else if (caseCost == 1000) {
+                minPrice = 50;
+                maxPrice = 13000;
+            }else {
                 minPrice = 0;
                 maxPrice = 65;
             }

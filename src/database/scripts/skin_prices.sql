@@ -440,4 +440,40 @@ VALUES
 ('Karambit Tiger Tooth', 'Factory New', 'No', 1230),
 ('Karambit Tiger Tooth', 'Minimal Wear', 'No', 1193),
 ('Karambit Tiger Tooth', 'Factory New', 'StatTrak', 1161),
-('Karambit Tiger Tooth', 'Minimal Wear', 'StatTrak', 1199);
+('Karambit Tiger Tooth', 'Minimal Wear', 'StatTrak', 1199),
+
+-- AWP Dragon Lore
+('AWP Dragon Lore', 'Factory New', 'No', 11173),
+('AWP Dragon Lore', 'Minimal Wear', 'No', 8632),
+('AWP Dragon Lore', 'Field-Tested', 'No', 6071),
+('AWP Dragon Lore', 'Well-Worn', 'No', 5213),
+('AWP Dragon Lore', 'Battle-Scarred', 'No', 4273),
+
+-- AK-47 Gold Arabesque
+('AK-47 Gold Arabesque', 'Factory New', 'No', 2740),
+('AK-47 Gold Arabesque', 'Minimal Wear', 'No', 2303),
+('AK-47 Gold Arabesque', 'Field-Tested', 'No', 1888),
+('AK-47 Gold Arabesque', 'Well-Worn', 'No', 1611),
+('AK-47 Gold Arabesque', 'Battle-Scarred', 'No', 1424),
+
+-- M4A4 Howl
+('M4A4 Howl', 'Factory New', 'No', 6131),
+('M4A4 Howl', 'Minimal Wear', 'No', 4606),
+('M4A4 Howl', 'Field-Tested', 'No', 3958),
+('M4A4 Howl', 'Well-Worn', 'No', 3768),
+('M4A4 Howl', 'Factory New', 'StatTrak', 12400),
+('M4A4 Howl', 'Minimal Wear', 'StatTrak', 8779),
+('M4A4 Howl', 'Field-Tested', 'StatTrak', 6387),
+('M4A4 Howl', 'Well-Worn', 'StatTrak', 7321),
+
+-- Butterfly Knife Gamma Doppler
+('Butterfly Knife Gamma Doppler', 'Factory New', 'No', 3004),
+('Butterfly Knife Gamma Doppler', 'Minimal Wear', 'No', 2827),
+('Butterfly Knife Gamma Doppler', 'Factory New', 'StatTrak', 2822),
+('Butterfly Knife Gamma Doppler', 'Minimal Wear', 'StatTrak', 2862),
+
+-- M9 Bayonet Gamma Doppler
+('M9 Bayonet Gamma Doppler', 'Factory New', 'No', 1979),
+('M9 Bayonet Gamma Doppler', 'Minimal Wear', 'No', 1838),
+('M9 Bayonet Gamma Doppler', 'Factory New', 'StatTrak', 1797),
+('M9 Bayonet Gamma Doppler', 'Minimal Wear', 'StatTrak', 1781),
