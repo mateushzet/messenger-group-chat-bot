@@ -194,7 +194,7 @@ public class SlotsService {
 
         int jackpotAmount = JackpotRepository.getJackpot();
 
-        SlotsImageGenerator.generateSlotsResultImageMulti(result, playerName, winnings - totalBetAmount, newBalance, betAmount, jackpotAmount);
+        SlotsImageGenerator.generateSlotsResultImageMulti(result, playerName, winnings - totalBetAmount, newBalance, betAmount * 5, jackpotAmount);
         MessageService.sendMessageFromClipboard(false);
     }
 
