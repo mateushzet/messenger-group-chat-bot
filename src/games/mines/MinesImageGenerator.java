@@ -38,8 +38,6 @@ public class MinesImageGenerator {
         g.setPaint(gradient);
         g.fillRect(0, 0, 220, 330);
 
-        ImageUtils.drawUserAvatar(g, username, 160, 220, 40, 40);
-
         for (int row = 0; row < BOARD_SIZE; row++) {
             for (int col = 0; col < BOARD_SIZE; col++) {
 
@@ -115,6 +113,8 @@ public class MinesImageGenerator {
             g.setFont(new Font("Arial", Font.BOLD, 10));
             g.setColor(Color.WHITE);
             g.drawString("Total: " + totalBalance, 140, 310);
+
+        ImageUtils.drawUserAvatar(g, username, 150, 240, 40, 40);
 
         g.dispose();
         ImageUtils.setClipboardImage(image);
