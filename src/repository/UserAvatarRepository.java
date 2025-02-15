@@ -11,13 +11,13 @@ import utils.Logger;
 
 public class UserAvatarRepository {
     public static boolean assignAvatarToUser(String username, String avatarId) {
-        String[] conditions = {"Factory New", "Minimal Wear", "Field-Tested", "Well-Worn", "Battle-Scarred"};
+        String[] conditions = {"factory new", "minimal wear", "field-tested", "well-worn", "battle-scarred"};
         Map<String, Integer> conditionPriority = new HashMap<>();
-        conditionPriority.put("Factory New", 5);
-        conditionPriority.put("Minimal Wear", 4);
-        conditionPriority.put("Field-Tested", 3);
-        conditionPriority.put("Well-Worn", 2);
-        conditionPriority.put("Battle-Scarred", 1);
+        conditionPriority.put("factory new", 5);
+        conditionPriority.put("minimal wear", 4);
+        conditionPriority.put("field-tested", 3);
+        conditionPriority.put("well-worn", 2);
+        conditionPriority.put("battle-scarred", 1);
     
         String checkQuery = "SELECT avatar_id FROM user_avatars WHERE user_name = ?";
         String updateQuery = "UPDATE user_avatars SET avatar_id = ? WHERE user_name = ? AND avatar_id = ?";
@@ -41,8 +41,8 @@ public class UserAvatarRepository {
                 String baseExisting = getBaseName(existingAvatarId);
                 String baseNew = getBaseName(avatarId);
     
-                boolean isExistingStatTrak = existingAvatarId.contains("StatTrak");
-                boolean isNewStatTrak = avatarId.contains("StatTrak");
+                boolean isExistingStatTrak = existingAvatarId.contains("stattrak");
+                boolean isNewStatTrak = avatarId.contains("stattrak");
     
                 if (baseExisting.equals(baseNew) && isExistingStatTrak == isNewStatTrak) {
                     String existingCondition = getCondition(existingAvatarId, conditions);
@@ -76,7 +76,7 @@ public class UserAvatarRepository {
     }
     
     private static String getBaseName(String avatarId) {
-        return avatarId.replaceAll("(Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred|StatTrak)", "").trim();
+        return avatarId.replaceAll("(factory New|minimal wear|field-tested|well-worn|battle-scarred|stattrak)", "").trim();
     }
 
     private static String getCondition(String avatarId, String[] conditions) {
