@@ -101,4 +101,36 @@ public class ImageUtils {
         }
     }
 
+    public static String getUserAvatarName(String username) {
+        try {
+            String avatarName = UserAvatarRepository.getActiveAvatarForUser(username);
+            if (avatarName == null || avatarName.isEmpty()) return "";
+
+            File avatarFile = new File("src\\resources\\user_avatars\\" + avatarName + ".png");
+            if (!avatarFile.exists()) return "";
+
+            return avatarName;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
+
+    public static void drawUserAvatarFromAvatarName(Graphics2D g, String username, int x, int y, int width, int height, String avatarName) {
+        try {
+            File avatarFile = new File("src\\resources\\user_avatars\\" + avatarName + ".png");
+            if (!avatarFile.exists()) return;
+
+            BufferedImage avatar = ImageIO.read(avatarFile);
+
+            Image scaledAvatar = avatar.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+
+            g.drawImage(scaledAvatar, x, y, null);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 }

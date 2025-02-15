@@ -28,12 +28,15 @@ public class PlinkoGifGenerator {
     private static int betAmount = 0;
     private static int totalBalance = 0;
     private static Paint gradient;
+    private static String avatarName;
 
     public static Double playAndGenerateGif(String usernamePassed, int betAmountPassed, int totalBalancePassed, String risk) {
         int ballX = WIDTH / 2;
         int ballY = 50;
         int steps = ROWS - 1;
         gradient = GradientGenerator.generateGradientFromUsername(usernamePassed, false, 300, 120);
+
+        avatarName = ImageUtils.getUserAvatarName(usernamePassed);
 
         switch (risk) {
             case "low", "l":
@@ -160,7 +163,9 @@ public class PlinkoGifGenerator {
         if (lastStep) g.drawString("Balance: " + (totalBalance + winnings), 25, 105);
         else g.drawString("Balance: " + totalBalance, 25, 105);
         g.drawString("Bet: " + betAmount, 25, 155);
- 
+
+        ImageUtils.drawUserAvatarFromAvatarName(g, username, 590, 10, 200, 200, avatarName);
+
         g.dispose();
         return image;
     }
