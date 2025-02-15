@@ -7,6 +7,7 @@ import utils.ConfigReader;
 import utils.Logger;
 import repository.UserRepository;
 import service.MessageService;
+import service.UserService;
 import repository.GameHistoryRepository;
 import repository.UserAvatarRepository;
 
@@ -31,7 +32,7 @@ public class SlotsService {
         if(firstArgument.equals("multi")){
             context.setFirstArgument(betAmountMulti);
             firstArgument = context.getFirstArgument();
-            int betAmountInt = Integer.parseInt(firstArgument);
+            int betAmountInt = UserService.validateAndParseBetAmount(playerName, firstArgument);
             int currentBalance = UserRepository.getTotalUserBalance(playerName);
             int minimalBet = (int) (currentBalance * 0.005);
             if(minimalBet < 10) minimalBet = 10;
@@ -63,16 +64,15 @@ public class SlotsService {
             return;
         }
 
-        String betAmount = firstArgument;
-        int currentBalance = UserRepository.getCurrentUserBalance(playerName, false);
+        int betAmount = UserService.validateAndParseBetAmount(playerName, firstArgument);
+        int currentBalance = UserRepository.getTotalUserBalance(playerName);
 
         if (validateSlotsGame(playerName, betAmount, currentBalance)) {
-            int betAmountInt = Integer.parseInt(firstArgument);
-            playSlots(playerName, betAmountInt, currentBalance, context);
+            playSlots(playerName, betAmount, currentBalance, context);
         }
     }
 
-    private static boolean validateSlotsGame(String playerName, String betAmount, int currentBalance) {
+    private static boolean validateSlotsGame(String playerName, int betAmount, int currentBalance) {
         if (!SlotsRepository.hasSlotsAccess(playerName)) {
             MessageService.sendMessage("You need to purchase access to play slots. Cost: %d coins. /bot buy slots", slotsAccessCost);
             Logger.logInfo("%s attempted to play slots without access.", "SlotsService.validateSlotsGame()", playerName);
@@ -83,16 +83,15 @@ public class SlotsService {
         if(minimalBet < 10) minimalBet = 10;
 
         try {
-            int betAmountInt = Integer.parseInt(betAmount);
-            if (currentBalance < betAmountInt) {
+            if (betAmount == -1) {
                 MessageService.sendMessage("You can't afford it, your balance is: %d", currentBalance);
                 Logger.logInfo("Player %s can't afford the bet. Current balance: %d", "SlotsService.validateSlotsGame()", playerName, currentBalance);
                 return false;
             }
 
-            if (betAmountInt < minimalBet) {
+            if (betAmount < minimalBet) {
                 MessageService.sendMessage("Your bet amount must be at least %d coins (0.5%% of total balance or 10 coins). Your current balance is: %d", minimalBet, currentBalance);
-                Logger.logInfo("Player %s attempted to place a bet of %d coins, which is less than the minimum required bet of %d coins. Current balance: %d", "SlotsService.validateSlotsGame()", playerName, betAmountInt, minimalBet, currentBalance);
+                Logger.logInfo("Player %s attempted to place a bet of %d coins, which is less than the minimum required bet of %d coins. Current balance: %d", "SlotsService.validateSlotsGame()", playerName, betAmount, minimalBet, currentBalance);
                 return false;
             }
 
