@@ -18,36 +18,40 @@ public class UserAvatarRepository {
         conditionPriority.put("Field-Tested", 3);
         conditionPriority.put("Well-Worn", 2);
         conditionPriority.put("Battle-Scarred", 1);
-
+    
         String checkQuery = "SELECT avatar_id FROM user_avatars WHERE user_name = ?";
         String updateQuery = "UPDATE user_avatars SET avatar_id = ? WHERE user_name = ? AND avatar_id = ?";
         String insertQuery = "INSERT INTO user_avatars (user_name, avatar_id) VALUES (?, ?)";
-
+    
         try (Connection connection = DatabaseConnectionManager.getConnection();
-            PreparedStatement checkStatement = connection.prepareStatement(checkQuery);
-            PreparedStatement updateStatement = connection.prepareStatement(updateQuery);
-            PreparedStatement insertStatement = connection.prepareStatement(insertQuery)) {
-
+             PreparedStatement checkStatement = connection.prepareStatement(checkQuery);
+             PreparedStatement updateStatement = connection.prepareStatement(updateQuery);
+             PreparedStatement insertStatement = connection.prepareStatement(insertQuery)) {
+    
             checkStatement.setString(1, username);
             ResultSet resultSet = checkStatement.executeQuery();
-
+    
             while (resultSet.next()) {
                 String existingAvatarId = resultSet.getString("avatar_id");
-
+    
+                if (existingAvatarId.equals(avatarId)) {
+                    return false;
+                }
+    
                 String baseExisting = getBaseName(existingAvatarId);
                 String baseNew = getBaseName(avatarId);
-
+    
                 boolean isExistingStatTrak = existingAvatarId.contains("StatTrak");
                 boolean isNewStatTrak = avatarId.contains("StatTrak");
-
+    
                 if (baseExisting.equals(baseNew) && isExistingStatTrak == isNewStatTrak) {
                     String existingCondition = getCondition(existingAvatarId, conditions);
                     String newCondition = getCondition(avatarId, conditions);
-
+    
                     if (existingCondition == null || newCondition == null) {
                         continue;
                     }
-
+    
                     if (conditionPriority.get(newCondition) > conditionPriority.get(existingCondition)) {
                         updateStatement.setString(1, avatarId);
                         updateStatement.setString(2, username);
@@ -59,18 +63,18 @@ public class UserAvatarRepository {
                     }
                 }
             }
-
+    
             insertStatement.setString(1, username);
             insertStatement.setString(2, avatarId);
             int rowsAffected = insertStatement.executeUpdate();
-
+    
             return rowsAffected > 0;
         } catch (SQLException e) {
             Logger.logError("Error while assigning avatar to user", "UserAvatarRepository.assignAvatarToUser()", e);
             return false;
         }
     }
-
+    
     private static String getBaseName(String avatarId) {
         return avatarId.replaceAll("(Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred|StatTrak)", "").trim();
     }
