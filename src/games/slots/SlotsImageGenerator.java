@@ -103,6 +103,90 @@ public class SlotsImageGenerator {
         ImageUtils.setClipboardImage(image);;
     }
 
+    public static void generateSlotsResultImageMulti(int[][] result, String playerName, int amount, int totalBalance, int betAmount, int jackpotAmount) {
+        String[][] resultsImages = new String[result.length][];
+        for (int i = 0; i < result.length; i++) {
+            resultsImages[i] = new String[result[i].length];
+            for (int j = 0; j < result[i].length; j++) {
+                resultsImages[i][j] = symbols[result[i][j]];
+            }
+        }
+    
+        BufferedImage image = new BufferedImage(IMAGE_WIDTH, IMAGE_HEIGHT, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+    
+        Paint gradient = GradientGenerator.generateGradientFromUsername(playerName, false, IMAGE_WIDTH, IMAGE_HEIGHT);
+        g.setPaint(gradient);
+        g.fillRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+    
+        int symbolWidth = IMAGE_WIDTH / 3;
+        int symbolHeight = IMAGE_HEIGHT / 5;
+    
+        for (int row = 0; row < resultsImages.length; row++) {
+            for (int col = 0; col < resultsImages[row].length; col++) {
+                try {
+                    URL imageUrl = new URL(resultsImages[row][col]);
+                    Image symbolImage = ImageIO.read(imageUrl);
+                    int x = col * symbolWidth;
+                    int y = row * symbolHeight;
+                    g.drawImage(symbolImage, x, y, symbolWidth, symbolHeight, null);
+    
+
+                    if (col < resultsImages[row].length - 1) {
+                        g.setColor(Color.GRAY);
+                        g.drawLine((col + 1) * symbolWidth, y, (col + 1) * symbolWidth, y + symbolHeight);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    
+        ImageUtils.drawUserAvatar(g, playerName, 270, 0, 60, 60);
+    
+        drawInfoPanel(g, playerName, amount, totalBalance, betAmount, jackpotAmount);
+    
+        g.dispose();
+    
+        ImageUtils.setClipboardImage(image);
+    }
+
+    public static BufferedImage generateSingleSlotsResultImage(int[] result, String playerName, int amount, int totalBalance, int betAmount, int jackpotAmount) {
+        String[] resultsImages = {symbols[result[0]], symbols[result[1]], symbols[result[2]]};
+        
+        BufferedImage image = new BufferedImage(IMAGE_HEIGHT, IMAGE_HEIGHT, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+    
+        Paint gradient = GradientGenerator.generateGradientFromUsername(playerName, false, IMAGE_WIDTH, IMAGE_HEIGHT);
+        g.setPaint(gradient);
+        g.fillRect(0, 0, IMAGE_WIDTH, IMAGE_HEIGHT);
+    
+        int symbolWidth = IMAGE_WIDTH / 3;
+        int symbolHeight = IMAGE_HEIGHT / 3;
+    
+        for (int i = 0; i < resultsImages.length; i++) {
+            try {
+                URL imageUrl = new URL(resultsImages[i]);
+                Image symbolImage = ImageIO.read(imageUrl);
+                g.drawImage(symbolImage, i * symbolWidth, symbolHeight, symbolWidth, symbolHeight, null);
+    
+                if (i < 2) {
+                    g.setColor(Color.GRAY);
+                    g.drawLine((i + 1) * symbolWidth, 0, (i + 1) * symbolWidth, IMAGE_HEIGHT);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    
+        ImageUtils.drawUserAvatar(g, playerName, IMAGE_WIDTH - 70, 10, 60, 60);
+    
+        drawInfoPanel(g, playerName, amount, totalBalance, betAmount, jackpotAmount);
+    
+        g.dispose();
+        return image;
+    }
+
     private static void drawInfoPanel(Graphics2D g, String playerName, int amount, int totalBalance, int betAmount, int jackpotAmount) {
         int panelY = IMAGE_HEIGHT - 150;
         g.setColor(new Color(0, 0, 0, 150));

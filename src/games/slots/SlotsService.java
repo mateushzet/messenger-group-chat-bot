@@ -1,7 +1,6 @@
 package games.slots;
 
 import java.util.Random;
-
 import model.CommandContext;
 import utils.ConfigReader;
 import utils.Logger;
@@ -14,15 +13,6 @@ import repository.UserAvatarRepository;
 public class SlotsService {
 
     private static final int slotsAccessCost = ConfigReader.getSlotsAccessCost();
-    //private static final String[] symbols = {
-    //    ConfigReader.getCherryEmojiUrl(),
-    //    ConfigReader.getLemonEmojiUrl(),
-    //    ConfigReader.getOrangeEmojiUrl(),
-    //    ConfigReader.getLobsterEmojiUrl(),
-    //    ConfigReader.getWatermelonEmojiUrl(),
-    //    ConfigReader.getAppleEmojiUrl(),
-    //    ConfigReader.getSlotMachineEmojiUrl()
-    //};
 
     public static void handleSlotsCommand(CommandContext context) {
         String playerName = context.getUserName();
@@ -32,25 +22,27 @@ public class SlotsService {
         if(firstArgument.equals("multi")){
             context.setFirstArgument(betAmountMulti);
             firstArgument = context.getFirstArgument();
-            int betAmountInt = UserService.validateAndParseBetAmount(playerName, firstArgument);
-            int currentBalance = UserRepository.getTotalUserBalance(playerName);
-            int minimalBet = (int) (currentBalance * 0.005);
+            int betAmountInt = UserService.validateAndParseBetAmount(playerName, betAmountMulti);
+
+            if(betAmountInt == -1) return;
+
+            int currentBalance = UserRepository.getCurrentUserBalance(playerName, true);
+            int totalBalance = UserRepository.getTotalUserBalance(playerName);
+            int minimalBet = (int) (totalBalance * 0.005);
             if(minimalBet < 10) minimalBet = 10;
-    
+
             if (betAmountInt < minimalBet) {
                 MessageService.sendMessage("Your bet amount must be at least %d coins (0.5%% of total balance or 10 coins). Your current balance is: %d", minimalBet, currentBalance);
-                Logger.logInfo("Player %s attempted to place a bet of %d coins, which is less than the minimum required bet of %d coins. Current balance: %d", "SlotsService.validateSlotsGame()", playerName, betAmountInt, minimalBet, currentBalance);
                 return;
             }
 
-            for (int i = 0; i < 5; i++) {
-                try {
-                    Thread.sleep(300);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                handleSlotsCommand(context);
+            if (betAmountInt * 5 > currentBalance) {
+                MessageService.sendMessage(playerName + " you don't have enough balance to play. Current balance: " + currentBalance + ", required balance: " + (betAmountInt * 5));
+                return;
             }
+
+            playSlotsMulti(playerName, betAmountInt, currentBalance, context);
+
             return;
         }
 
@@ -138,9 +130,6 @@ public class SlotsService {
         Logger.logInfo("%s placed a bet of %d coins. New balance: %d", "SlotsService.playSlots()", playerName, betAmount, newBalance);
 
         int[] result = spinSlotsWithWildcard();
-        //MessageService.clickEmoji(result[0], result[0] == symbols[3] ? "lobster" : "fruit");
-        //MessageService.clickEmoji(result[1], result[1] == symbols[3] ? "lobster" : "fruit");
-        //MessageService.clickEmoji(result[2], result[2] == symbols[3] ? "lobster" : "fruit");
 
         double multiplier = getMultiplier(result);
 
@@ -170,6 +159,42 @@ public class SlotsService {
         int jackpotAmount = JackpotRepository.getJackpot();
 
         SlotsImageGenerator.generateSlotsResultImage(result, playerName, winnings, newBalance, betAmount, jackpotAmount);
+        MessageService.sendMessageFromClipboard(false);
+    }
+
+    private static void playSlotsMulti(String playerName, int betAmount, int currentBalance, CommandContext context) {
+
+        int totalBetAmount = 5 * betAmount; 
+
+        int[][] result = new int[5][3];;
+        double multiplier[] = new double[5];
+        int winnings = 0;
+        for (int i = 0; i < 5; i++) {
+            result[i] = spinSlotsWithWildcard();
+            multiplier[i] = getMultiplier(result[i]);
+
+            if (!isJackpot(result[i])){
+                winnings += (int) (betAmount * multiplier[i]);
+            } else {
+                winnings += (int) ((betAmount * 5) + multiplier[i]);
+                UserAvatarRepository.assignAvatarToUser(playerName, "jackpot");
+            }
+        }
+
+        int newBalance = currentBalance + winnings - totalBetAmount;
+
+        UserRepository.updateUserBalance(playerName, newBalance);
+
+        if (winnings - totalBetAmount > 0) {
+            GameHistoryRepository.addGameHistory(playerName, "Slots", context.getFullCommand(), totalBetAmount, winnings - totalBetAmount, "Result: " + result[0] + "-" + result[1] + "-" + result[2]);
+        } else {
+            JackpotRepository.addToJackpotPool(-1 * (winnings - totalBetAmount));
+            GameHistoryRepository.addGameHistory(playerName, "Slots", context.getFullCommand(), totalBetAmount, winnings - totalBetAmount, "Result: " + result[0] + "-" + result[1] + "-" + result[2]);
+        }
+
+        int jackpotAmount = JackpotRepository.getJackpot();
+
+        SlotsImageGenerator.generateSlotsResultImageMulti(result, playerName, winnings - totalBetAmount, newBalance, betAmount, jackpotAmount);
         MessageService.sendMessageFromClipboard(false);
     }
 
