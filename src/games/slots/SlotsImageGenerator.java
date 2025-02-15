@@ -26,7 +26,7 @@ public class SlotsImageGenerator {
     private static final Color RED_COLOR = new Color(200, 50, 50);
     private static final Color GREEN_COLOR = new Color(50, 200, 50);
     private static final int IMAGE_HEIGHT = 330;
-    private static final int IMAGE_WIDTH = 300;
+    private static final int IMAGE_WIDTH = 330;
     private static final int PADDING = 30;
     
 
@@ -42,7 +42,7 @@ public class SlotsImageGenerator {
         int symbolHeight = IMAGE_WIDTH / 3;
     
         g.setColor(new Color(230,230,230));
-        g.fillRect(0, 0, 300, 300);
+        g.fillRect(0, 0, IMAGE_WIDTH, 300);
 
         String[] topRow = spinSlotsWithWildcard();
         for (int i = 0; i < 3; i++) {
@@ -92,9 +92,9 @@ public class SlotsImageGenerator {
         }
         
         g.setPaint(gradient);
-        g.fillRect(0, 200, 300, 200);
+        g.fillRect(0, 200, IMAGE_WIDTH, 200);
 
-        ImageUtils.drawUserAvatar(g, playerName, 210, 10, 90, 90);
+        ImageUtils.drawUserAvatar(g, playerName, 270, 0, 60, 60);
 
         drawInfoPanel(g, playerName, amount, totalBalance, betAmount, jackpotAmount);
 
