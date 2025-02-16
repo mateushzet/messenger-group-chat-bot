@@ -184,18 +184,22 @@ public class LottoService {
         } else if (currentMinute >= 20 && currentMinute <= 39) {
             currentHour *= 3;
         }
-
+    
         int hashValue = currentDate.hashCode() + currentHour;
-
+    
         Random random = new Random(hashValue);
         
-        int prizePool = random.nextInt(maxPrize - minPrize) + minPrize;
+        double normalizedRandom = random.nextDouble();
+        
+        normalizedRandom = Math.pow(normalizedRandom, 2);
+        
+        int prizePool = (int) (minPrize + normalizedRandom * (maxPrize - minPrize));
         
         prizePool = (prizePool / 1000) * 1000;
         
         return prizePool;
     }
-    
+
 
     public static int[] validateAndParseNumbers(String numbers) {
         numbers = numbers.trim();
@@ -255,8 +259,6 @@ public class LottoService {
         double maxValue = 20_000_000;
         
         double normalizedPrize = (prizePool - minValue) / (maxValue - minValue);
-        
-        normalizedPrize = Math.sqrt(normalizedPrize);
         
         return rangeMin + normalizedPrize * (rangeMax - rangeMin);
     }
