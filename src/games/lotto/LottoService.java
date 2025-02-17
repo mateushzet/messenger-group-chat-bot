@@ -189,7 +189,7 @@ public class LottoService {
     
         int lowerBound, upperBound;
     
-        if (chance < 0.6) {
+        if (chance < 0.7) {
             lowerBound = 1_000_000;
             upperBound = 10_000_000;
         } else {

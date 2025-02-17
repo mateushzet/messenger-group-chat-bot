@@ -18,6 +18,9 @@ public class StatisticsService {
         STATISTICS_VIEWS_MAP.put("race", "Race_statistic_view");
         STATISTICS_VIEWS_MAP.put("roulette", "Roulette_statistic_view");
         STATISTICS_VIEWS_MAP.put("slots", "Slots_statistic_view");
+        STATISTICS_VIEWS_MAP.put("blackjack", "Blackjack_statistic_view");
+        STATISTICS_VIEWS_MAP.put("case", "Case_statistic_view");
+        STATISTICS_VIEWS_MAP.put("case", "Case_statistic_view");
     }
 
     public static void handleStatsCommand(CommandContext context) {
