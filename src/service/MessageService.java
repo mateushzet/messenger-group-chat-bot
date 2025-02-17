@@ -2,12 +2,15 @@ package service;
 
 import controller.CommandController;
 import factory.WebDriverFactory;
+import model.UserCooldownInfo;
 import utils.ConfigReader;
 import utils.Logger;
 
 import java.time.Duration;
 import java.time.LocalTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
@@ -118,14 +121,17 @@ public class MessageService {
     }
 
     public static void processMessages() throws InterruptedException {
+
+        Map<String, UserCooldownInfo> userCooldownMap = new HashMap<>();
+
         while (true) {
             try {
-                
-                LocalTime currenttime = java.time.LocalTime.now();
-                int currentHour = currenttime.getHour();
-                int currentMinute = currenttime.getMinute();
 
-                if((Duration.between(lastHour, currenttime).getSeconds() > 10) && counter != 0) {
+                LocalTime currentTime = java.time.LocalTime.now();
+                int currentHour = currentTime.getHour();
+                int currentMinute = currentTime.getMinute();
+
+                if((Duration.between(lastHour, currentTime).getSeconds() > 10) && counter != 0) {
                     Actions actions = new Actions(driver);
                     actions.sendKeys(Keys.RETURN).perform();
                     lastHour = java.time.LocalTime.now();
@@ -142,29 +148,50 @@ public class MessageService {
                 }
 
                 MathQuestionService.checkAndSendMathQuestion();
-                
+
                 List<WebElement> messages = driver.findElements(By.cssSelector(messageCssSelector));
-                
+
                 for (WebElement message : messages) {
                     if (validateMessage(message)) {
                         String userName;
 
-                        try{
+                        try {
                             userName = getSenderName(message).toLowerCase();
-                        }catch(Exception e){
+                        } catch (Exception e) {
                             continue;
                         }
-                        if(!userName.isEmpty()){
+
+                        if (!userName.isEmpty()) {
+                            UserCooldownInfo userInfo = userCooldownMap.getOrDefault(userName, new UserCooldownInfo());
+
+                            currentTime = java.time.LocalTime.now();
+
+                            if (Duration.between(userInfo.getLastMessageTime(), currentTime).getSeconds() > userInfo.getCooldownDuration()) {
+                                userInfo.reset();
+                            }
+
+                            userInfo.incrementMessageCount();
+
+                            if (userInfo.getMessageCount() > 3) {
+                                long elapsedTime = Duration.between(userInfo.getLastMessageTime(), currentTime).getSeconds();
+                                userInfo.increaseCooldownDuration(elapsedTime);
+                                MessageService.sendMessage(userName + " cooldown: " + userInfo.getCooldownDuration() + " s");
+                                continue;
+                            }
+
+                            userInfo.setLastMessageTime(currentTime);
+
+                            userCooldownMap.put(userName, userInfo);
 
                             String text = message.getText().toLowerCase();
                             if (text.startsWith(botCommand.toLowerCase()) || text.startsWith(botAlternativeCommand.toLowerCase())) {
                                 CommandController.processCommand(userName, text);
                             }
-                    }  //else Get sender name error or two messages from the same sender in a row
+                        }
                     }
-                 }
+                }
             } catch (StaleElementReferenceException e) {
-                //The element has been changed in the DOM. Ignoring the exception.
+                // The element has been changed in the DOM. Ignoring the exception.
             }
         }
     }
