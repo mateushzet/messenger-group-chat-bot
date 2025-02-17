@@ -7,6 +7,7 @@ import service.StatisticsService;
 import utils.ConfigReader;
 import utils.Logger;
 import service.AvatarsService;
+import service.BitcoinService;
 import service.CommandService;
 
 import java.util.ArrayList;
@@ -76,7 +77,8 @@ public class CommandController {
         commands.put("crash", CrashService::handleCrashCommand);
         commands.put("case", CaseOpeningService::handleCaseCommand);
         commands.put("avatar", AvatarsService::handleAvatarsCommand);
-
+        commands.put("btc", BitcoinService::handleBitcoinCommand);
+        
     }
 
     public static void processCommand(String userName, String message) {
