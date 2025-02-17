@@ -82,6 +82,17 @@ public class LottoImageGenerator {
         }
     }
 
+    private static void drawPlayerNumbersMulti(Graphics2D g, int[] playerNumbers, int x, int y) {
+        
+        for (int i = 0; i < playerNumbers.length; i++) {
+            g.setColor(BALL_COLOR);
+            g.fillRoundRect(20 + i * 52, y + 50, 40, 40, 10, 10);
+            g.setColor(Color.BLACK);
+            g.setFont(new Font("Arial", Font.BOLD, 16));
+            g.drawString(String.valueOf(playerNumbers[i]), 20 + i * 52 + 12, y + 75);
+        }
+    }
+
     private static void drawWinningTube(Graphics2D g, int[] drawnNumbers, int x, int y) {
         g.setColor(new Color(100, 100, 100, 200));
         g.fillRect(x + 10, y - 20, 60, 270);
@@ -93,6 +104,28 @@ public class LottoImageGenerator {
             g.setFont(new Font("Arial", Font.BOLD, 14));
             g.drawString(String.valueOf(drawnNumbers[i]), x + 25, y + 5 + i * 43);
         }
+    }
+
+    private static void drawWinningTubeMulti(Graphics2D g, int[] drawnNumbers, int[] playerNumbers, int x, int y) {
+        g.setColor(new Color(100, 100, 100, 200));
+        g.fillRect(x, y - 20, 60, 270);
+
+        for (int i = 0; i < drawnNumbers.length; i++) {
+            g.setColor(contains(playerNumbers, drawnNumbers[i]) ? WIN_COLOR : LOSE_COLOR);
+            g.fillOval(x + 15, y + i * 43 - 15, 40, 40);
+            g.setColor(Color.BLACK);
+            g.setFont(new Font("Arial", Font.BOLD, 14));
+            g.drawString(String.valueOf(drawnNumbers[i]), x + 25, y + 5 + i * 43);
+        }
+    }
+
+    public static boolean contains(int[] playerNumbers, int number) {
+        for (int num : playerNumbers) {
+            if (num == number) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void drawLotteryDrum(Graphics2D g, int[] numbers, int centerX, int centerY) {
@@ -129,6 +162,60 @@ public class LottoImageGenerator {
             g.setFont(new Font("Arial", Font.BOLD, 14));
             g.drawString(String.valueOf(i), ballX + 7, ballY + 20);
         }
+    }
+
+    public static void drawLottoMultiResults(int[][] drawnNumbers, int[] playerNumbers, int winAmount, int betAmount, int totalBalance, String playerName, int prizePool) {
+        int width = 340;
+        int height = 450;
+
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+
+        Paint gradient = GradientGenerator.generateGradientFromUsername(playerName, false, 340, 400);
+        g.setPaint(gradient);
+        g.fillRect(0, 0, width, height);
+
+        ImageUtils.drawUserAvatar(g, playerName, 260, 0, 80, 80);
+
+        DecimalFormat formatter = new DecimalFormat("#,###");
+        String formattedPrizePool = formatter.format(prizePool);
+
+        g.setColor(BLACK_BACKGROUND);
+        g.fillRect(0, 0, width, 80);
+
+        g.setColor(BLACK_BACKGROUND);
+        g.fillRect(0, 350, 340, 100);
+
+        g.setColor(TEXT_COLOR);
+        g.setFont(new Font("Arial", Font.BOLD, 20));
+        g.drawString("Lotto prize pool: " + formattedPrizePool, 15, 22);
+        g.setFont(new Font("Arial", Font.PLAIN, 18));
+        g.drawString("Player: " + playerName, 15, 47);
+        g.drawString("Total Balance: " + totalBalance, 15, 72);
+
+        drawWinningTubeMulti(g, drawnNumbers[0], playerNumbers, 0, 100);
+        drawWinningTubeMulti(g, drawnNumbers[1], playerNumbers, 70, 100);
+        drawWinningTubeMulti(g, drawnNumbers[2], playerNumbers, 140, 100);
+        drawWinningTubeMulti(g, drawnNumbers[3], playerNumbers, 210, 100);
+        drawWinningTubeMulti(g, drawnNumbers[4], playerNumbers, 280, 100);
+
+        drawPlayerNumbersMulti(g, playerNumbers, 150, 355);
+
+        g.setFont(new Font("Arial", Font.BOLD, 19));
+        if (winAmount > 0) {
+            g.setColor(WIN_COLOR);
+            g.drawString("You won: " + winAmount, 20, 372);
+        } else {
+            g.setColor(LOSE_COLOR);
+            g.drawString("You lost: " + winAmount, 20, 372);
+        }
+
+        g.setColor(Color.WHITE);
+        g.drawString("Bet amount: " + betAmount, 20, 398);
+
+        g.dispose();
+
+        ImageUtils.setClipboardImage(image);
     }
 
 }

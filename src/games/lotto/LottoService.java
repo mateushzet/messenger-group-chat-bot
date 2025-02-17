@@ -22,33 +22,15 @@ public class LottoService {
         String numbers = context.getSecondArgument();
         int[] playerNumbersParsed;
         int betAmountParsed;
-
+        boolean isMulti = context.getFirstArgument().equals("multi");
         if (betAmount.isEmpty()) {
             MessageService.sendMessage("Avaiable lotto commands: lotto random, lotto <betAmount> <num1,num2,num3,num4,num5,num6>");
             return;
         }
 
-        if(context.getFirstArgument().equals("multi")){
-            context.setFirstArgument(context.getSecondArgument());
-            context.setSecondArgument(context.getThirdArgument());
-            betAmount = context.getFirstArgument();
-            betAmountParsed = parseBetAmount(betAmount);
-
-            if (betAmountParsed < 10) {
-                MessageService.sendMessage("Your bet amount must be greater than 10");
-                Logger.logInfo("Player %s attempted to place a bet of %d coins, which is less than 10", "LottoService.handleLottoCommand()", playerName, betAmountParsed);
-                return;
-            }    
-
-            for (int i = 0; i < 5; i++) {
-                try {
-                    Thread.sleep(300);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                handleLottoCommand(context);
-            }
-            return;
+        if(isMulti){
+            betAmount = context.getSecondArgument();
+            numbers = context.getThirdArgument();
         }
         
         if (numbers.equals("random") || numbers.equals("r")) {
@@ -62,6 +44,7 @@ public class LottoService {
 
         betAmountParsed = parseBetAmount(betAmount);
         if(betAmountParsed == -1) return;
+
         int currentBalance = UserRepository.getCurrentUserBalance(playerName, false);
 
         if (betAmountParsed < 10) {
@@ -70,17 +53,17 @@ public class LottoService {
             return;
         }
 
-        if (currentBalance < betAmountParsed) {
+        if(isMulti && currentBalance < 5*betAmountParsed || currentBalance < betAmountParsed){
             MessageService.sendMessage("You don't have enough coins. Your balance: %d", currentBalance);
             return;
         }
 
-        playLotto(playerName, playerNumbersParsed, currentBalance, betAmountParsed);
+        if(isMulti){
+            playLottoMulti(playerName, playerNumbersParsed, currentBalance, betAmountParsed);
+        } else playLotto(playerName, playerNumbersParsed, currentBalance, betAmountParsed);
     }
 
     private static void playLotto(String playerName, int[] playerNumbers, int currentBalance, int betAmount) {
-        Logger.logInfo("%s placed a Lotto bet.", "LottoService.playLotto()", playerName);
-    
         int[] winningNumbers =  generateNumbers();
         int matches = countMatches(playerNumbers, winningNumbers);
         int prizePool = getPrizePool();
@@ -97,8 +80,30 @@ public class LottoService {
 
         LottoImageGenerator.drawLottoResults(winningNumbers, playerNumbers, winnings, betAmount, newBalance, playerName, prizePool);
         MessageService.sendMessageFromClipboard(false);
-    
         GameHistoryRepository.addGameHistory(playerName, "Lotto", arrayToString(playerNumbers), betAmount, winnings, "Winning Numbers: " + arrayToString(winningNumbers) + "Matches: " + matches);
+    }
+
+    private static void playLottoMulti(String playerName, int[] playerNumbers, int currentBalance, int betAmount) {
+        int[][] winningNumbers = new int[5][5];
+        int matches[] = new int[5];
+        int prizePool = getPrizePool();
+        int winnings = 0;
+        for (int i = 0; i < 5; i++) {
+            winningNumbers[i] = generateNumbers();
+            matches[i] = countMatches(playerNumbers, winningNumbers[i]);
+            winnings += calculateWinnings(matches[i], betAmount, prizePool, playerName);
+        }
+        int newBalance = currentBalance + winnings;
+        UserRepository.updateUserBalance(playerName, newBalance);
+        LottoImageGenerator.drawLottoMultiResults(winningNumbers, playerNumbers, winnings, 5*betAmount, newBalance, playerName, prizePool);
+        MessageService.sendMessageFromClipboard(false);
+        GameHistoryRepository.addGameHistory(playerName, "Lotto", arrayToString(playerNumbers), betAmount, winnings 
+        ,"Winning Numbers 1: " + arrayToString(winningNumbers[0]) + "Matches: " + matches[0]
+        + " Winning Numbers 2: " + arrayToString(winningNumbers[1]) + "Matches: " + matches[1]
+        + " Winning Numbers 3: " + arrayToString(winningNumbers[2]) + "Matches: " + matches[2]
+        + " Winning Numbers 4: " + arrayToString(winningNumbers[3]) + "Matches: " + matches[3]
+        + " Winning Numbers 5: " + arrayToString(winningNumbers[4]) + "Matches: " + matches[4]
+        );
     }
     
     private static String arrayToString(int[] array) {
@@ -170,36 +175,34 @@ public class LottoService {
 
     public static int getPrizePool() {
         LocalDateTime currentDateTime = LocalDateTime.now();
-        
+    
         int currentHour = currentDateTime.getHour();
         int currentMinute = currentDateTime.getMinute();
-        
-        int minPrize = 1_000_000;
-        int maxPrize = 20_000_000;
-        
+        currentMinute = (currentMinute / 10) * 10;
+
         LocalDate currentDate = currentDateTime.toLocalDate();
-        
-        if (currentMinute >= 0 && currentMinute <= 19) {
-            currentHour *= 2;
-        } else if (currentMinute >= 20 && currentMinute <= 39) {
-            currentHour *= 3;
+    
+        int hashValue = currentDate.hashCode() + currentHour + currentMinute;
+        Random random = new Random(hashValue);
+    
+        double chance = random.nextDouble();
+    
+        int lowerBound, upperBound;
+    
+        if (chance < 0.6) {
+            lowerBound = 1_000_000;
+            upperBound = 10_000_000;
+        } else {
+            lowerBound = 10_000_000;
+            upperBound = 20_000_000;
         }
     
-        int hashValue = currentDate.hashCode() + currentHour;
+        int prizePool = lowerBound + random.nextInt(upperBound - lowerBound + 1);
     
-        Random random = new Random(hashValue);
-        
-        double normalizedRandom = random.nextDouble();
-        
-        normalizedRandom = Math.pow(normalizedRandom, 2);
-        
-        int prizePool = (int) (minPrize + normalizedRandom * (maxPrize - minPrize));
-        
         prizePool = (prizePool / 1000) * 1000;
-        
+    
         return prizePool;
     }
-
 
     public static int[] validateAndParseNumbers(String numbers) {
         numbers = numbers.trim();
