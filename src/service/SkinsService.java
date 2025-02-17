@@ -5,26 +5,10 @@ import repository.UserRepository;
 import repository.UserSkinRepository;
 import utils.GradientGenerator;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class SkinsService {
-
-    private static final Map<String, Integer> SKIN_PRICES = new HashMap<>();
-    static {
-        SKIN_PRICES.put("red_flame", 10);
-        SKIN_PRICES.put("green_forest", 10);
-        SKIN_PRICES.put("blue_ocean", 10);
-        SKIN_PRICES.put("sunny_yellow", 10);
-        SKIN_PRICES.put("purple_dream", 10);
-        SKIN_PRICES.put("fiery_orange", 10);
-        SKIN_PRICES.put("pink_blossom", 10);
-        SKIN_PRICES.put("crimson_sunset", 50);
-        SKIN_PRICES.put("lavender_haze", 50);
-        SKIN_PRICES.put("rainbow", 100);
-        SKIN_PRICES.put("sunrise", 100);
-    }
 
     public static void handleSkinsCommand(CommandContext context) {
         String userName = context.getUserName();
