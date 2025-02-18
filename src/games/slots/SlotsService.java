@@ -135,7 +135,8 @@ public class SlotsService {
 
         int winnings;
         if (!isJackpot(result)){
-            winnings = (int) (betAmount * multiplier);
+            double jackpotAmoount = getJackpotProportionalAmount(betAmount);
+            winnings = (int) (betAmount * multiplier + jackpotAmoount);
         } else {
             winnings = (int) ((betAmount * 5) + multiplier);
             UserAvatarRepository.assignAvatarToUser(playerName, "jackpot");
@@ -174,7 +175,8 @@ public class SlotsService {
             multiplier[i] = getMultiplier(result[i]);
 
             if (!isJackpot(result[i])){
-                winnings += (int) (betAmount * multiplier[i]);
+                double jackpotAmoount = getJackpotProportionalAmount(betAmount);
+                winnings = (int) (betAmount * multiplier[i] + jackpotAmoount);
             } else {
                 winnings += (int) ((betAmount * 5) + multiplier[i]);
                 UserAvatarRepository.assignAvatarToUser(playerName, "jackpot");
@@ -198,12 +200,21 @@ public class SlotsService {
         MessageService.sendMessageFromClipboard(false);
     }
 
+    private static double getJackpotProportionalAmount(int betAmount) { 
+        double jackpotAmount = JackpotRepository.getJackpot();
+        
+        double maxJackpotAmount = betAmount * 100;
+    
+        double proportionalJackpotAmount = Math.min(jackpotAmount, maxJackpotAmount);
+    
+        jackpotAmount = Math.max((jackpotAmount - proportionalJackpotAmount), 0);
+
+        JackpotRepository.setJackpot(jackpotAmount);
+    
+        return proportionalJackpotAmount;
+    }
+
     private static double getMultiplier(int[] result) {
-        if (isJackpot(result)) {
-            double jackpotMultiplier = JackpotRepository.getJackpot();
-            JackpotRepository.resetJackpot();
-            return jackpotMultiplier;
-        }
 
         if (result[0] == (result[1]) && result[1]==(result[2])) {
             return 5;
