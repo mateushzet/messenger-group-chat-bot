@@ -128,6 +128,11 @@ public class UserRepository {
     }
 
     public static boolean updateUserBalance(String userName, int newBalance) {
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         String query = "UPDATE users SET account_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE username = ?";
         try (Connection connection = DatabaseConnectionManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {

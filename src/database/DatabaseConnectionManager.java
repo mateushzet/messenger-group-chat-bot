@@ -17,6 +17,11 @@ public class DatabaseConnectionManager {
     }
 
     public static Connection getConnection() throws SQLException {
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         if (connection == null || connection.isClosed()) {
             connection = DriverManager.getConnection(DATABASE_URL);
             setupDatabase(connection);
