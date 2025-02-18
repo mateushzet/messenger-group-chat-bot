@@ -154,14 +154,14 @@ public class LottoService {
     private static int calculateWinnings(int matches, int betAmount, int prizePool, String playerName) {
         switch (matches) {
             case 1:
-                return -betAmount + ((int) calculateProportionalValueB(prizePool,0, betAmount + 1));
+                return -betAmount;
             case 2:
                 return -betAmount + ((int) calculateProportionalValueB(prizePool,betAmount/2, betAmount + betAmount/2));
             case 3:
-                return (int) (calculateProportionalValueB(prizePool,25,30) * betAmount);
+                return (int) (calculateProportionalValueB(prizePool,10,30) * betAmount);
             case 4:
                 UserAvatarRepository.assignAvatarToUser(playerName, "lotto 4");
-                return (int) (calculateProportionalValueB(prizePool,500,600) * betAmount);
+                return (int) (calculateProportionalValueB(prizePool,300,600) * betAmount);
             case 5:
                 UserAvatarRepository.assignAvatarToUser(playerName, "lotto 5");
                 return (int) (0.001 * prizePool * betAmount);
