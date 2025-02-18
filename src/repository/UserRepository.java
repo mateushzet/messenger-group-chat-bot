@@ -201,6 +201,8 @@ public class UserRepository {
         int totalBalance = 0;
         int totalBetInMines = 0;
         int totalBetInCoinflip = 0;
+        int totalAmountInBTC = 0;
+        int btcAmount = 0;
     
         try (Connection connection = DatabaseConnectionManager.getConnection()) {
             String balanceQuery = "SELECT account_balance FROM users WHERE username = ?";
@@ -229,10 +231,13 @@ public class UserRepository {
                     totalBetInCoinflip = coinflipResult.getInt("total_bet");
                 }
             }
+
+            //btcAmount = BitcoinRepository.getBitcoinBalanceInCoins(userName);
+        
         } catch (SQLException e) {
             Logger.logError("Error while fetching user game stats", "SlotsService.getTotalUserGameStats()", e);
         }
     
-        return totalBalance + totalBetInMines + totalBetInCoinflip;
+        return totalBalance + totalBetInMines + totalBetInCoinflip + btcAmount;
     }
 }

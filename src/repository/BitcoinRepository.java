@@ -1,6 +1,7 @@
 package repository;
 
 import database.DatabaseConnectionManager;
+import utils.BitcoinPriceChecker;
 import utils.Logger;
 
 import java.sql.Connection;
@@ -27,6 +28,27 @@ public class BitcoinRepository {
         } catch (SQLException e) {
             Logger.logError("Error while getting Bitcoin balance for user: %s", "BitcoinRepository.getBitcoinBalance()", e, userName);
             return 0.0;
+        }
+    }
+
+    public static int getBitcoinBalanceInCoins(String userName) {
+        String query = "SELECT btc_balance FROM user_bitcoin WHERE username = ?";
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+
+            statement.setString(1, userName.trim());
+            ResultSet resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                double btcAmount = resultSet.getDouble("btc_balance");
+                return (int)(btcAmount * BitcoinPriceChecker.getBitcoinPrice());
+            } else {
+                addUserIfNotExists(userName);
+                return 0;
+            }
+        } catch (SQLException e) {
+            Logger.logError("Error while getting Bitcoin balance for user: %s", "BitcoinRepository.getBitcoinBalance()", e, userName);
+            return 0;
         }
     }
 
