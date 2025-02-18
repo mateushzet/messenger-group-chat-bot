@@ -21,7 +21,7 @@ public class BitcoinService {
         switch (command) {
             case "price":
             if (amountParsed != -1.0) {
-                int bitcoinPrice = BitcoinPriceChecker.getBitcoinPrice();
+                double bitcoinPrice = BitcoinPriceChecker.getBitcoinPrice();
                 double totalCost = amountParsed * bitcoinPrice;
                 MessageService.sendMessage("Price for " + amountParsed + " BTC: " + totalCost);
             } else {
@@ -57,7 +57,7 @@ public class BitcoinService {
 
     private static void buyBitcoin(String userName, double quantity) {
         int balance = UserRepository.getCurrentUserBalance(userName, true);
-        int bitcoinPrice = BitcoinPriceChecker.getBitcoinPrice();
+        double bitcoinPrice = BitcoinPriceChecker.getBitcoinPrice();
         int cost = (int) Math.ceil(quantity * bitcoinPrice);
 
         if (quantity <= 0) {
@@ -80,7 +80,7 @@ public class BitcoinService {
         double currentBtcBalance = BitcoinRepository.getBitcoinBalance(userName);
         BitcoinRepository.updateBitcoinBalance(userName, currentBtcBalance + quantity);
 
-        MessageService.sendMessage(userName + " Bitcoin purchased successfully. New balance: " + (balance - cost));
+        MessageService.sendMessage(userName + " Bitcoin purchased successfully ("+bitcoinPrice+"/BTC). New balance: " + (balance - cost));
     }
 
     private static void sellBitcoin(String userName, double quantity) {
@@ -97,7 +97,7 @@ public class BitcoinService {
         }
         
         int balance = UserRepository.getCurrentUserBalance(userName, true);
-        int bitcoinPrice = BitcoinPriceChecker.getBitcoinPrice();
+        double bitcoinPrice = BitcoinPriceChecker.getBitcoinPrice();
         int cost = (int) Math.floor(quantity * bitcoinPrice);
 
         if (cost <= 0) {
@@ -108,7 +108,7 @@ public class BitcoinService {
         BitcoinRepository.updateBitcoinBalance(userName, currentBtcBalance - quantity);
 
         UserRepository.updateUserBalance(userName, balance + cost);
-        MessageService.sendMessage(userName + " Bitcoin sold successfully. New balance: " + (balance + cost));
+        MessageService.sendMessage(userName + " Bitcoin sold successfully ("+bitcoinPrice+"/BTC). New balance: " + (balance + cost));
     }
 
     private static void showBitcoinBalance(String userName) {

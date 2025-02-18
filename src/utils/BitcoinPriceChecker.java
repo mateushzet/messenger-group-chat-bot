@@ -7,9 +7,9 @@ import java.net.URL;
 
 public class BitcoinPriceChecker {
 
-    public static int getBitcoinPrice() {
+    public static double getBitcoinPrice() {
         try {
-            String url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd";
+            String url = "https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD";
             
             HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
             connection.setRequestMethod("GET");
@@ -27,8 +27,8 @@ public class BitcoinPriceChecker {
 
                 String jsonResponse = response.toString();
 
-                String priceString = jsonResponse.split(":")[2].replace("}}", "").trim();
-                int price = Integer.parseInt(priceString);
+                String priceString = jsonResponse.split(":")[1].replace("}", "").trim();
+                double price = Double.parseDouble(priceString);
                 return price;
             } else {
                 System.err.println("getBitcoinPrice(): " + responseCode);
