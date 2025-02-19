@@ -133,14 +133,16 @@ public class SlotsService {
 
         double multiplier = getMultiplier(result);
 
-        int winnings;
-        if (!isJackpot(result)){
-            double jackpotAmoount = getJackpotProportionalAmount(betAmount);
-            winnings = (int) (betAmount * multiplier + jackpotAmoount);
-        } else {
-            winnings = (int) ((betAmount * 5) + multiplier);
+        int winnings = 0;
+
+        if (isJackpot(result)){
+            double jackpotAmount = getJackpotProportionalAmount(betAmount);
+            winnings += (int) (betAmount * multiplier + jackpotAmount);
             UserAvatarRepository.assignAvatarToUser(playerName, "jackpot");
+        } else {
+            winnings += (int) (betAmount * multiplier);
         }
+
         newBalance += winnings;
         if(winnings == 0) winnings = betAmount * -1;
 
@@ -174,24 +176,22 @@ public class SlotsService {
             result[i] = spinSlotsWithWildcard();
             multiplier[i] = getMultiplier(result[i]);
 
-            if (!isJackpot(result[i])){
-                double jackpotAmoount = getJackpotProportionalAmount(betAmount);
-                winnings = (int) (betAmount * multiplier[i] + jackpotAmoount);
-            } else {
-                winnings += (int) ((betAmount * 5) + multiplier[i]);
+            if (isJackpot(result[i])){
+                double jackpotAmount = getJackpotProportionalAmount(betAmount);
+                winnings += (int) (betAmount * multiplier[i] + jackpotAmount);
                 UserAvatarRepository.assignAvatarToUser(playerName, "jackpot");
+            } else {
+                winnings += (int) (betAmount * multiplier[i]);
             }
         }
 
         int newBalance = currentBalance + winnings - totalBetAmount;
 
         UserRepository.updateUserBalance(playerName, newBalance);
+        GameHistoryRepository.addGameHistory(playerName, "Slots", context.getFullCommand(), totalBetAmount, winnings - totalBetAmount, "Result: " + result[0] + "-" + result[1] + "-" + result[2]);
 
-        if (winnings - totalBetAmount > 0) {
-            GameHistoryRepository.addGameHistory(playerName, "Slots", context.getFullCommand(), totalBetAmount, winnings - totalBetAmount, "Result: " + result[0] + "-" + result[1] + "-" + result[2]);
-        } else {
+        if (winnings - totalBetAmount < 0) {
             JackpotRepository.addToJackpotPool(-1 * (winnings - totalBetAmount));
-            GameHistoryRepository.addGameHistory(playerName, "Slots", context.getFullCommand(), totalBetAmount, winnings - totalBetAmount, "Result: " + result[0] + "-" + result[1] + "-" + result[2]);
         }
 
         int jackpotAmount = JackpotRepository.getJackpot();
