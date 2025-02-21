@@ -127,16 +127,11 @@ public class UserRepository {
         return -1;
     }
 
-    public static boolean updateUserBalance(String userName, int newBalance) {
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+    public static boolean tryToUpdateUserBalance(String userName, int newBalance) {
         String query = "UPDATE users SET account_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE username = ?";
         try (Connection connection = DatabaseConnectionManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
-
+    
             statement.setInt(1, newBalance);
             statement.setString(2, userName);
             statement.executeUpdate();
@@ -146,6 +141,28 @@ public class UserRepository {
             Logger.logError("Error while updating user balance for user: %s", "UserRepository.updateUserBalance()", e, userName);
             return false;
         }
+    }
+
+    public static boolean updateUserBalance(String userName, int newBalance) {
+        int retryCount = 0;
+        while (retryCount < 5) {
+            if (tryToUpdateUserBalance(userName, newBalance)) {
+                return true;
+            }
+            retryCount++;
+            if (retryCount >= 5) {
+                Logger.logWarning("Failed to update user balance after 5 retries for user: %s", "UserRepository.updateUserBalance()", userName);
+                return false;
+            }
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                Logger.logError("Thread interrupted while retrying update for user: %s", "UserRepository.updateUserBalance()", ie, userName);
+                return false;
+            }
+        }
+        return false;
     }
 
     public static void addUserToDatabase(String userName, int balance) {
