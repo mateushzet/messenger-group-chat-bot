@@ -17,3 +17,4 @@ CHANGES
 src/drivers/LICENSE.chromedriver
 src/drivers/THIRD_PARTY_NOTICES.chromedriver
 lib/CHANGELOG
+src/database/mydatabase.db
