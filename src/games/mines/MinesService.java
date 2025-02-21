@@ -91,7 +91,33 @@ public class MinesService {
     private static void startGame(String userName, String betAmount, String bombCountArg) {
         MinesGame existingGame = MinesGameRepository.getGameByUserName(userName);
         if (existingGame != null && existingGame.isGameInProgress()) {
+
+            MinesGame game = MinesGameRepository.getGameByUserName(userName);
+            
+            Double multiplier = calculateMultiplier(game);
+            
+            int userBalance = UserRepository.getCurrentUserBalance(userName, false);
+            
+            List<String> status = List.of(
+                userName,
+                "Bet: " + game.getBetAmount(),
+                "Reward: " + (int) Math.round(multiplier * game.getBetAmount()),
+                "Bombs: " + game.getTotalBombs(),
+                "Multiplier: " + multiplier
+            );
+            
+            MinesImageGenerator.generateMinesweeperImage(
+                game.getRevealedBoard(),
+                game.getBombBoard(),
+                userName,
+                status,
+                null,
+                userBalance
+            );
+            
+            MessageService.sendMessageFromClipboard(true);
             MessageService.sendMessage(userName + " you already have an active game. Finish that game before starting a new one.");
+
             return;
         }
     
