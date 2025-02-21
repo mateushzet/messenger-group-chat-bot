@@ -87,6 +87,8 @@ public class MinesImageGenerator {
             }
         }   
 
+        ImageUtils.drawUserAvatar(g, username, 150, 240, 40, 40);
+
         int statusY = height - 95;
         int statusHeight = 110;
         g.setColor(new Color(0, 0, 0, 128));
@@ -113,8 +115,6 @@ public class MinesImageGenerator {
             g.setFont(new Font("Arial", Font.BOLD, 10));
             g.setColor(Color.WHITE);
             g.drawString("Total: " + totalBalance, 140, 310);
-
-        ImageUtils.drawUserAvatar(g, username, 150, 240, 40, 40);
 
         g.dispose();
         ImageUtils.setClipboardImage(image);
