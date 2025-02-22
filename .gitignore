@@ -18,3 +18,5 @@ src/drivers/LICENSE.chromedriver
 src/drivers/THIRD_PARTY_NOTICES.chromedriver
 lib/CHANGELOG
 src/database/mydatabase.db
+src/database/mydatabase.db-shm
+src/database/mydatabase.db-wal

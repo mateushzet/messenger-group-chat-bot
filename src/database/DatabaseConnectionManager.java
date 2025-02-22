@@ -31,9 +31,7 @@ public class DatabaseConnectionManager {
 
     private static void setupDatabase(Connection conn) throws SQLException {
         try (Statement stmt = conn.createStatement()) {
-
             stmt.execute("PRAGMA busy_timeout = 5000;");
-            stmt.execute("PRAGMA journal_mode = WAL;");
         }
     }
 }
