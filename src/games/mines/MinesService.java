@@ -62,7 +62,7 @@ public class MinesService {
         }
 
         if (firstArg.isEmpty()) {
-            MessageService.sendMessage("Avaiable mines commands: mines <betAmount> <bombsNumber(default 3)>, mines <fieldNumber>, mines multi <fieldNumber,fieldNumber,...>");
+            MessageService.sendMessage("Avaiable mines commands: mines start <betAmount> <bombsNumber(default 3)>, mines <fieldNumber>, mines multi <fieldNumber,fieldNumber,...>");
             return;
         }
 

@@ -44,9 +44,26 @@ public class BlackjackService {
     private static void startGame(String userName, String betAmountArg, CommandContext context) {
         BlackjackGame existingGame = BlackjackGameRepository.getGameByUserName(userName);
         if (existingGame != null && existingGame.isGameInProgress()) {
-            MessageService.sendMessage(userName + " you already have an active game. Finish that game before starting a new one.");
+
+            int userBalance = UserRepository.getCurrentUserBalance(userName, false);
+            int playerScore = calculateHandValue(existingGame.getPlayerHand());
+            int dealerScore = calculateSecondCardScore(existingGame.getDealerHand());
+    
+            BlackjackImageGenerator.generateBlackjackImage(
+                userName,
+                existingGame.getPlayerHand(),
+                existingGame.getDealerHand(),
+                userName + " you already have an active game.",
+                userBalance,
+                existingGame.getBetAmount(),
+                false,
+                playerScore,
+                dealerScore
+            );
+    
+            MessageService.sendMessageFromClipboard(true);
             return;
-        }
+        }    
     
         int betAmount = UserService.validateAndParseBetAmount(userName, betAmountArg);
 
