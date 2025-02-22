@@ -257,4 +257,43 @@ public class UserRepository {
     
         return totalBalance + totalBetInMines + totalBetInCoinflip + btcAmount;
     }
+
+    public static boolean giveGameAccess(String userName, String gameName) {
+        String query = "UPDATE users SET access_to_games = CONCAT(access_to_games, ?) WHERE username = ?";
+    
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+    
+            statement.setString(1, "," + gameName);
+            statement.setString(2, userName);
+            int rowsAffected = statement.executeUpdate();
+    
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public static boolean hasGameAccess(String playerName, String gameName) {
+        String query = "SELECT access_to_games FROM users WHERE username = ?";
+    
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+    
+            statement.setString(1, playerName);
+            ResultSet resultSet = statement.executeQuery();
+    
+            if (resultSet.next()) {
+                String accessToGames = resultSet.getString("access_to_games");
+                if (accessToGames != null) {
+                    return accessToGames.contains(gameName);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
 }
