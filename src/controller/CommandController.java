@@ -1,9 +1,11 @@
 package controller;
 
 import model.CommandContext;
+import repository.UserRepository;
 import service.MessageService;
 import service.SkinsService;
 import service.StatisticsService;
+import service.UserService;
 import utils.ConfigReader;
 import utils.Logger;
 import service.AvatarsService;
@@ -52,8 +54,7 @@ public class CommandController {
         commands.put("rank", CommandService::handleRankCommand);
         commands.put("help", CommandService::handleHelpCommand);
         commands.put("slots", SlotsService::handleSlotsCommand);
-        commands.put("s", SlotsService::handleSlotsCommand);
-        commands.put("buy", CommandController::handleBuyCommand);        
+        commands.put("s", SlotsService::handleSlotsCommand);       
         commands.put("daily", CommandService::handleDailyCommand); 
         commands.put("hourly", CommandService::handleHourlyCommand); 
         commands.put("h", CommandService::handleHourlyCommand); 
@@ -78,19 +79,58 @@ public class CommandController {
         commands.put("case", CaseOpeningService::handleCaseCommand);
         commands.put("avatar", AvatarsService::handleAvatarsCommand);
         commands.put("btc", BitcoinService::handleBitcoinCommand);
+        commands.put("buy", UserService::handleBuyCommand);
         
     }
 
     public static void processCommand(String userName, String message) {
         CommandContext context = parseCommand(message, userName);
         Consumer<CommandContext> commandHandler = commands.get(context.getCommand().toLowerCase());
-        
+    
         if (commandHandler != null) {
+            if (requiresGameAccess(context.getCommand())) {
+                String gameName = getGameNameFromCommand(context.getCommand());
+                if (!UserRepository.hasGameAccess(userName, gameName)) {
+                    MessageService.sendMessage(userName + ", you do not have access to " + gameName + ". /buy " + gameName + " (50 coins)");
+                    return;
+                }
+            }
+    
             commandHandler.accept(context);
         } else {
             MessageService.sendMessage("Unknown command: %s", context.getCommand());
             Logger.logInfo("%s used unknown command: %s", "CommandController.processCommand()", userName, context.getCommand());
         }
+    }
+
+    private static boolean requiresGameAccess(String command) {
+        List<String> gameCommands = List.of("slots", "s", "roulette", "r", "blackjack", "bj", "plinko", "p", "dice", "d", "crash", "case");
+        return gameCommands.contains(command);
+    }
+    
+    private static String getGameNameFromCommand(String command) {
+        Map<String, String> commandToGameMap = Map.ofEntries(
+            Map.entry("slots", "slots"),
+            Map.entry("s", "slots"),
+            Map.entry("roulette", "roulette"),
+            Map.entry("r", "roulette"),
+            Map.entry("blackjack", "blackjack"),
+            Map.entry("bj", "blackjack"),
+            Map.entry("plinko", "plinko"),
+            Map.entry("p", "plinko"),
+            Map.entry("dice", "dice"),
+            Map.entry("d", "dice"),
+            Map.entry("crash", "crash"),
+            Map.entry("case", "case"),
+            Map.entry("c", "colors"),
+            Map.entry("colors", "colors"),
+            Map.entry("m", "mines"),
+            Map.entry("mines", "mines"),
+            Map.entry("l", "lotto"),
+            Map.entry("lotto", "lotto"),
+            Map.entry("race", "race")
+        );
+        return commandToGameMap.getOrDefault(command, command);
     }
 
     private static CommandContext parseCommand(String message, String userName) {
@@ -117,15 +157,6 @@ public class CommandController {
         }
 
         return new CommandContext(command, arguments, userName);
-    }
-
-    private static void handleBuyCommand(CommandContext context){
-        if(context.getFirstArgument().equals("slots")){
-            SlotsService.handleBuySlotsCommand(context);
-        } else {
-            ColorsService.handleBuyColorsCommand(context);
-        }
-
     }
 
 }
