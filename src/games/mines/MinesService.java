@@ -80,11 +80,7 @@ public class MinesService {
                 MessageService.sendMessage(userName + " it's not your turn!");
             }
         } else {
-                if (isInteger(firstArg) && (secondArg == null || isInteger(secondArg))) {
-                    startGame(userName, firstArg, secondArg);
-                } else {
                     MessageService.sendMessage(userName + " no game in progress.");
-                }
         }
     }
 
