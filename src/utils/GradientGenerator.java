@@ -58,7 +58,7 @@ import service.MessageService;
 
         String skinId = UserSkinRepository.getActiveSkinForUser(username);
         
-        if (skinId != null && skinId != "default") {
+        if (skinId != null && !skinId.equals("default")) {
             return getGradientForSkin(skinId, width, height, 0, 0);
         }
         
@@ -100,7 +100,7 @@ import service.MessageService;
 
         String skinId = UserSkinRepository.getActiveSkinForUser(username);
         
-        if (skinId != null && skinId != "default") {
+        if (skinId != null && !skinId.equals("default")) {
             return getGradientForSkin(skinId, width, height, x, y);
         }
         
