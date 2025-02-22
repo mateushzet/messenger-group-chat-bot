@@ -39,6 +39,7 @@ public class DiceGameService {
     private static void startGame(String userName, String betAmountArg, CommandContext context) {
         DiceGame existingGame = DiceGameRepository.getGameByUserName(userName);
         if (existingGame != null && existingGame.isGameInProgress()) {
+            sendExistingGame(userName, context);
             MessageService.sendMessage(userName + " you already have an active game. Finish that game before starting a new one.");
             return;
         }
@@ -105,6 +106,16 @@ public class DiceGameService {
         DiceGameRepository.updateGame(game);
     
         endGame(userName, context);
+    }
+
+    private static void sendExistingGame(String userName, CommandContext context) {
+        DiceGame game = DiceGameRepository.getGameByUserName(userName);
+        int userBalance = UserRepository.getCurrentUserBalance(userName, false);
+        double multiplier = calculateMultiplier(game.getDiceValues(), userName);
+        int betAmount = game.getBetAmount();
+        int winnings = (int) (betAmount * multiplier);
+        DiceImageGenerator.drawDiceResults(game.getDiceValues(), game.getBetAmount(), userBalance + winnings, userName, multiplier, false);
+        MessageService.sendMessageFromClipboard(true);
     }
 
     private static void endGame(String userName, CommandContext context) {
