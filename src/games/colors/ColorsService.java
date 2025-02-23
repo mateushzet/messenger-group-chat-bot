@@ -7,22 +7,14 @@ import repository.GameHistoryRepository;
 import repository.UserAvatarRepository;
 import repository.UserRepository;
 import service.MessageService;
-import utils.ConfigReader;
 import utils.Logger;
 
 public class ColorsService {
-
-    private static final int colorsAccessCost = ConfigReader.getColorsAccessCost();
 
     public static void handleColorsCommand(CommandContext context) {
         String playerName = context.getUserName();
         String betColor = context.getSecondArgument();
         int currentBalance = UserRepository.getCurrentUserBalance(playerName, false);
-    
-        if (!ColorsRepository.hasColorsAccess(playerName)) {
-            MessageService.sendMessage("You need to purchase access to play colors. Cost: %d coins. /bot buy colors", colorsAccessCost);
-            return;
-        }
 
         if(context.getFirstArgument().equals("multi")){
             context.setFirstArgument(context.getSecondArgument());
@@ -195,34 +187,6 @@ public class ColorsService {
         colorOrder = ColorsImageGenerator.rotateArray(colorOrder, shift);
         System.out.println("Colors result: " + colorOrder[40]);
         return colorOrder[40]; // wining position
-    }
-
-        public static void handleBuyColorsCommand(CommandContext context) {
-        String userName = context.getUserName();
-        if (ColorsRepository.hasColorsAccess(userName)) {
-            MessageService.sendMessage("%s, you already have access to the colors.", userName);
-        } else {
-            buyColorsAccess(userName);
-        }
-    }
-
-    private static void buyColorsAccess(String userName) {
-        int balance = UserRepository.getCurrentUserBalance(userName, true);
-        Logger.logToConsole("INFO", userName + " is attempting to buy colors.", "ColorsService.buyColorsAccess()");
-
-        if (balance < colorsAccessCost) {
-            MessageService.sendMessage("%s, you don't have enough coins to buy access to colors. You need %d coins.", userName, colorsAccessCost);
-            Logger.logToConsole("INFO", userName + " doesn't have enough coins to buy colors. Current balance: " + balance,  "ColorsService.buyColorsAccess()");
-            return;
-        }
-
-        int newBalance = balance - colorsAccessCost;
-        UserRepository.updateUserBalance(userName, newBalance);
-
-        if (ColorsRepository.giveColorsAccess(userName)) {
-            MessageService.sendMessage("%s has successfully bought access to colors for %d coins. New balance: %d", userName, colorsAccessCost, newBalance);
-            Logger.logInfo("%s purchased colors access. New balance: %d", "ColorsService.buyColorsAccess()", userName, newBalance);
-        }
     }
 
 }

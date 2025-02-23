@@ -2,13 +2,8 @@ package games.colors;
 import java.awt.*;
 import java.awt.geom.Arc2D;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 import java.util.Queue;
 
-import javax.imageio.ImageIO;
-
-import repository.UserAvatarRepository;
 import utils.GradientGenerator;
 import utils.ImageUtils;
 

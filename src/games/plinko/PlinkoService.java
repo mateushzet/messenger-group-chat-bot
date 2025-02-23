@@ -4,7 +4,6 @@ import model.CommandContext;
 import repository.GameHistoryRepository;
 import repository.UserRepository;
 import service.MessageService;
-import utils.Logger;
 
 public class PlinkoService {
     

@@ -12,7 +12,6 @@ public class DiceImageGenerator {
     private static final Color TEXT_COLOR = new Color(255, 255, 255);
     private static final Color WIN_COLOR = new Color(50, 200, 50);
     private static final Color LOSE_COLOR = new Color(200, 50, 50);
-    private static final Color BALL_COLOR = new Color(255, 200, 50);
     private static final Color BLACK_BACKGROUND = new Color(0, 0, 0, 180);
 
     public static void drawDiceResults(int[] diceValues, int betAmount, int totalBalance, String playerName, double multiplier, boolean showReward) {

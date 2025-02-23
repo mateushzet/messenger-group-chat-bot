@@ -218,7 +218,7 @@ public class UserRepository {
         int totalBalance = 0;
         int totalBetInMines = 0;
         int totalBetInCoinflip = 0;
-        int totalAmountInBTC = 0;
+        //int totalAmountInBTC = 0;
         int btcAmount = 0;
     
         try (Connection connection = DatabaseConnectionManager.getConnection()) {
@@ -286,6 +286,8 @@ public class UserRepository {
     
             if (resultSet.next()) {
                 String accessToGames = resultSet.getString("access_to_games");
+                System.out.println(accessToGames);
+                System.out.println(gameName);
                 if (accessToGames != null) {
                     return accessToGames.contains(gameName);
                 }

@@ -104,7 +104,7 @@ public class CommandController {
     }
 
     private static boolean requiresGameAccess(String command) {
-        List<String> gameCommands = List.of("slots", "s", "roulette", "r", "blackjack", "bj", "plinko", "p", "dice", "d", "crash", "case");
+        List<String> gameCommands = List.of("slots", "s", "roulette", "r", "blackjack", "bj", "plinko", "p", "dice", "d", "crash", "case", "c", "colors", "m", "mines", "l", "lotto", "race");
         return gameCommands.contains(command);
     }
     

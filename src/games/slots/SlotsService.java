@@ -2,7 +2,6 @@ package games.slots;
 
 import java.util.Random;
 import model.CommandContext;
-import utils.ConfigReader;
 import utils.Logger;
 import repository.UserRepository;
 import service.MessageService;
@@ -11,8 +10,6 @@ import repository.GameHistoryRepository;
 import repository.UserAvatarRepository;
 
 public class SlotsService {
-
-    private static final int slotsAccessCost = ConfigReader.getSlotsAccessCost();
 
     public static void handleSlotsCommand(CommandContext context) {
         String playerName = context.getUserName();
@@ -57,20 +54,14 @@ public class SlotsService {
         }
 
         int betAmount = UserService.validateAndParseBetAmount(playerName, firstArgument);
-        int currentBalance = UserRepository.getTotalUserBalance(playerName);
+        int currentBalance = UserRepository.getCurrentUserBalance(playerName, true);
 
         if (validateSlotsGame(playerName, betAmount, currentBalance)) {
             playSlots(playerName, betAmount, currentBalance, context);
         }
     }
 
-    private static boolean validateSlotsGame(String playerName, int betAmount, int currentBalance) {
-        if (!SlotsRepository.hasSlotsAccess(playerName)) {
-            MessageService.sendMessage("You need to purchase access to play slots. Cost: %d coins. /bot buy slots", slotsAccessCost);
-            Logger.logInfo("%s attempted to play slots without access.", "SlotsService.validateSlotsGame()", playerName);
-            return false;
-        }
-        
+    private static boolean validateSlotsGame(String playerName, int betAmount, int currentBalance) {      
         int minimalBet = (int) (UserRepository.getTotalUserBalance(playerName) * 0.005);
         if(minimalBet < 10) minimalBet = 10;
 
@@ -94,34 +85,6 @@ public class SlotsService {
         }
 
         return true;
-    }
-
-    public static void handleBuySlotsCommand(CommandContext context) {
-        String userName = context.getUserName();
-        if (SlotsRepository.hasSlotsAccess(userName)) {
-            MessageService.sendMessage("%s, you already have access to the slots.", userName);
-        } else {
-            buySlotsAccess(userName);
-        }
-    }
-
-    private static void buySlotsAccess(String userName) {
-        int balance = UserRepository.getCurrentUserBalance(userName, true);
-        Logger.logInfo("%s is attempting to buy slots.", "SlotsService.buySlotsAccess()", userName);
-
-        if (balance < slotsAccessCost) {
-            MessageService.sendMessage("%s, you don't have enough coins to buy access to slots. You need %d coins.", userName, slotsAccessCost);
-            Logger.logInfo("%s doesn't have enough coins to buy slots. Current balance: %d", "SlotsService.buySlotsAccess()", userName, balance);
-            return;
-        }
-
-        int newBalance = balance - slotsAccessCost;
-        UserRepository.updateUserBalance(userName, newBalance);
-
-        if (SlotsRepository.giveSlotsAccess(userName)) {
-            MessageService.sendMessage("%s has successfully bought access to slots for %d coins. New balance: %d", userName, slotsAccessCost, newBalance);
-            Logger.logInfo("%s purchased slots access. New balance: %d", "SlotsService.buySlotsAccess()", userName, newBalance);
-        }
     }
 
     private static void playSlots(String playerName, int betAmount, int currentBalance, CommandContext context) {
