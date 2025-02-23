@@ -202,13 +202,13 @@ public class UserRepository {
         List<Map.Entry<String, Integer>> sortedUsers = new ArrayList<>(userBalances.entrySet());
         sortedUsers.removeIf(entry -> entry.getValue() == 0);
         sortedUsers.sort((entry1, entry2) -> Integer.compare(entry2.getValue(), entry1.getValue()));
-        if (!sortedUsers.isEmpty() && sortedUsers.get(0).getValue() >= 1000) {
+        if (!sortedUsers.isEmpty() && sortedUsers.get(0).getValue() >= 500) {
             UserAvatarRepository.assignAvatarToUser(sortedUsers.get(0).getKey(), "1st");
         }
-        if (sortedUsers.size() > 1 && sortedUsers.get(1).getValue() >= 1000) {
+        if (sortedUsers.size() > 1 && sortedUsers.get(1).getValue() >= 500) {
             UserAvatarRepository.assignAvatarToUser(sortedUsers.get(1).getKey(), "2nd");
         }
-        if (sortedUsers.size() > 2 && sortedUsers.get(2).getValue() >= 1000) {
+        if (sortedUsers.size() > 2 && sortedUsers.get(2).getValue() >= 500) {
             UserAvatarRepository.assignAvatarToUser(sortedUsers.get(2).getKey(), "3rd");
         }
         return sortedUsers;
