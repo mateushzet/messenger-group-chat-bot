@@ -2,6 +2,7 @@ package service;
 
 import controller.CommandController;
 import factory.WebDriverFactory;
+import games.jackpot.JackpotService;
 import model.UserCooldownInfo;
 import repository.UserRepository;
 import utils.ConfigReader;
@@ -146,6 +147,10 @@ public class MessageService {
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
+                }
+
+                if(JackpotService.hasTenMinutesPassedSinceOldestTimestamp()){
+                    JackpotService.startJackpotGame();
                 }
 
                 MathQuestionService.checkAndSendMathQuestion();
