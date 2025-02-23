@@ -26,12 +26,10 @@ public class JackpotGifGenerator {
         List<String> participants = new ArrayList<>(bets.keySet());
     
         if (participants.isEmpty()) {
-            System.out.println("Brak uczestników. Dodaję bota z minimalnym zakładem.");
             participants.add("Bot");
             bets.put("Bot", 10);
         } else {
             int minBet = findMinimumBet(bets);
-            System.out.println("Dodaję bota z zakładem równym najniższemu zakładowi: " + minBet);
             participants.add("Bot");
             bets.put("Bot", minBet);
         }
@@ -52,7 +50,7 @@ public class JackpotGifGenerator {
 
     public static byte[] generateJackpotGif(String winnerName, int totalPot, List<String> participants,
                                            Map<String, Integer> bets, Map<String, String> avatarUrls) throws IOException {
-        gradient = GradientGenerator.generateGradientFromUsername("bot", true, WIDTH, HEIGHT);
+        gradient = GradientGenerator.generateGradientFromUsername(participants.get(0), true, WIDTH, HEIGHT);
 
         Map<String, BufferedImage> avatars = loadAvatarsFromUrls(avatarUrls);
 
@@ -71,7 +69,6 @@ public class JackpotGifGenerator {
                 BufferedImage avatar = ImageIO.read(url);
                 avatars.put(username, avatar);
             } catch (IOException e) {
-                System.out.println("Nie udało się załadować awatara dla użytkownika: " + username);
                 File defaultAvatarFile = new File("src/resources/user_avatars/default.png");
                 if (defaultAvatarFile.exists()) {
                     BufferedImage defaultAvatar = ImageIO.read(defaultAvatarFile);
