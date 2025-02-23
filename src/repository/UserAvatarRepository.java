@@ -155,5 +155,21 @@ public class UserAvatarRepository {
             return false;
         }
     }
+    
+    public static String getDefaultAvatarUrl(String username) {
+        String query = "SELECT avatar_url FROM users WHERE username = ?";
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setString(1, username);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getString("avatar_url");
+                }
+            }
+        } catch (SQLException e) {
+            Logger.logError("Failed to get default avatar URL for user", "UserAvatarRepository.getDefaultAvatarUrl()", e);
+        }
+        return null;
+    }
 
 }

@@ -298,4 +298,67 @@ public class UserRepository {
         return false;
     }
 
+    public static void saveAvatarToDatabase(String username, String avatarUrl) {
+        // Check if the user already exists
+        if (userExists(username)) {
+            // User exists, perform an UPDATE
+            updateUserAvatar(username, avatarUrl);
+        } else {
+            // User does not exist, perform an INSERT and assign default skin
+            insertUser(username, avatarUrl);
+            UserSkinRepository.assignSkinToUser(username, "default");
+            Logger.logInfo("Default skin assigned to user: " + username, "UserRepository.saveAvatarToDatabase()");
+        }
+    }
+    
+    private static boolean userExists(String username) {
+        String query = "SELECT 1 FROM users WHERE username = ?";
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setString(1, username);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next(); // Returns true if the user exists
+            }
+        } catch (SQLException e) {
+            Logger.logError("Failed to check if user exists", "UserRepository.userExists()", e);
+            return false; // Assume user does not exist in case of error
+        }
+    }
+    
+    private static void updateUserAvatar(String username, String avatarUrl) {
+        String query = "UPDATE users SET avatar_url = ? WHERE username = ?";
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setString(1, avatarUrl);
+            statement.setString(2, username);
+            int rowsUpdated = statement.executeUpdate();
+    
+            if (rowsUpdated > 0) {
+                Logger.logInfo("Avatar URL updated for user: " + username, "UserRepository.updateUserAvatar()");
+            } else {
+                Logger.logWarning("No rows updated for user: " + username, "UserRepository.updateUserAvatar()");
+            }
+        } catch (SQLException e) {
+            Logger.logError("Failed to update avatar URL in database", "UserRepository.updateUserAvatar()", e);
+        }
+    }
+    
+    private static void insertUser(String username, String avatarUrl) {
+        String query = "INSERT INTO users (username, avatar_url, account_balance) VALUES (?, ?, 0)";
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setString(1, username);
+            statement.setString(2, avatarUrl);
+            int rowsInserted = statement.executeUpdate();
+    
+            if (rowsInserted > 0) {
+                Logger.logInfo("User inserted with avatar URL: " + username, "UserRepository.insertUser()");
+            } else {
+                Logger.logWarning("No rows inserted for user: " + username, "UserRepository.insertUser()");
+            }
+        } catch (SQLException e) {
+            Logger.logError("Failed to insert user into database", "UserRepository.insertUser()", e);
+        }
+    }
+
 }

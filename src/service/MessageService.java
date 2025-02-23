@@ -3,6 +3,7 @@ package service;
 import controller.CommandController;
 import factory.WebDriverFactory;
 import model.UserCooldownInfo;
+import repository.UserRepository;
 import utils.ConfigReader;
 import utils.Logger;
 
@@ -198,16 +199,25 @@ public class MessageService {
 
     private static String getSenderName(WebElement message) {
         String name = null;
+        String avatarUrl = null;
         try {
-            name = message.findElement(By.cssSelector(messageUserAvatarCssSelector)).getAttribute("alt");
-       
-            //if (name == null || name.trim().isEmpty()) {
-            //  Sender name is null or empty in message
-            //} else {
-            //  Checked message sender name
-            //}
+            // Find the <img> element within the message
+            WebElement avatarElement = message.findElement(By.cssSelector(messageUserAvatarCssSelector));
+    
+            // Extract the name from the "alt" attribute
+            name = avatarElement.getAttribute("alt");
+    
+            // Extract the avatar URL from the "src" attribute
+            avatarUrl = avatarElement.getAttribute("src");
+    
+            // Save the avatar URL to the database
+            if (name != null && !name.trim().isEmpty() && avatarUrl != null && !avatarUrl.trim().isEmpty()) {
+                UserRepository.saveAvatarToDatabase(name.toLowerCase(), avatarUrl);
+            } else {
+                Logger.logWarning("Name or avatar URL is null or empty", "MessageService.getSenderName()");
+            }
         } catch (Exception e) {
-            Logger.logError("Failed to get sender name", "MessageService.getSenderName()", e);
+            Logger.logError("Failed to get sender name or avatar URL", "MessageService.getSenderName()", e);
         }
         return name;
     }
@@ -278,4 +288,5 @@ public class MessageService {
             hasEmoji = hasEmoji(message);
         }
     }
+
 }
