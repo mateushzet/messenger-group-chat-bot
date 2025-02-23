@@ -36,7 +36,6 @@ public class JackpotService {
         
         if (result.getGifBytes() != null) {
             ImageUtils.setClipboardGif(result.getGifBytes());
-            System.out.println("GIF wygenerowany pomyślnie!");
         } else {
             MessageService.sendMessage("Error while starting jackpot game!");
             return;
