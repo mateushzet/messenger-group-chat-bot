@@ -12,11 +12,11 @@ import utils.Logger;
 public class BlackjackGameRepository {
 
     public static void saveGame(BlackjackGame game) {
-        String query = "INSERT INTO blackjack_game (user_name, balance, current_bet, player_hand, dealer_hand, game_in_progress, player_stands) VALUES (?, ?, ?, ?, ?, ?, ?)";
-
+        String query = "INSERT INTO blackjack_game (user_name, balance, current_bet, player_hand, dealer_hand, game_in_progress, player_stands, split_hand, is_split) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    
         try (Connection connection = DatabaseConnectionManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
-
+    
             statement.setString(1, game.getUserName());
             statement.setInt(2, game.getBalance());
             statement.setInt(3, game.getCurrentBet());
@@ -24,7 +24,9 @@ public class BlackjackGameRepository {
             statement.setString(5, convertHandToString(game.getDealerHand()));
             statement.setBoolean(6, game.isGameInProgress());
             statement.setBoolean(7, game.isPlayerStands());
-
+            statement.setString(8, convertHandToString(game.getSplitHand()));
+            statement.setBoolean(9, game.isSplit());
+    
             statement.executeUpdate();
         } catch (SQLException e) {
             Logger.logError("Error while saving game", "BlackjackGameRepository.saveGame()", e);
@@ -43,6 +45,7 @@ public class BlackjackGameRepository {
             if (resultSet.next()) {
                 List<String> playerHand = convertHandFromString(resultSet.getString("player_hand"));
                 List<String> dealerHand = convertHandFromString(resultSet.getString("dealer_hand"));
+                List<String> splitHand = convertHandFromString(resultSet.getString("split_hand"));
     
                 BlackjackGame game = new BlackjackGame(
                         resultSet.getString("user_name"),
@@ -54,6 +57,8 @@ public class BlackjackGameRepository {
                 );
     
                 game.setPlayerStands(resultSet.getBoolean("player_stands"));
+                game.setSplitHand(splitHand);
+                game.setSplit(resultSet.getBoolean("is_split"));
     
                 return game;
             }
@@ -64,19 +69,21 @@ public class BlackjackGameRepository {
     }
 
     public static void updateGame(BlackjackGame game) {
-        String query = "UPDATE blackjack_game SET balance = ?, current_bet = ?, player_hand = ?, dealer_hand = ?, game_in_progress = ?, player_stands = ? WHERE user_name = ? AND game_in_progress = 1";
-
+        String query = "UPDATE blackjack_game SET balance = ?, current_bet = ?, player_hand = ?, dealer_hand = ?, game_in_progress = ?, player_stands = ?, split_hand = ?, is_split = ? WHERE user_name = ? AND game_in_progress = 1";
+    
         try (Connection connection = DatabaseConnectionManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
-
+    
             statement.setInt(1, game.getBalance());
             statement.setInt(2, game.getCurrentBet());
             statement.setString(3, convertHandToString(game.getPlayerHand()));
             statement.setString(4, convertHandToString(game.getDealerHand()));
             statement.setBoolean(5, game.isGameInProgress());
             statement.setBoolean(6, game.isPlayerStands());
-            statement.setString(7, game.getUserName());
-
+            statement.setString(7, convertHandToString(game.getSplitHand()));
+            statement.setBoolean(8, game.isSplit());
+            statement.setString(9, game.getUserName());
+    
             statement.executeUpdate();
         } catch (SQLException e) {
             Logger.logError("Error while updating game", "BlackjackGameRepository.updateGame()", e);

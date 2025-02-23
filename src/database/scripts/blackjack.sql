@@ -5,7 +5,7 @@ CREATE TABLE blackjack_game (
     player_hand TEXT NOT NULL,
     dealer_hand TEXT NOT NULL,
     game_in_progress BOOLEAN NOT NULL,
-    player_stands BOOLEAN NOT NULL
+    player_stands BOOLEAN NOT NULL,
+    split_hand TEXT,
+    is_split BOOLEAN NOT NULL
 );
-
-

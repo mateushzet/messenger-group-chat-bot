@@ -33,12 +33,17 @@ public class BlackjackService {
             return;
         }
 
+        if (firstArg.equalsIgnoreCase("split") || firstArg.equalsIgnoreCase("sp")) {
+            splitHand(userName, context);
+            return;
+        }
+
         String helpMessage = "/bot blackjack bet [bet amount]\n" +
                              "/bot blackjack hit\n" +
                              "/bot blackjack stand\n" +
+                             "/bot blackjack split\n" +
                              "The goal is to get as close to 21 as possible without exceeding it.";
         MessageService.sendMessage(helpMessage);
-        
     }
 
     private static void startGame(String userName, String betAmountArg, CommandContext context) {
@@ -125,24 +130,38 @@ public class BlackjackService {
             return;
         }
     
-        List<String> playerHand = game.getPlayerHand();
-        playerHand.add(drawCard());
-        game.setPlayerHand(playerHand);
+        boolean isSplit = game.isSplit();
+        List<String> activeHand = game.getPlayerHand();
+    
+        if (isSplit) {
+            String handToHit = context.getSecondArgument(); 
+            if (handToHit == null || (!handToHit.equals("1") && !handToHit.equals("2"))) {
+                MessageService.sendMessage(userName + " choose which hand to hit: /bj hit 1 or /bj hit 2");
+                return;
+            }
+            if (handToHit.equals("2")) {
+                activeHand = game.getSplitHand();
+            }
+        }
+
+        activeHand.add(drawCard());
     
         int dealerScore = calculateHandValue(game.getDealerHand());
-        int playerScore = calculateHandValue(playerHand);
+        int playerScore = calculateHandValue(activeHand);
         int userBalance = UserRepository.getCurrentUserBalance(userName, false);
-        if ( playerScore > 21) {
+    
+        if (playerScore > 21) {
             BlackjackGameRepository.updateGame(game);
             endGame(userName, false, false, playerScore, dealerScore, context);
-            BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, game.getDealerHand(), userName + " you lost " + game.getBetAmount() + "!", userBalance, game.getBetAmount(), true, playerScore, 0);
+            BlackjackImageGenerator.generateBlackjackImage(userName, activeHand, game.getDealerHand(), userName + " you lost " + game.getBetAmount() + "!", userBalance, game.getBetAmount(), true, playerScore, dealerScore);
             MessageService.sendMessageFromClipboard(true);
+            if (!isSplit) BlackjackGameRepository.deleteGame(userName);
             return;
         }
     
         BlackjackGameRepository.updateGame(game);
         dealerScore = calculateSecondCardScore(game.getDealerHand());
-        BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, game.getDealerHand(), userName + " you drew a card", userBalance, game.getBetAmount(), false, playerScore, dealerScore);
+        BlackjackImageGenerator.generateBlackjackImage(userName, activeHand, game.getDealerHand(), userName + " you drew a card", userBalance, game.getBetAmount(), false, playerScore, dealerScore);
         MessageService.sendMessageFromClipboard(true);
     }
     
@@ -154,47 +173,78 @@ public class BlackjackService {
         }
     
         List<String> dealerHand = game.getDealerHand();
-        int playerHand = calculateHandValue(game.getPlayerHand()) ;
-        while (calculateHandValue(dealerHand) <= playerHand && calculateHandValue(dealerHand) != 21) {
-            dealerHand.add(drawCard());
+        int playerScore = calculateHandValue(game.getPlayerHand());
+        int splitScore = game.isSplit() ? calculateHandValue(game.getSplitHand()) : 0;
+
+        if(game.isSplit()){
+            while (calculateHandValue(dealerHand) < 17) {
+                dealerHand.add(drawCard());
+            }
+        }else  {
+            while (calculateHandValue(dealerHand) <= playerScore && calculateHandValue(dealerHand) != 21) {
+                dealerHand.add(drawCard());
+            }
         }
     
         game.setDealerHand(dealerHand);
         BlackjackGameRepository.updateGame(game);
     
-        int playerScore = calculateHandValue(game.getPlayerHand());
         int dealerScore = calculateHandValue(dealerHand);
+        int userBalance = UserRepository.getCurrentUserBalance(userName, false);
+        String gameStatusMain = resolveGame(userName, playerScore, dealerScore, context, game.getPlayerHand(), game.getBetAmount());
+    
+        if (game.isSplit()) {
+            String gameStatusSplit = resolveGame(userName, splitScore, dealerScore, context, game.getSplitHand(), game.getBetAmount());
+            BlackjackImageGenerator.generateBlackjackImage(userName, game.getSplitHand(), dealerHand, gameStatusSplit, userBalance, game.getBetAmount(), true, splitScore, dealerScore);
+            MessageService.sendMessageFromClipboard(true);
+        }
+    
+        
+        BlackjackImageGenerator.generateBlackjackImage(userName, game.getPlayerHand(), dealerHand, gameStatusMain, userBalance, game.getBetAmount(), true, playerScore, dealerScore);
+        MessageService.sendMessageFromClipboard(true);
+    
+        BlackjackGameRepository.deleteGame(userName);
+    }
+    
+    private static String resolveGame(String userName, int playerScore, int dealerScore, CommandContext context, List<String> hand, int betAmount) {
+        BlackjackGame game = BlackjackGameRepository.getGameByUserName(userName);
+        if (game == null) {
+            return userName + " game not found. Please start a new game.";
+        }
     
         String gameStatus;
-        if (playerScore == dealerScore){
-            gameStatus = endGame(userName, true, true, playerScore, dealerScore, context);
-        }
-        else if (dealerScore > 21 || playerScore > dealerScore) {
-            gameStatus = endGame(userName, true, false, playerScore, dealerScore, context);
+        if (playerScore == dealerScore && playerScore <= 21) {
+            int winnings = betAmount;
+            UserService.updateAndRetriveUserBalance(userName, winnings);
+            gameStatus = userName + " draw!";
+            GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), betAmount, winnings, "Player hand: " + handToString(hand) + " Dealer hand: " + handToString(game.getDealerHand()));
+        } else if ((dealerScore > 21 || playerScore > dealerScore) && playerScore <= 21) {
+            int winnings = betAmount * 2;
+            UserService.updateAndRetriveUserBalance(userName, winnings);
+            gameStatus = userName + " you won " + betAmount + "!";
+            GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), betAmount, winnings, "Player hand: " + handToString(hand) + " Dealer hand: " + handToString(game.getDealerHand()));
         } else {
-            gameStatus = endGame(userName, false, false, playerScore, dealerScore, context);
+            gameStatus = userName + " you lost " + betAmount + "!";
+            GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), betAmount, -betAmount, "Player hand: " + handToString(hand) + " Dealer hand: " + handToString(game.getDealerHand()));
         }
     
-        int userBalance = UserRepository.getCurrentUserBalance(userName, false);
-    
-        BlackjackImageGenerator.generateBlackjackImage(userName, game.getPlayerHand(), dealerHand, gameStatus, userBalance, game.getBetAmount(), true, playerScore, dealerScore);
-        MessageService.sendMessageFromClipboard(true);
+        return gameStatus;
     }
+    
 
     private static String endGame(String userName, boolean win, boolean draw, int playerScore, int dealerScore, CommandContext context) {
         BlackjackGame game = BlackjackGameRepository.getGameByUserName(userName);
         if (game == null) {
-            return null;
+            return userName + " game not found. Please start a new game.";
         }
-
+    
         String gameStatus;
-        if (draw){
+        if (draw) {
             int winnings = game.getBetAmount();
             UserService.updateAndRetriveUserBalance(userName, winnings);
             gameStatus = userName + " draw!";
             GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), game.getBetAmount(), winnings, "Player hand: " + handToString(game.getPlayerHand()) + " Dealer hand: " + handToString(game.getDealerHand()));
-        }
-        else if (win) {
+        } else if (win) {
             int winnings = game.getBetAmount() * 2;
             UserService.updateAndRetriveUserBalance(userName, winnings);
             gameStatus = userName + " you won " + game.getBetAmount() + "!";
@@ -203,8 +253,7 @@ public class BlackjackService {
             gameStatus = userName + " you lost " + game.getBetAmount() + "!";
             GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), game.getBetAmount(), -game.getBetAmount(), "Player hand: " + handToString(game.getPlayerHand()) + " Dealer hand: " + handToString(game.getDealerHand()));
         }
-
-        BlackjackGameRepository.deleteGame(userName);
+    
         return gameStatus;
     }
 
@@ -268,6 +317,41 @@ public class BlackjackService {
         }
         
         return 0;
+    }
+
+    private static void splitHand(String userName, CommandContext context) {
+        BlackjackGame game = BlackjackGameRepository.getGameByUserName(userName);
+        if (game == null || !game.isGameInProgress()) {
+            MessageService.sendMessage(userName + " no active game. Start a new game with /bot blackjack bet [bet amount].");
+            return;
+        }
+    
+        if (!game.canSplit()) {
+            MessageService.sendMessage(userName + " you cannot split your hand.");
+            return;
+        }
+    
+        int userBalance = UserRepository.getCurrentUserBalance(userName, false);
+        int betAmount = game.getBetAmount();
+        if (userBalance < betAmount) {
+            MessageService.sendMessage(userName + " you do not have enough balance to split. Additional bet required: " + betAmount);
+            return;
+        }
+    
+        userBalance = UserService.updateAndRetriveUserBalance(userName, -betAmount);
+    
+        game.split();
+        game.getPlayerHand().add(drawCard());
+        game.getSplitHand().add(drawCard());
+        BlackjackGameRepository.updateGame(game);
+        int playerScore1 = calculateHandValue(game.getPlayerHand());
+        int playerScore2 = calculateHandValue(game.getSplitHand());
+        int dealerScore = calculateSecondCardScore(game.getDealerHand());
+    
+        BlackjackImageGenerator.generateBlackjackImage(userName, game.getPlayerHand(), game.getDealerHand(), userName + " split hand 1", userBalance, betAmount, false, playerScore1, dealerScore);
+        MessageService.sendMessageFromClipboard(true);
+        BlackjackImageGenerator.generateBlackjackImage(userName, game.getSplitHand(), game.getDealerHand(), userName + " split hand 2", userBalance, betAmount, false, playerScore2, dealerScore);
+        MessageService.sendMessageFromClipboard(true);
     }
     
 }

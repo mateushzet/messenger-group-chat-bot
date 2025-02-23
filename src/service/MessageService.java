@@ -172,7 +172,7 @@ public class MessageService {
 
                             userInfo.incrementMessageCount();
 
-                            if (userInfo.getMessageCount() > 4) {
+                            if (userInfo.getMessageCount() > 5) {
                                 long elapsedTime = Duration.between(userInfo.getLastMessageTime(), currentTime).getSeconds();
                                 userInfo.increaseCooldownDuration(elapsedTime);
                                 MessageService.sendMessage(userName + " cooldown: " + userInfo.getCooldownDuration() + " s");
