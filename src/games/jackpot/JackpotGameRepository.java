@@ -47,7 +47,6 @@ public class JackpotGameRepository {
                 String username = resultSet.getString("username");
                 int betAmount = resultSet.getInt("bet_amount");
     
-                // Jeśli użytkownik już istnieje w mapie, dodaj do jego zakładu
                 bets.put(username, bets.getOrDefault(username, 0) + betAmount);
             }
         } catch (SQLException e) {
