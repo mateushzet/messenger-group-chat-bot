@@ -31,7 +31,6 @@ public class JackpotGameRepository {
         try (Connection connection = DatabaseConnectionManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
             statement.executeUpdate();
-            System.out.println("All jackpot bets deleted successfully.");
         } catch (SQLException e) {
             e.printStackTrace();
         }
