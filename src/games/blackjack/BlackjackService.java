@@ -190,16 +190,17 @@ public class BlackjackService {
         BlackjackGameRepository.updateGame(game);
     
         int dealerScore = calculateHandValue(dealerHand);
-        int userBalance = UserRepository.getCurrentUserBalance(userName, false);
+        int userBalance;
         String gameStatusMain = resolveGame(userName, playerScore, dealerScore, context, game.getPlayerHand(), game.getBetAmount());
     
         if (game.isSplit()) {
             String gameStatusSplit = resolveGame(userName, splitScore, dealerScore, context, game.getSplitHand(), game.getBetAmount());
+            userBalance = UserRepository.getCurrentUserBalance(userName, false);
             BlackjackImageGenerator.generateBlackjackImage(userName, game.getSplitHand(), dealerHand, gameStatusSplit, userBalance, game.getBetAmount(), true, splitScore, dealerScore);
             MessageService.sendMessageFromClipboard(true);
         }
     
-        
+        userBalance = UserRepository.getCurrentUserBalance(userName, false);
         BlackjackImageGenerator.generateBlackjackImage(userName, game.getPlayerHand(), dealerHand, gameStatusMain, userBalance, game.getBetAmount(), true, playerScore, dealerScore);
         MessageService.sendMessageFromClipboard(true);
     
