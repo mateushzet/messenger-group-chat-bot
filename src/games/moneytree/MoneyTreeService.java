@@ -78,7 +78,7 @@ public class MoneyTreeService {
         Random random = new Random();
     
         int witherPhase;
-        if (random.nextInt(100) < 10) {
+        if (random.nextInt(100) < 5) {
             witherPhase = random.nextInt(PHASE_COUNT) + 1;
         } else {
             witherPhase = 7;
@@ -174,7 +174,6 @@ public class MoneyTreeService {
             return;
         }
     
-        // Oblicz aktualną fazę
         int currentPhase = 0;
         List<Integer> phaseDurations = game.getPhaseDurations();
     
