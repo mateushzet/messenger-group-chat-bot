@@ -28,6 +28,7 @@ import games.horseRace.HorseRaceBettingService;
 import games.jackpot.JackpotService;
 import games.lotto.LottoService;
 import games.mines.MinesService;
+import games.moneytree.MoneyTreeService;
 import games.plinko.PlinkoService;
 import games.roulette.RouletteService;
 import games.slots.SlotsService;
@@ -82,6 +83,8 @@ public class CommandController {
         commands.put("btc", BitcoinService::handleBitcoinCommand);
         commands.put("buy", UserService::handleBuyCommand);
         commands.put("jackpot", JackpotService::handleJackpotCommand);
+        commands.put("tree", MoneyTreeService::handleTreeCommand);
+    
     }
 
     public static void processCommand(String userName, String message) {
