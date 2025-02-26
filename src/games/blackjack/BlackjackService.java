@@ -141,13 +141,13 @@ public class BlackjackService {
         if (playerScore == 21 ) {
             dealerScore = calculateHandValue(dealerHand);
             if(dealerScore != 21){
-            int winnings = (int) (betAmount * 1.5);
+            int winnings = (int) (betAmount * 2.5);
             userBalance = UserService.updateAndRetriveUserBalance(userName, winnings);
 
             UserAvatarRepository.assignAvatarToUser(userName, "blackjack");
 
             String gameStatus = userName + " Blackjack! You won " + winnings + "!";
-            GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), betAmount, winnings + betAmount, "Player hand: " + handToString(playerHand) + " Dealer hand: " + handToString(dealerHand));
+            GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), betAmount, winnings, "Player hand: " + handToString(playerHand) + " Dealer hand: " + handToString(dealerHand));
             
             BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, dealerHand, gameStatus, userBalance + winnings, betAmount, true, playerScore, dealerScore);
             MessageService.sendMessageFromClipboard(true);
