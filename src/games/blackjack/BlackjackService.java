@@ -72,7 +72,7 @@ public class BlackjackService {
             int playerScore = calculateHandValue(existingGame.getPlayerHand());
             int dealerScore = calculateSecondCardScore(existingGame.getDealerHand());
         
-            BlackjackGameRepository.saveGame(existingGame);
+            BlackjackGameRepository.updateGame(existingGame);
 
             if (playerScore > 21) {
                 endGame(userName, false, false, playerScore, dealerScore, context);
@@ -83,6 +83,7 @@ public class BlackjackService {
             }
         
             stand(userName, context);
+            return;
         }
 
         String helpMessage = "/bot blackjack bet [bet amount]\n" +
