@@ -72,12 +72,12 @@ public class MoneyTreeService {
             return;
         }
 
-        int userTotalBalance = UserRepository.getTotalUserBalance(userName);
-        int userBalanceTenPercent = (int)(userTotalBalance/10);
-        if (userBalanceTenPercent < coins) {
-            MessageService.sendMessage(userName + " you can plant up to 10%% of your balance ("+userBalanceTenPercent+" max).");
-            return;
-        }
+        //int userTotalBalance = UserRepository.getTotalUserBalance(userName);
+        //int userBalanceTenPercent = (int)(userTotalBalance/10);
+        //if (userBalanceTenPercent < coins) {
+        //    MessageService.sendMessage(userName + " you can plant up to 10%% of your balance ("+userBalanceTenPercent+" max).");
+        //    return;
+        //}
     
         UserRepository.updateUserBalance(userName, userBalance - coins);
     
@@ -233,15 +233,15 @@ public class MoneyTreeService {
             case 0:
                 return (int) (investedCoins * 0.5);
             case 1:
-                return (int) (investedCoins * 1.1);
+                return (int) (investedCoins * 1.05);
             case 2:
-                return (int) (investedCoins * 1.2);
+                return (int) (investedCoins * 1.1);
             case 3:
-                return (int) (investedCoins * 1.3);
+                return (int) (investedCoins * 1.15);
             case 4:
-                return (int) (investedCoins * 1.5);
+                return (int) (investedCoins * 1.25);
             case 5:
-                return (int) (investedCoins * 1.8);
+                return (int) (investedCoins * 1.5);
             default:
                 return 0;
         }
