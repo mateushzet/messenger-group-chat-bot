@@ -71,6 +71,13 @@ public class MoneyTreeService {
             MessageService.sendMessage(userName + " you don't have enough coins to play.");
             return;
         }
+
+        int userTotalBalance = UserRepository.getTotalUserBalance(userName);
+        int userBalanceTenPercent = (int)(userTotalBalance/10);
+        if (userBalanceTenPercent < coins) {
+            MessageService.sendMessage(userName + " you can plant up to 10%% of your balance ("+userBalanceTenPercent+" max).");
+            return;
+        }
     
         UserRepository.updateUserBalance(userName, userBalance - coins);
     
@@ -78,7 +85,7 @@ public class MoneyTreeService {
         Random random = new Random();
     
         int witherPhase;
-        if (random.nextInt(100) < 5) {
+        if (random.nextInt(100) < 10) {
             witherPhase = random.nextInt(PHASE_COUNT) + 1;
         } else {
             witherPhase = 7;
@@ -230,11 +237,11 @@ public class MoneyTreeService {
             case 2:
                 return (int) (investedCoins * 1.2);
             case 3:
-                return (int) (investedCoins * 1.4);
+                return (int) (investedCoins * 1.3);
             case 4:
-                return (int) (investedCoins * 1.7);
+                return (int) (investedCoins * 1.5);
             case 5:
-                return (int) (investedCoins * 2);
+                return (int) (investedCoins * 1.8);
             default:
                 return 0;
         }
