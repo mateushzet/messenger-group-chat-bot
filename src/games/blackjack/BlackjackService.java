@@ -38,6 +38,53 @@ public class BlackjackService {
             return;
         }
 
+        if (firstArg.equalsIgnoreCase("double") || firstArg.equalsIgnoreCase("d")) {
+            BlackjackGame existingGame = BlackjackGameRepository.getGameByUserName(userName);
+            if (existingGame == null || !existingGame.isGameInProgress()) {
+                MessageService.sendMessage(userName + " no active game. Start a new game with /bot blackjack bet [bet amount].");
+                return;
+            }
+
+            if (existingGame.isSplit()) {
+                MessageService.sendMessage(userName + " you can't double after split.");
+                return;
+            }
+
+            if (existingGame.getPlayerHand().size() != 2) {
+                MessageService.sendMessage(userName + " you can only double on your first two cards.");
+                return;
+            }
+        
+            int currentBet = existingGame.getCurrentBet();
+            int userBalance = UserRepository.getCurrentUserBalance(userName, false);
+        
+            if (currentBet > userBalance) {
+                MessageService.sendMessage(userName + " Insufficient balance for double. Current balance: " + userBalance + ", required amount: " + currentBet);
+                return;
+            }
+        
+            userBalance = UserService.updateAndRetriveUserBalance(userName, -currentBet);
+        
+            existingGame.setCurrentBet(currentBet * 2);
+        
+            existingGame.getPlayerHand().add(drawCard());
+        
+            int playerScore = calculateHandValue(existingGame.getPlayerHand());
+            int dealerScore = calculateSecondCardScore(existingGame.getDealerHand());
+        
+            BlackjackGameRepository.saveGame(existingGame);
+
+            if (playerScore > 21) {
+                endGame(userName, false, false, playerScore, dealerScore, context);
+                BlackjackImageGenerator.generateBlackjackImage(userName, existingGame.getPlayerHand(), existingGame.getDealerHand(), userName + " you lost " + existingGame.getCurrentBet() + "!", userBalance, existingGame.getCurrentBet(), true, playerScore, dealerScore);
+                MessageService.sendMessageFromClipboard(true);
+                BlackjackGameRepository.deleteGame(userName);
+                return;
+            }
+        
+            stand(userName, context);
+        }
+
         String helpMessage = "/bot blackjack bet [bet amount]\n" +
                              "/bot blackjack hit\n" +
                              "/bot blackjack stand\n" +
@@ -123,11 +170,11 @@ public class BlackjackService {
         MessageService.sendMessageFromClipboard(true);
     }
     
-    private static void hitCard(String userName, CommandContext context) {
+    private static boolean hitCard(String userName, CommandContext context) {
         BlackjackGame game = BlackjackGameRepository.getGameByUserName(userName);
         if (game == null || !game.isGameInProgress()) {
             MessageService.sendMessage(userName + " no active game. Start a new game with /bot blackjack bet [bet amount].");
-            return;
+            return false;
         }
     
         boolean isSplit = game.isSplit();
@@ -137,7 +184,7 @@ public class BlackjackService {
             String handToHit = context.getSecondArgument(); 
             if (handToHit == null || (!handToHit.equals("1") && !handToHit.equals("2"))) {
                 MessageService.sendMessage(userName + " choose which hand to hit: /bj hit 1 or /bj hit 2");
-                return;
+                return true;
             }
             if (handToHit.equals("2")) {
                 activeHand = game.getSplitHand();
@@ -156,13 +203,14 @@ public class BlackjackService {
             BlackjackImageGenerator.generateBlackjackImage(userName, activeHand, game.getDealerHand(), userName + " you lost " + game.getBetAmount() + "!", userBalance, game.getBetAmount(), true, playerScore, dealerScore);
             MessageService.sendMessageFromClipboard(true);
             if (!isSplit) BlackjackGameRepository.deleteGame(userName);
-            return;
+            return false;
         }
     
         BlackjackGameRepository.updateGame(game);
         dealerScore = calculateSecondCardScore(game.getDealerHand());
         BlackjackImageGenerator.generateBlackjackImage(userName, activeHand, game.getDealerHand(), userName + " you drew a card", userBalance, game.getBetAmount(), false, playerScore, dealerScore);
         MessageService.sendMessageFromClipboard(true);
+        return true;
     }
     
     private static void stand(String userName, CommandContext context) {
@@ -177,11 +225,11 @@ public class BlackjackService {
         int splitScore = game.isSplit() ? calculateHandValue(game.getSplitHand()) : 0;
 
         if(game.isSplit()){
-            while (calculateHandValue(dealerHand) < 17) {
+            while (calculateHandValue(dealerHand) < playerScore && calculateHandValue(dealerHand) < splitScore && calculateHandValue(dealerHand) < 17) {
                 dealerHand.add(drawCard());
             }
         }else  {
-            while (calculateHandValue(dealerHand) <= playerScore && calculateHandValue(dealerHand) != 21) {
+            while (calculateHandValue(dealerHand) < playerScore && calculateHandValue(dealerHand) < 17) {
                 dealerHand.add(drawCard());
             }
         }
@@ -353,6 +401,7 @@ public class BlackjackService {
         MessageService.sendMessageFromClipboard(true);
         BlackjackImageGenerator.generateBlackjackImage(userName, game.getSplitHand(), game.getDealerHand(), userName + " split hand 2", userBalance, betAmount, false, playerScore2, dealerScore);
         MessageService.sendMessageFromClipboard(true);
+        MessageService.sendMessage(userName + "choose which hand to hit: /bj hit 1 or /bj hit 2. At the end confirm both hands with /bj stand");
     }
     
 }
