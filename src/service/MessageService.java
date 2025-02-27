@@ -87,6 +87,16 @@ public class MessageService {
         Logger.logInfo("Message sent: %s", "MessageService.sendMessage()", formattedMessage);
     }
 
+    public static void sendMessage(String message) {
+        String messageInputBoxCssSelector = ConfigReader.getMessageInputBoxCssSelector();
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebElement inputBox = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(messageInputBoxCssSelector)));
+    
+        inputBox.sendKeys(message);
+        inputBox.sendKeys(Keys.RETURN);
+        Logger.logInfo("Message sent: " + message, "MessageService.sendMessage()");
+    }
+
     public static void sendMessageFromClipboard(boolean instant) {
         String messageInputBoxCssSelector = ConfigReader.getMessageInputBoxCssSelector();
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
