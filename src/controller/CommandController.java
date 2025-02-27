@@ -8,6 +8,7 @@ import service.StatisticsService;
 import service.UserService;
 import utils.ConfigReader;
 import utils.Logger;
+import service.AskCommandService;
 import service.AvatarsService;
 import service.BitcoinService;
 import service.CommandService;
@@ -84,6 +85,8 @@ public class CommandController {
         commands.put("buy", UserService::handleBuyCommand);
         commands.put("jackpot", JackpotService::handleJackpotCommand);
         commands.put("tree", MoneyTreeService::handleTreeCommand);
+        commands.put("ask", AskCommandService::handleAskCommand);
+        
     
     }
 
