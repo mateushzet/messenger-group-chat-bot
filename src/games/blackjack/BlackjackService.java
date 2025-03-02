@@ -150,7 +150,7 @@ public class BlackjackService {
             String gameStatus = userName + " Blackjack! You won " + winnings + "!";
             GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), betAmount, winnings, "Player hand: " + handToString(playerHand) + " Dealer hand: " + handToString(dealerHand));
             
-            BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, dealerHand, gameStatus, userBalance + winnings, betAmount, true, playerScore, dealerScore);
+            BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, dealerHand, gameStatus, userBalance, betAmount, true, playerScore, dealerScore);
             MessageService.sendMessageFromClipboard(true);
             BlackjackGameRepository.deleteGame(userName);
             return;
