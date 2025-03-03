@@ -5,14 +5,11 @@ import utils.Logger;
 import controller.BrowserController;
 import service.MessageService;
 
-import java.io.File;
-
 import org.openqa.selenium.*;
 import factory.WebDriverFactory;
 
 public class App {
 
-    public static final String USERS_MONEY_FILE_PATH = "src" + File.separator + "repository" + File.separator + "users_money.txt";
     public static int running = 1;
 
     public static void main(String[] args) {
