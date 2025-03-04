@@ -299,12 +299,9 @@ public class UserRepository {
     }
 
     public static void saveAvatarToDatabase(String username, String avatarUrl) {
-        // Check if the user already exists
         if (userExists(username)) {
-            // User exists, perform an UPDATE
             updateUserAvatar(username, avatarUrl);
         } else {
-            // User does not exist, perform an INSERT and assign default skin
             insertUser(username, avatarUrl);
             UserSkinRepository.assignSkinToUser(username, "default");
             Logger.logInfo("Default skin assigned to user: " + username, "UserRepository.saveAvatarToDatabase()");
@@ -317,11 +314,11 @@ public class UserRepository {
              PreparedStatement statement = connection.prepareStatement(query)) {
             statement.setString(1, username);
             try (ResultSet resultSet = statement.executeQuery()) {
-                return resultSet.next(); // Returns true if the user exists
+                return resultSet.next();
             }
         } catch (SQLException e) {
             Logger.logError("Failed to check if user exists", "UserRepository.userExists()", e);
-            return false; // Assume user does not exist in case of error
+            return false;
         }
     }
     
