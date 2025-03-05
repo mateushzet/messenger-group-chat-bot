@@ -1,5 +1,6 @@
 package service;
 
+import repository.RewardsHistoryRepository;
 import repository.UserRepository;
 import utils.Logger;
 
@@ -73,6 +74,7 @@ public class MathQuestionService {
         UserRepository.updateUserBalance(userName, userBalance + mathQuestionPrize);
         MessageService.sendMessage("%s correct answer! You earn %d coins! Current balance: %d", userName, mathQuestionPrize, (userBalance + mathQuestionPrize));
         Logger.logInfo("%s solved math question and earned %d coins, previous balance: %d", "MathQuestionService.rewardUser()", userName, mathQuestionPrize, userBalance);
+        RewardsHistoryRepository.addRewardHistory(userName, "Answer", mathQuestionPrize);
     }
 
     private static void sendMathQuestion(){

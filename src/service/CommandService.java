@@ -1,6 +1,7 @@
 package service;
 
 import repository.UserRepository;
+import repository.RewardsHistoryRepository;
 import repository.RewardsRepository;
 import repository.UserAvatarRepository;
 
@@ -133,6 +134,7 @@ public class CommandService {
     
             MessageService.sendMessage("%s has claimed the daily reward. Current balance: %d", userName, newBalance);
             Logger.logInfo("User %s claimed daily reward. New balance: %d", "CommandService.handleDailyCommand()", userName, newBalance);
+            RewardsHistoryRepository.addRewardHistory(userName, "Daily", dailyRewardPrize);
         } catch (Exception e) {
             Logger.logError("Error processing daily reward for user %s: %s", "CommandService.handleDailyCommand()", e, userName);
             MessageService.sendMessage("An error occurred while claiming your daily reward. Please try again later.");
@@ -163,6 +165,7 @@ public class CommandService {
 
             MessageService.sendMessage("%s has claimed the hourly reward %d coins. Current balance: %d", userName, hourlyRewardPrize, newBalance);
             Logger.logInfo("User %s claimed hourly reward. New balance: %d","CommandService.handleHourlyCommand()", userName, newBalance);
+            RewardsHistoryRepository.addRewardHistory(userName, "Hourly", hourlyRewardPrize);
         } catch (Exception e) {
             Logger.logError("Error processing hourly reward for user %s", "CommandService.handleHourlyCommand()", e, userName);
             MessageService.sendMessage("An error occurred while claiming your hourly reward. Please try again later.");
