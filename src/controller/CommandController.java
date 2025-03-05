@@ -28,6 +28,7 @@ import games.dice.DiceGameService;
 import games.horseRace.HorseRaceBettingService;
 import games.jackpot.JackpotService;
 import games.lotto.LottoService;
+import games.match.MatchController;
 import games.mines.MinesService;
 import games.moneytree.MoneyTreeService;
 import games.plinko.PlinkoService;

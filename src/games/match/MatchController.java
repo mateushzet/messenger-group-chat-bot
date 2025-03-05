@@ -1,6 +1,5 @@
-package controller;
+package games.match;
 
-import games.match.SportsBettingService;
 import model.CommandContext;
 import service.MessageService;
 
