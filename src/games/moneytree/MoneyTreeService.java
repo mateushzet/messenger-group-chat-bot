@@ -6,6 +6,7 @@ import service.MessageService;
 import model.CommandContext;
 import utils.ImageUtils;
 
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -97,7 +98,7 @@ public class MoneyTreeService {
 
         MoneyTreeRepository.saveGame(userName, coins, phaseDurations, witherPhase, witherTime);
 
-        BufferedImage treeImage = loadTreeImage(0);
+        BufferedImage treeImage = loadTreeImage(0, userName);
         if (treeImage != null) {
             ImageUtils.setClipboardImage(treeImage);
             MessageService.sendMessageFromClipboard(true);
@@ -117,7 +118,7 @@ public class MoneyTreeService {
         long elapsedTime = currentTime - game.getStartTime();
 
         if (elapsedTime >= game.getWitherTime()) {
-            BufferedImage witheredImage = loadTreeImage(-1);
+            BufferedImage witheredImage = loadTreeImage(-1, userName);
             if (witheredImage != null) {
                 ImageUtils.setClipboardImage(witheredImage);
                 MessageService.sendMessageFromClipboard(true);
@@ -142,7 +143,7 @@ public class MoneyTreeService {
         }
 
         if (game.getWitherPhase() != 7 && currentPhase >= game.getWitherPhase()) {
-            BufferedImage witheredImage = loadTreeImage(-1);
+            BufferedImage witheredImage = loadTreeImage(-1, userName);
             if (witheredImage != null) {
                 ImageUtils.setClipboardImage(witheredImage);
                 MessageService.sendMessageFromClipboard(true);
@@ -154,7 +155,7 @@ public class MoneyTreeService {
             return;
         }
 
-        BufferedImage treeImage = loadTreeImage(currentPhase);
+        BufferedImage treeImage = loadTreeImage(currentPhase, userName);
         if (treeImage != null) {
             ImageUtils.setClipboardImage(treeImage);
             MessageService.sendMessageFromClipboard(true);
@@ -172,7 +173,7 @@ public class MoneyTreeService {
         long elapsedTime = currentTime - game.getStartTime();
 
         if (elapsedTime >= game.getWitherTime()) {
-            BufferedImage witheredImage = loadTreeImage(-1);
+            BufferedImage witheredImage = loadTreeImage(-1, userName);
             if (witheredImage != null) {
                 ImageUtils.setClipboardImage(witheredImage);
                 MessageService.sendMessageFromClipboard(true);
@@ -196,7 +197,7 @@ public class MoneyTreeService {
         }
 
         if (currentPhase >= game.getWitherPhase()) {
-            BufferedImage witheredImage = loadTreeImage(-1);
+            BufferedImage witheredImage = loadTreeImage(-1, userName);
             if (witheredImage != null) {
                 ImageUtils.setClipboardImage(witheredImage);
                 MessageService.sendMessageFromClipboard(true);
@@ -210,7 +211,7 @@ public class MoneyTreeService {
         int profit = calculateProfit(game.getInvestedCoins(), currentPhase);
         UserRepository.updateUserBalance(userName, UserRepository.getCurrentUserBalance(userName, true) + profit);
 
-        BufferedImage treeImage = loadTreeImage(currentPhase);
+        BufferedImage treeImage = loadTreeImage(currentPhase, userName);
         if (treeImage != null) {
             ImageUtils.setClipboardImage(treeImage);
             MessageService.sendMessageFromClipboard(true);
@@ -255,11 +256,28 @@ public class MoneyTreeService {
         }
     }
 
-    private static BufferedImage loadTreeImage(int phase) {
+    private static BufferedImage loadTreeImage(int phase, String userName) {
         try {
+
             String fileName = (phase == -1) ? "withered.png" : "phase_" + phase + ".png";
             File imageFile = new File(TREE_IMAGES_PATH + fileName);
-            return ImageIO.read(imageFile);
+            BufferedImage treeImage = ImageIO.read(imageFile);
+    
+            BufferedImage combinedImage = new BufferedImage(
+                    treeImage.getWidth(), treeImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = combinedImage.createGraphics();
+    
+            g.drawImage(treeImage, 0, 0, null);
+    
+            int avatarWidth = 50;
+            int avatarHeight = 50;
+            int avatarX = treeImage.getWidth() - avatarWidth - 10;
+            int avatarY = 10;
+    
+            ImageUtils.drawUserAvatar(g, userName, avatarX, avatarY, avatarWidth, avatarHeight);
+    
+            g.dispose();
+            return combinedImage;
         } catch (IOException e) {
             e.printStackTrace();
             return null;
