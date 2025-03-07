@@ -2,6 +2,7 @@ package games.jackpot;
 
 import com.madgag.gif.fmsware.AnimatedGifEncoder;
 import utils.GradientGenerator;
+import utils.ImageUtils;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -79,33 +80,33 @@ public class JackpotGifGenerator {
         return avatars;
     }
 
-    private static List<BufferedImage> generateFrames(Map<String, BufferedImage> avatars, String winnerName, int totalPot, Map<String, Integer> bets) {
-        List<BufferedImage> frames = new ArrayList<>();
-    
-        double speed = 8000;
-        double deceleration = 0.97;
-        int randomStopOffset = new Random().nextInt(220) - 160;
-        int endSpeed = new Random().nextInt(301);
-    
-        List<String> weightedParticipants = getWeightedParticipants(bets);
-        Collections.shuffle(weightedParticipants);
-    
-        for (int i = 0; i < FRAME_COUNT; i++) {
-            boolean finalFrames = i >= 120;
-            if (finalFrames) {
-                for (int j = 0; j < 400; j++) {
-                    frames.add(generateFrame(weightedParticipants, avatars, (int) speed, randomStopOffset, winnerName, totalPot, finalFrames, bets));
-                }
-            }
-            frames.add(generateFrame(weightedParticipants, avatars, (int) speed, randomStopOffset, winnerName, totalPot, finalFrames, bets));
-            speed *= deceleration;
-            if (speed <= endSpeed) {
-                speed = endSpeed;
+private static List<BufferedImage> generateFrames(Map<String, BufferedImage> avatars, String winnerName, int totalPot, Map<String, Integer> bets) {
+    List<BufferedImage> frames = new ArrayList<>();
+
+    double speed = 8000;
+    double deceleration = 0.97;
+    int randomStopOffset = new Random().nextInt(220) - 160;
+    int endSpeed = new Random().nextInt(301);
+
+    List<String> weightedParticipants = getWeightedParticipants(bets);
+    // Collections.shuffle(weightedParticipants);
+
+    for (int i = 0; i < FRAME_COUNT; i++) {
+        boolean finalFrames = i >= 120;
+        if (finalFrames) {
+            for (int j = 0; j < 400; j++) {
+                frames.add(generateFrame(weightedParticipants, avatars, (int) speed, randomStopOffset, winnerName, totalPot, finalFrames, bets));
             }
         }
-    
-        return frames;
+        frames.add(generateFrame(weightedParticipants, avatars, (int) speed, randomStopOffset, winnerName, totalPot, finalFrames, bets));
+        speed *= deceleration;
+        if (speed <= endSpeed) {
+            speed = endSpeed;
+        }
     }
+
+    return frames;
+}
 
 private static BufferedImage generateFrame(List<String> weightedParticipants, Map<String, BufferedImage> avatars, int speed, int randomStopOffset,
                                           String winnerName, int totalPot, boolean finalFrames, Map<String, Integer> bets) {
