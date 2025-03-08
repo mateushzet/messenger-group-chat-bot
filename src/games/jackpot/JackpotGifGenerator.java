@@ -27,10 +27,7 @@ public class JackpotGifGenerator {
         Map<String, Integer> bets = JackpotGameRepository.getJackpotBets();
         List<String> participants = new ArrayList<>(bets.keySet());
     
-        if (participants.isEmpty()) {
-            participants.add("Bot");
-            bets.put("Bot", 10);
-        } else {
+        if (participants.size()<=1) {
             int minBet = findMinimumBet(bets);
             participants.add("Bot");
             bets.put("Bot", minBet);
@@ -294,7 +291,7 @@ private static BufferedImage generateFrame(List<String> weightedParticipants, Ma
     
         GradientPaint gradient = new GradientPaint(100, 100, new Color(0, 0, 0, 200), 700, 200, new Color(50, 50, 50, 200));
         g.setPaint(gradient);
-        g.fillRoundRect(0, 230, 300, 150, 20, 20);
+        g.fillRoundRect(-10, 230, 300, 150, 20, 20);
 
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 24));
@@ -304,7 +301,7 @@ private static BufferedImage generateFrame(List<String> weightedParticipants, Ma
 
         g.setColor(new Color(255, 255, 255, 100));
         g.setStroke(new BasicStroke(2));
-        g.drawRoundRect(0, 230, 300, 150, 20, 20);
+        g.drawRoundRect(-10, 230, 300, 150, 20, 20);
 
         g.dispose();
         return image;
