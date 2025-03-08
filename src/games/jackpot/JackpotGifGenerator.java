@@ -252,7 +252,7 @@ private static BufferedImage generateFrame(List<String> weightedParticipants, Ma
         int speed = 7;
         int totalParticipants = weightedParticipants.size();
     
-        for (int i = 0; i < FRAME_COUNT * 2; i++) {
+        for (int i = 0; i < 115; i++) {
             int offset = -(i * speed) % (totalParticipants * NAME_SPACING);
             frames.add(generatePresentationFrame(weightedParticipants, avatars, offset, bets, startTime));
         }
