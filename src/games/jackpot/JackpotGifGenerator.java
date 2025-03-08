@@ -39,11 +39,15 @@ public class JackpotGifGenerator {
     
         avatarUrls.putIfAbsent("Bot", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSgMQyeXHo2tzPRatT5CCO9xkei66IqM4Pn2g&s");
     
-        String winnerName = selectWinner(bets);
+        
         int totalPot = bets.values().stream().mapToInt(Integer::intValue).sum();
     
         List<String> weightedParticipants = getWeightedParticipants(bets);
-    
+        Collections.shuffle(weightedParticipants);
+
+        int winnerIndex = 2;
+        String winnerName = weightedParticipants.get(winnerIndex);
+
         byte[] gifBytes = generateJackpotGif(winnerName, totalPot, weightedParticipants, bets, avatarUrls);
     
         return new JackpotResult(winnerName, totalPot, gifBytes);
@@ -55,7 +59,7 @@ public class JackpotGifGenerator {
 
         Map<String, BufferedImage> avatars = loadAvatarsFromUrls(avatarUrls);
 
-        List<BufferedImage> frames = generateFrames(avatars, winnerName, totalPot, bets);
+        List<BufferedImage> frames = generateFrames(avatars, winnerName, totalPot, bets, participants);
 
         return createGif(frames);
     }
@@ -80,25 +84,22 @@ public class JackpotGifGenerator {
         return avatars;
     }
 
-private static List<BufferedImage> generateFrames(Map<String, BufferedImage> avatars, String winnerName, int totalPot, Map<String, Integer> bets) {
+private static List<BufferedImage> generateFrames(Map<String, BufferedImage> avatars, String winnerName, int totalPot, Map<String, Integer> bets, List<String> participants) {
     List<BufferedImage> frames = new ArrayList<>();
 
     double speed = 8000;
     double deceleration = 0.97;
-    int randomStopOffset = new Random().nextInt(220) - 160;
+    int randomStopOffset = new Random().nextInt(160) - 80;
     int endSpeed = new Random().nextInt(301);
-
-    List<String> weightedParticipants = getWeightedParticipants(bets);
-    // Collections.shuffle(weightedParticipants);
 
     for (int i = 0; i < FRAME_COUNT; i++) {
         boolean finalFrames = i >= 120;
         if (finalFrames) {
             for (int j = 0; j < 400; j++) {
-                frames.add(generateFrame(weightedParticipants, avatars, (int) speed, randomStopOffset, winnerName, totalPot, finalFrames, bets));
+                frames.add(generateFrame(participants, avatars, (int) speed, randomStopOffset, winnerName, totalPot, finalFrames, bets));
             }
         }
-        frames.add(generateFrame(weightedParticipants, avatars, (int) speed, randomStopOffset, winnerName, totalPot, finalFrames, bets));
+        frames.add(generateFrame(participants, avatars, (int) speed, randomStopOffset, winnerName, totalPot, finalFrames, bets));
         speed *= deceleration;
         if (speed <= endSpeed) {
             speed = endSpeed;
@@ -225,23 +226,10 @@ private static BufferedImage generateFrame(List<String> weightedParticipants, Ma
                 weightedParticipants.add(username);
             }
         }
-    
+
+        if(weightedParticipants.size() <= 2)  weightedParticipants.addAll(weightedParticipants);
+
         return weightedParticipants;
-    }
-
-    private static String selectWinner(Map<String, Integer> bets) {
-        int totalBets = bets.values().stream().mapToInt(Integer::intValue).sum();
-        Random random = new Random();
-        int randomNumber = random.nextInt(totalBets) + 1;
-
-        int cumulativeSum = 0;
-        for (Map.Entry<String, Integer> entry : bets.entrySet()) {
-            cumulativeSum += entry.getValue();
-            if (randomNumber <= cumulativeSum) {
-                return entry.getKey();
-            }
-        }
-        return null;
     }
 
 }
