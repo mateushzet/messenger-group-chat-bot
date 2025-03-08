@@ -90,7 +90,7 @@ private static List<BufferedImage> generateFrames(Map<String, BufferedImage> ava
 
     double speed = 8000;
     double deceleration = 0.97;
-    int randomStopOffset = new Random().nextInt(160) - 80;
+    int randomStopOffset = new Random().nextInt(120) - 60;
     int endSpeed = new Random().nextInt(301);
 
     for (int i = 0; i < FRAME_COUNT; i++) {
