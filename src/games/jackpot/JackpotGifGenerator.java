@@ -1,9 +1,8 @@
 package games.jackpot;
 
 import com.madgag.gif.fmsware.AnimatedGifEncoder;
-import utils.GradientGenerator;
-import utils.ImageUtils;
 
+import utils.GradientGenerator;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -11,6 +10,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
 
@@ -227,9 +228,113 @@ private static BufferedImage generateFrame(List<String> weightedParticipants, Ma
             }
         }
 
-        if(weightedParticipants.size() <= 2)  weightedParticipants.addAll(weightedParticipants);
+        while(weightedParticipants.size() <= 2){
+            weightedParticipants.addAll(weightedParticipants);
+        }
 
         return weightedParticipants;
     }
 
+    public static byte[] generatePresentationGif(List<String> participants, Map<String, Integer> bets, Map<String, String> avatarUrls) throws IOException {
+        gradient = GradientGenerator.generateGradientFromUsername(participants.get(0), true, WIDTH, HEIGHT);
+    
+        Map<String, BufferedImage> avatars = loadAvatarsFromUrls(avatarUrls);
+    
+        List<BufferedImage> frames = generatePresentationFrames(avatars, participants, bets);
+    
+        return createGif(frames);
+    }
+
+    private static List<BufferedImage> generatePresentationFrames(Map<String, BufferedImage> avatars, List<String> weightedParticipants, Map<String, Integer> bets) {
+        List<BufferedImage> frames = new ArrayList<>();
+    
+        String startTime = printTimeAfter10Minutes();
+        int speed = 7;
+        int totalParticipants = weightedParticipants.size();
+    
+        for (int i = 0; i < FRAME_COUNT * 2; i++) {
+            int offset = -(i * speed) % (totalParticipants * NAME_SPACING);
+            frames.add(generatePresentationFrame(weightedParticipants, avatars, offset, bets, startTime));
+        }
+    
+        return frames;
+    }
+
+    private static BufferedImage generatePresentationFrame(List<String> weightedParticipants, Map<String, BufferedImage> avatars, int offset, Map<String, Integer> bets, String startTime) {
+        BufferedImage image = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = image.createGraphics();
+        int totalPot = bets.values().stream().mapToInt(Integer::intValue).sum();
+
+        g.setPaint(gradient);
+        g.fillRect(0, 0, WIDTH, HEIGHT);
+    
+        int totalParticipants = weightedParticipants.size();
+        if (totalParticipants == 0) {
+            g.dispose();
+            return image;
+        }
+    
+        for (int i = 0; i < totalParticipants * 2; i++) {
+            int index = i % totalParticipants;
+            String participant = weightedParticipants.get(index);
+            int x = offset + i * NAME_SPACING;
+            BufferedImage avatar = avatars.get(participant);
+            if (avatar != null) {
+                g.drawImage(avatar, x, 50, 100, 100, null);
+            }
+            g.setColor(Color.WHITE);
+            g.setFont(new Font("Arial", Font.BOLD, 16));
+            g.drawString(participant, x + 10, 170);
+            g.drawString("$" + bets.get(participant), x + 10, 190);
+        }
+    
+        g.setColor(Color.YELLOW);
+        g.setStroke(new BasicStroke(3));
+        g.drawRect(400, 0, 2, 300);
+    
+        GradientPaint gradient = new GradientPaint(100, 100, new Color(0, 0, 0, 200), 700, 200, new Color(50, 50, 50, 200));
+        g.setPaint(gradient);
+        g.fillRoundRect(0, 230, 300, 150, 20, 20);
+
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 24));
+
+        g.drawString("Starting: " + startTime, 22, 262);
+        g.drawString("Prize: $" + totalPot, 22, 292);
+
+        g.setColor(new Color(255, 255, 255, 100));
+        g.setStroke(new BasicStroke(2));
+        g.drawRoundRect(0, 230, 300, 150, 20, 20);
+
+        g.dispose();
+        return image;
+    }
+
+    public static byte[] generateParticipantPresentationGif() throws IOException {
+        Map<String, Integer> bets = JackpotGameRepository.getJackpotBets();
+        List<String> participants = new ArrayList<>(bets.keySet());
+     
+        Map<String, String> avatarUrls = JackpotGameRepository.getUserAvatars(participants);
+        avatarUrls.putIfAbsent("Bot", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSgMQyeXHo2tzPRatT5CCO9xkei66IqM4Pn2g&s");
+    
+        List<String> weightedParticipants = getWeightedParticipants(bets);
+        Collections.shuffle(weightedParticipants);
+
+        return generatePresentationGif(weightedParticipants, bets, avatarUrls);
+    }
+
+     public static String printTimeAfter10Minutes() {
+        java.sql.Timestamp oldestTimestamp = JackpotGameRepository.getOldestTimestamp();
+        if (oldestTimestamp != null) {
+            LocalDateTime oldestTime = oldestTimestamp.toLocalDateTime();
+            LocalDateTime timeAfter10Minutes = oldestTime.plusMinutes(10);
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
+            String formattedTime = timeAfter10Minutes.format(formatter);
+
+            return formattedTime;
+        } else {
+            return "";
+        }
+    }
+    
 }

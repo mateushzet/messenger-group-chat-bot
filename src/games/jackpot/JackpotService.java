@@ -25,7 +25,24 @@ public class JackpotService {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         JackpotGameRepository.addJackpotBet(playerName, betAmount, timestamp);
 
-        MessageService.sendMessage(playerName + " successfully joined the jackpot game with a bet of " + parsedBetAmount + ". The game will start in 10 minutes.");
+        
+
+        byte[] gif;
+        try {
+            gif = JackpotGifGenerator.generateParticipantPresentationGif();
+        
+        if (gif != null) {
+            ImageUtils.setClipboardGif(gif);
+        } else {
+            MessageService.sendMessage("Error while joining jackpot game!");
+            return;
+        }
+
+        MessageService.sendMessageFromClipboard(true);
+        } catch (Exception e) {
+            MessageService.sendMessage("Error while joining jackpot game!");
+        }
+        
     }
 
     public static void startJackpotGame() {
