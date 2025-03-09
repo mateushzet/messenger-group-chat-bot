@@ -53,7 +53,9 @@ public class JackpotGifGenerator {
 
     public static byte[] generateJackpotGif(String winnerName, int totalPot, List<String> participants,
                                            Map<String, Integer> bets, Map<String, String> avatarUrls) throws IOException {
-        gradient = GradientGenerator.generateGradientFromUsername(participants.get(0), true, WIDTH, HEIGHT);
+
+        String gradientUserName = participants.get(0).equals("Bot")?participants.get(1):participants.get(0);
+        gradient = GradientGenerator.generateGradientFromUsername(gradientUserName, true, WIDTH, HEIGHT);
 
         Map<String, BufferedImage> avatars = loadAvatarsFromUrls(avatarUrls);
 
@@ -249,7 +251,7 @@ private static BufferedImage generateFrame(List<String> weightedParticipants, Ma
         int speed = 7;
         int totalParticipants = weightedParticipants.size();
     
-        for (int i = 0; i < 115; i++) {
+        for (int i = 0; i < 230; i++) {
             int offset = -(i * speed) % (totalParticipants * NAME_SPACING);
             frames.add(generatePresentationFrame(weightedParticipants, avatars, offset, bets, startTime));
         }
