@@ -141,7 +141,31 @@ public class CommandService {
         }
     }
 
- public static void handleHourlyCommand(CommandContext context) {
+    public static void handleWeeklyCommand(CommandContext context) {
+        String userName = context.getUserName();
+        
+        try {
+            if (RewardsRepository.hasReceivedWeeklyReward(userName)) {
+                MessageService.sendMessage("You have already claimed your weekly reward.");
+                return;
+            }
+            
+            int currentBalance = UserRepository.getCurrentUserBalance(userName, true);
+            int weeklyRewardPrize = 5 * dailyRewardPrize;
+            int newBalance = currentBalance + weeklyRewardPrize;
+    
+            UserRepository.updateUserBalance(userName, newBalance);
+            RewardsRepository.updateWeeklyReward(userName);
+    
+            MessageService.sendMessage("%s has claimed the weekly reward. Current balance: %d", userName, newBalance);
+            RewardsHistoryRepository.addRewardHistory(userName, "Weekly", weeklyRewardPrize);
+        } catch (Exception e) {
+            Logger.logError("Error processing weekly reward for user %s: %s", "CommandService.handleWeeklyCommand()", e, userName);
+            MessageService.sendMessage("An error occurred while claiming your weekly reward. Please try again later.");
+        }
+    }
+
+    public static void handleHourlyCommand(CommandContext context) {
         String userName = context.getUserName();
         LocalTime now = LocalTime.now();
         int currentMinute = now.getMinute();
