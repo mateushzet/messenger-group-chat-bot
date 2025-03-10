@@ -171,8 +171,7 @@ public class RewardsRepository {
         return dateFormat.format(new Date());
     }
 
-    private static String getCurrentDateTime() {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH");
-        return dateFormat.format(new Date());
+    public static String getCurrentDateTime() {
+        return LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }
 }

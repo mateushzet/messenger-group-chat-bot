@@ -160,8 +160,8 @@ public class CommandService {
             MessageService.sendMessage("%s has claimed the weekly reward. Current balance: %d", userName, newBalance);
             RewardsHistoryRepository.addRewardHistory(userName, "Weekly", weeklyRewardPrize);
         } catch (Exception e) {
-            Logger.logError("Error processing weekly reward for user %s: %s", "CommandService.handleWeeklyCommand()", e, userName);
-            MessageService.sendMessage("An error occurred while claiming your weekly reward. Please try again later.");
+            System.out.println(e);
+              MessageService.sendMessage("An error occurred while claiming your weekly reward. Please try again later.");
         }
     }
 
