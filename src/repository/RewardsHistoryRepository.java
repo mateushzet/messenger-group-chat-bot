@@ -6,7 +6,7 @@ import database.DatabaseConnectionManager;
 public class RewardsHistoryRepository {
 
     private static final String INSERT_REWARD_HISTORY = 
-        "INSERT INTO rewards_history (username, reward_type, amount) VALUES (?, ?, ?)";
+        "INSERT INTO rewards_history (user_name, reward_type, amount) VALUES (?, ?, ?)";
 
     public static void addRewardHistory(String username, String rewardType, double amount) {
         try (Connection connection = DatabaseConnectionManager.getConnection();

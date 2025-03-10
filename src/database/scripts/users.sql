@@ -5,14 +5,8 @@ CREATE TABLE IF NOT EXISTS users (
     access_to_games TEXT DEFAULT NULL,     
     daily_coins_claimed_at TEXT DEFAULT NULL,
     hourly_reward_claimed_at TEXT DEFAULT NULL,
+    weekly_reward_claimed_at TEXT DEFAULT NULL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
     avatar_url TEXT
 );
-
-
-update users set account_balance = 110 where user_id = 1
-
-select * from users
-
-alter table users add column avatar_url TEXT

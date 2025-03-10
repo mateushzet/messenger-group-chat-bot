@@ -5,7 +5,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.WeekFields;
 import java.util.*;
+
 
 import database.DatabaseConnectionManager;
 import utils.Logger;
@@ -33,7 +37,44 @@ public class RewardsRepository {
             return today.equals(lastReceivedDate);
 
         } catch (SQLException e) {
-            Logger.logError("Error while checking daily reward info for user: %s", "DailyRewardRepository.hasReceivedDailyReward()", e, userName);
+            Logger.logError("Error while checking daily reward info for user: %s", "RewardsRepository.hasReceivedDailyReward()", e, userName);
+            return false;
+        }
+    }
+
+    public static boolean hasReceivedWeeklyReward(String userName) {
+        String query = "SELECT weekly_reward_claimed_at FROM users WHERE username = ?";
+
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+            PreparedStatement statement = connection.prepareStatement(query)) {
+            
+            statement.setString(1, userName);
+            ResultSet resultSet = statement.executeQuery();
+
+            if (!resultSet.next()) {
+                return false;
+            }
+
+            String lastReceivedString = resultSet.getString("weekly_reward_claimed_at");
+            if (lastReceivedString == null || lastReceivedString.isEmpty()) {
+                return false;
+            }
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            LocalDateTime lastReceivedDateTime = LocalDateTime.parse(lastReceivedString, formatter);
+            LocalDateTime now = LocalDateTime.now();
+
+            WeekFields weekFields = WeekFields.of(Locale.getDefault());
+            int lastWeek = lastReceivedDateTime.toLocalDate().get(weekFields.weekOfWeekBasedYear());
+            int currentWeek = now.toLocalDate().get(weekFields.weekOfWeekBasedYear());
+
+            int lastYear = lastReceivedDateTime.toLocalDate().get(weekFields.weekBasedYear());
+            int currentYear = now.toLocalDate().get(weekFields.weekBasedYear());
+
+            return (lastYear == currentYear) && (lastWeek == currentWeek);
+
+        } catch (SQLException e) {
+            Logger.logError("Error while checking weekly reward info for user: %s", "RewardsRepository.hasReceivedWeeklyReward()", e, userName);
             return false;
         }
     }
@@ -57,7 +98,7 @@ public class RewardsRepository {
             return today.equals(lastReceivedDate);
 
         } catch (SQLException e) {
-            Logger.logError("Error while checking hourly reward info for user: %s", "HourlyRewardRepository.hasReceivedHourlyReward()", e, userName);
+            Logger.logError("Error while checking hourly reward info for user: %s", "RewardsRepository.hasReceivedHourlyReward()", e, userName);
             return false;
         }
     }
@@ -79,7 +120,7 @@ public class RewardsRepository {
             }
 
         } catch (SQLException e) {
-            Logger.logError("Error while updating daily reward info for user: %s", "DailyRewardRepository.updateDailyReward()", e, userName);
+            Logger.logError("Error while updating daily reward info for user: %s", "RewardsRepository.updateDailyReward()", e, userName);
         }
     }
 
@@ -96,11 +137,32 @@ public class RewardsRepository {
             if (rowsUpdated > 0) {
                 Logger.logInfo("Successfully updated hourly reward for user: %s", "ColorsRepository.updateHourlyReward()", userName);
             } else {
-                Logger.logWarning("User not found: %s", "HourlyRewardRepository.updateHourlyReward()", userName);
+                Logger.logWarning("User not found: %s", "RewardsRepository.updateHourlyReward()", userName);
             }
 
         } catch (SQLException e) {
-            Logger.logError("Error while updating hourly reward info for user: %s", "HourlyRewardRepository.updateHourlyReward()", e, userName);
+            Logger.logError("Error while updating hourly reward info for user: %s", "RewardsRepository.updateHourlyReward()", e, userName);
+        }
+    }
+
+    public static void updateWeeklyReward(String userName) {
+        String query = "UPDATE users SET weekly_reward_claimed_at = ? WHERE username = ?";
+
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+
+            statement.setString(1, getCurrentDateTime());
+            statement.setString(2, userName);
+            int rowsUpdated = statement.executeUpdate();
+
+            if (rowsUpdated > 0) {
+                Logger.logInfo("Successfully updated hourly reward for user: %s", "ColorsRepository.updateHourlyReward()", userName);
+            } else {
+                Logger.logWarning("User not found: %s", "RewardsRepository.updateHourlyReward()", userName);
+            }
+
+        } catch (SQLException e) {
+            Logger.logError("Error while updating hourly reward info for user: %s", "RewardsRepository.updateHourlyReward()", e, userName);
         }
     }
 
