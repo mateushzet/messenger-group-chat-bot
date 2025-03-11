@@ -137,7 +137,7 @@ private static BufferedImage generateFrame(List<String> weightedParticipants, Ma
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 16));
         g.drawString(participant, x + 10, 170);
-        g.drawString("$" + bets.get(participant), x + 10, 190);
+        g.drawString("$ " + bets.get(participant), x + 10, 190);
     }
 
     g.setColor(Color.YELLOW);
@@ -249,10 +249,10 @@ private static BufferedImage generateFrame(List<String> weightedParticipants, Ma
         List<BufferedImage> frames = new ArrayList<>();
     
         String startTime = printTimeAfter10Minutes();
-        int speed = 7;
+        int speed = 6;
         int totalParticipants = weightedParticipants.size();
     
-        for (int i = 0; i < 230; i++) {
+        for (int i = 0; i < 270; i++) {
             int offset = -(i * speed) % (totalParticipants * NAME_SPACING);
             frames.add(generatePresentationFrame(weightedParticipants, avatars, offset, bets, startTime));
         }
@@ -284,14 +284,11 @@ private static BufferedImage generateFrame(List<String> weightedParticipants, Ma
             }
             g.setColor(Color.WHITE);
             g.setFont(new Font("Arial", Font.BOLD, 16));
-            g.drawString(participant, x + 10, 170);
-            g.drawString("$" + bets.get(participant), x + 10, 190);
+            g.drawString(participant, x, 170);
+            g.setFont(new Font("Arial", Font.BOLD, 24));
+            g.drawString("$" + bets.get(participant), x, 200);
         }
-    
-        g.setColor(Color.YELLOW);
-        g.setStroke(new BasicStroke(3));
-        g.drawRect(400, 0, 2, 300);
-    
+      
         GradientPaint gradient = new GradientPaint(100, 100, new Color(0, 0, 0, 200), 700, 200, new Color(50, 50, 50, 200));
         g.setPaint(gradient);
         g.fillRoundRect(-10, 230, 300, 150, 20, 20);
