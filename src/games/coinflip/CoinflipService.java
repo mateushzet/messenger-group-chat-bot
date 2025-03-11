@@ -29,7 +29,7 @@ public class CoinflipService {
         } else if (command.equalsIgnoreCase("games")) {
             handleCheckActiveGamesCommand();
         } else {
-            MessageService.sendMessage("Invalid command.");
+            MessageService.sendMessage("Avaiable commands: bet, accept, cancel, games");
         }
     }
 
