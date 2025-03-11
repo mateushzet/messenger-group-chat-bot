@@ -378,4 +378,21 @@ public class UserRepository {
         return avatars;
     }
 
+    public static String getUserAvatar(String username) {
+        String query = "SELECT username, avatar_url FROM users WHERE username = ?";
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+            PreparedStatement statement = connection.prepareStatement(query)) {
+            statement.setString(1, username);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    String avatarUrl = resultSet.getString("avatar_url");
+                    return avatarUrl;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "https://www.shutterstock.com/image-vector/user-profile-icon-vector-avatar-600nw-2247726673.jpg";
+    }
+
 }
