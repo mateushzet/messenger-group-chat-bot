@@ -52,7 +52,7 @@ public class CoinFlipGifGenerator {
             BufferedImage frame = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
             Graphics2D g = frame.createGraphics();
 
-            Paint gradient = GradientGenerator.generateGradientFromUsername(player1, true, WIDTH, HEIGHT);
+            Paint gradient = GradientGenerator.generateGradientFromUsername(player1, false, WIDTH, HEIGHT);
             g.setPaint(gradient);
             g.fillRect(0, 0, WIDTH, HEIGHT);
 
@@ -89,7 +89,7 @@ public class CoinFlipGifGenerator {
         BufferedImage finalFrame = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = finalFrame.createGraphics();
 
-        GradientPaint gradient = new GradientPaint(0, 0, BACKGROUND_COLOR, WIDTH, HEIGHT, BACKGROUND_COLOR.darker());
+        Paint gradient = GradientGenerator.generateGradientFromUsername(player1, true, WIDTH, HEIGHT);
         g.setPaint(gradient);
         g.fillRect(0, 0, WIDTH, HEIGHT);
 
@@ -97,7 +97,6 @@ public class CoinFlipGifGenerator {
         int y = (HEIGHT - COIN_SIZE) / 2;
         drawAvatar(g, winnerAvatar, x, y, COIN_SIZE, COIN_SIZE);
 
-        // Rysowanie wiadomości
         g.setColor(TEXT_COLOR);
         g.setFont(TEXT_FONT);
         FontMetrics metrics = g.getFontMetrics();
