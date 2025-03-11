@@ -23,6 +23,7 @@ public class CoinflipService {
 
         if (command.equalsIgnoreCase("bet")) {
             handleBetCommand(context, username, secondArgument);
+            handleCheckActiveGamesCommand();
         } else if (command.equalsIgnoreCase("accept")) {
             handleAcceptCommand(context, username, userBalance);
         } else if (command.equalsIgnoreCase("cancel")) {
@@ -30,6 +31,7 @@ public class CoinflipService {
         } else if (command.equalsIgnoreCase("games")) {
             handleCheckActiveGamesCommand();
         } else {
+            handleCheckActiveGamesCommand();
             MessageService.sendMessage("Avaiable commands: bet, accept, cancel, games");
         }
     }
