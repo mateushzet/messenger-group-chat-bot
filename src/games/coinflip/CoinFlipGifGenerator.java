@@ -21,7 +21,6 @@ public class CoinFlipGifGenerator {
     private static final int HEIGHT = 400;
     private static final int FRAME_COUNT = 100;
     private static final int COIN_SIZE = 200;
-    private static final Color BACKGROUND_COLOR = new Color(30, 30, 30);
     private static final Color TEXT_COLOR = Color.WHITE;
     private static final Font TEXT_FONT = new Font("Arial", Font.BOLD, 18);
 
@@ -65,16 +64,18 @@ public class CoinFlipGifGenerator {
                 scale = 1.0;
             }
 
+            double scaleY = Math.abs(Math.sin(Math.toRadians(angle)));
+
             int x = (WIDTH - COIN_SIZE) / 2;
             int y = (HEIGHT - COIN_SIZE) / 2;
 
             AffineTransform transform = new AffineTransform();
             transform.translate(x + COIN_SIZE / 2, y + COIN_SIZE / 2);
             transform.rotate(Math.toRadians(angle));
-            transform.scale(scale, 1.0);
+            transform.scale(1.0, scaleY);
             transform.translate(-COIN_SIZE / 2, -COIN_SIZE / 2);
 
-            g.setTransform(transform);
+        g.setTransform(transform);
 
             if (angle % 360 < 180) {
                 drawAvatar(g, avatar1, 0, 0, COIN_SIZE, COIN_SIZE);
@@ -115,7 +116,21 @@ public class CoinFlipGifGenerator {
 
     private static void drawAvatar(Graphics2D g, BufferedImage avatar, int x, int y, int width, int height) {
         BufferedImage resizedAvatar = resizeImage(avatar, width, height);
-        g.drawImage(resizedAvatar, x, y, null);
+    
+        BufferedImage roundedAvatar = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = roundedAvatar.createGraphics();
+    
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    
+        int cornerRadius = 180;
+        g2d.setColor(Color.WHITE);
+        g2d.fillRoundRect(0, 0, width, height, cornerRadius, cornerRadius);
+    
+        g2d.setComposite(AlphaComposite.SrcIn);
+        g2d.drawImage(resizedAvatar, 0, 0, null);
+        g2d.dispose();
+    
+        g.drawImage(roundedAvatar, x, y, null);
     }
 
     private static BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
@@ -146,4 +161,5 @@ public class CoinFlipGifGenerator {
             return null;
         }
     }
+
 }
