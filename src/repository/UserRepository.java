@@ -358,4 +358,24 @@ public class UserRepository {
         }
     }
 
+    public static Map<String, String> getUserAvatars(List<String> usernames) {
+        Map<String, String> avatars = new HashMap<>();
+        String query = "SELECT username, avatar_url FROM users WHERE username = ?";
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+            PreparedStatement statement = connection.prepareStatement(query)) {
+            for (String username : usernames) {
+                statement.setString(1, username);
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    if (resultSet.next()) {
+                        String avatarUrl = resultSet.getString("avatar_url");
+                        avatars.put(username, avatarUrl);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return avatars;
+    }
+
 }

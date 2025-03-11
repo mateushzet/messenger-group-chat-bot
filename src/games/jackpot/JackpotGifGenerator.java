@@ -2,6 +2,7 @@ package games.jackpot;
 
 import com.madgag.gif.fmsware.AnimatedGifEncoder;
 
+import repository.UserRepository;
 import utils.GradientGenerator;
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -33,7 +34,7 @@ public class JackpotGifGenerator {
             bets.put("Bot", minBet);
         }
     
-        Map<String, String> avatarUrls = JackpotGameRepository.getUserAvatars(participants);
+        Map<String, String> avatarUrls = UserRepository.getUserAvatars(participants);
     
         avatarUrls.putIfAbsent("Bot", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSgMQyeXHo2tzPRatT5CCO9xkei66IqM4Pn2g&s");
     
@@ -313,7 +314,7 @@ private static BufferedImage generateFrame(List<String> weightedParticipants, Ma
         Map<String, Integer> bets = JackpotGameRepository.getJackpotBets();
         List<String> participants = new ArrayList<>(bets.keySet());
      
-        Map<String, String> avatarUrls = JackpotGameRepository.getUserAvatars(participants);
+        Map<String, String> avatarUrls = UserRepository.getUserAvatars(participants);
         avatarUrls.putIfAbsent("Bot", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSgMQyeXHo2tzPRatT5CCO9xkei66IqM4Pn2g&s");
     
         List<String> weightedParticipants = getWeightedParticipants(bets);
