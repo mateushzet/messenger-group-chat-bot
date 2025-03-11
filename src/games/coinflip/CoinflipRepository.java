@@ -114,7 +114,6 @@ public class CoinflipRepository {
                 game.setPlayer1Username(resultSet.getString("player1_username"));
                 game.setPlayer2Username(resultSet.getString("player2_username"));
                 game.setBetAmount(resultSet.getInt("bet_amount"));
-                game.setGameResult(resultSet.getString("game_result"));
                 game.setWinnerUsername(resultSet.getString("winner_username"));
                 game.setGameStatus(resultSet.getString("game_status"));
                 game.setCreatedAt(resultSet.getTimestamp("created_at"));
