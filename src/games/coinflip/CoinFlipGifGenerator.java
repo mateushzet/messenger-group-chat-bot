@@ -4,6 +4,7 @@ import com.madgag.gif.fmsware.AnimatedGifEncoder;
 
 import repository.UserRepository;
 import utils.GradientGenerator;
+import utils.ImageUtils;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -24,7 +25,7 @@ public class CoinFlipGifGenerator {
     private static final Color TEXT_COLOR = Color.WHITE;
     private static final Font TEXT_FONT = new Font("Arial", Font.BOLD, 18);
 
-    public static byte[] generateCoinFlipGif(String player1, String player2, String winner, String message) throws IOException {
+    public static void generateCoinFlipGif(String player1, String player2, String winner, String message) throws IOException {
         String avatar1Url = UserRepository.getUserAvatar(player1);
         String avatar2Url = UserRepository.getUserAvatar(player2);
 
@@ -33,7 +34,10 @@ public class CoinFlipGifGenerator {
 
         List<BufferedImage> frames = generateFrames(player1, avatar1, avatar2, winner.equals(player1) ? avatar1 : avatar2, message);
 
-        return createGif(frames);
+        byte[] gifBytes = createGif(frames);
+            if (gifBytes != null) {
+                ImageUtils.setClipboardGif(gifBytes);
+            }
     }
 
     private static BufferedImage loadImageFromUrl(String imageUrl) throws IOException {

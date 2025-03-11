@@ -9,6 +9,7 @@ import utils.Logger;
 import model.CoinflipGame;
 import model.CommandContext;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Random;
 
@@ -81,7 +82,13 @@ public class CoinflipService {
         }
         CoinflipRepository.updateGameResult(gameIdParsed, winner);
         UserService.updateAndRetriveUserBalance(winner, betAmount);
-        MessageService.sendMessage("%s won %d in the coinflip battle!", winner, betAmount);
+        String message = winner + " won " + 2 * betAmount;
+        try {
+            CoinFlipGifGenerator.generateCoinFlipGif(username, opponent, winner, message);
+        } catch (IOException e) {
+            MessageService.sendMessage(message);
+            e.printStackTrace();
+        }
     }
 
     private static void handleCancelCommand(CommandContext context, String username, int userBalance) {
