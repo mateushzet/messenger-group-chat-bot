@@ -1,6 +1,7 @@
 package service;
 
 import java.io.BufferedReader;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -24,6 +25,7 @@ public class AskCommandService {
             
             MessageService.sendMessage(aiResponse);
         } catch (Exception e) {
+            
             e.printStackTrace();
             MessageService.sendMessage("ERROR");
         }
@@ -60,10 +62,24 @@ public class AskCommandService {
             os.write(input, 0, input.length);
         }
 
-        int responseCode = connection.getResponseCode();
-        if (responseCode != 200 && responseCode != 201) {
-            throw new RuntimeException("HTTP Error Code: " + responseCode);
+    int responseCode = connection.getResponseCode();
+    if (responseCode != 200 && responseCode != 201) {
+        System.out.println("Request Body: " + objectMapper.writeValueAsString(requestBody));
+
+        InputStream errorStream = connection.getErrorStream();
+        if (errorStream != null) {
+            BufferedReader errorReader = new BufferedReader(new InputStreamReader(errorStream, "UTF-8"));
+            StringBuilder errorResponse = new StringBuilder();
+            String errorLine;
+            while ((errorLine = errorReader.readLine()) != null) {
+                errorResponse.append(errorLine);
+            }
+            errorReader.close();
+            System.out.println("Error Response: " + errorResponse.toString());
         }
+
+        throw new RuntimeException("HTTP Error Code: " + responseCode);
+    }
 
         BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"));
 
