@@ -81,24 +81,30 @@ public class RewardsRepository {
 
     public static boolean hasReceivedHourlyReward(String userName) {
         String query = "SELECT hourly_reward_claimed_at FROM users WHERE username = ?";
-
+    
         try (Connection connection = DatabaseConnectionManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
-            
+    
             statement.setString(1, userName);
             ResultSet resultSet = statement.executeQuery();
-            
+    
             if (!resultSet.next()) {
                 return false;
             }
-
-            String lastReceivedDate = resultSet.getString("hourly_reward_claimed_at");
-            String today = getCurrentDateTime();
-
-            return today.equals(lastReceivedDate);
-
+    
+            String lastReceivedString = resultSet.getString("hourly_reward_claimed_at");
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            LocalDateTime lastReceived = LocalDateTime.parse(lastReceivedString, formatter);
+            LocalDateTime now = LocalDateTime.now();
+    
+            return lastReceived.getYear() == now.getYear() &&
+                   lastReceived.getMonth() == now.getMonth() &&
+                   lastReceived.getDayOfMonth() == now.getDayOfMonth() &&
+                   lastReceived.getHour() == now.getHour();
+    
         } catch (SQLException e) {
-            Logger.logError("Error while checking hourly reward info for user: %s", "RewardsRepository.hasReceivedHourlyReward()", e, userName);
+            Logger.logError("Error while checking hourly reward info for user: %s", 
+                            "RewardsRepository.hasReceivedHourlyReward()", e, userName);
             return false;
         }
     }
