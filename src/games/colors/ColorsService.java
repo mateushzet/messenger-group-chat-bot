@@ -43,7 +43,7 @@ public class ColorsService {
         Queue<Integer> colorsHisotry = GameHistoryRepository.getGameHistory(16, "Colors");
         GameHistoryRepository.addGameHistory(playerName, "Colors", context.getFullCommand(), betAmount, winnings, "Result: " + resultColorNumber);
         ColorsGifGenerator.generateColorsGif(winnings, playerName, updatedBalance, currentBalance, result, betAmount, colorsHisotry);
-        MessageService.sendMessageFromClipboard(false);
+        MessageService.sendMessageFromClipboard(true);
     }
     
     private static int[] handleMultiColorBet(CommandContext context, int currentBalance, int resultColorNumber) {
