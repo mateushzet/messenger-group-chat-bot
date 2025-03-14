@@ -1,5 +1,6 @@
 package games.colors;
 
+import java.util.Queue;
 import java.util.Random;
 
 import model.CommandContext;
@@ -7,7 +8,6 @@ import repository.GameHistoryRepository;
 import repository.UserAvatarRepository;
 import repository.UserRepository;
 import service.MessageService;
-import utils.Logger;
 
 public class ColorsService {
 
@@ -15,43 +15,6 @@ public class ColorsService {
         String playerName = context.getUserName();
         String betColor = context.getSecondArgument();
         int currentBalance = UserRepository.getCurrentUserBalance(playerName, false);
-
-        if(context.getFirstArgument().equals("multi")){
-            context.setFirstArgument(context.getSecondArgument());
-            context.setSecondArgument(context.getThirdArgument());
-
-            if(!context.getFourthArgument().isEmpty()){
-                context.setThirdArgument(context.getFourthArgument());
-                context.setFourthArgument(context.getFifthArgument());
-                context.setFifthArgument(context.getSixtArgument());
-            }
-
-            String betAmount = context.getFirstArgument();
-            int betAmountInt;
-
-            try {
-                betAmountInt = Integer.parseInt(betAmount);
-            } catch (Exception e) {
-                MessageService.sendMessage("Invalid bet amount");
-                return;
-            }
-
-            if (betAmountInt <= 0) {
-                MessageService.sendMessage("Your bet amount must be greater than 0");
-                Logger.logInfo("Player %s attempted to place a bet lesser or equal to 0", "SlotsService.validateSlotsGame()", playerName);
-                return;
-            }
-
-            for (int i = 0; i < 5; i++) {
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                handleColorsCommand(context);
-            }
-            return;
-        }
 
         Random random = new Random();
         int result = random.nextInt(53) + 1;
@@ -73,15 +36,13 @@ public class ColorsService {
         balanceChange = betResult[1];
         betAmount = betResult[2];
     
-        
-
         int updatedBalance = currentBalance + balanceChange;
         UserRepository.updateUserBalance(playerName, updatedBalance);
 
         if (winnings <= 0) winnings = balanceChange;
-
+        Queue<Integer> colorsHisotry = GameHistoryRepository.getGameHistory(16, "Colors");
         GameHistoryRepository.addGameHistory(playerName, "Colors", context.getFullCommand(), betAmount, winnings, "Result: " + resultColorNumber);
-        ColorsImageGenerator.generateColorsImage(winnings, playerName, updatedBalance, result, betAmount, GameHistoryRepository.getGameHistory(16, "Colors"));
+        ColorsGifGenerator.generateColorsGif(winnings, playerName, updatedBalance, currentBalance, result, betAmount, colorsHisotry);
         MessageService.sendMessageFromClipboard(false);
     }
     
@@ -90,8 +51,6 @@ public class ColorsService {
         String redBet = context.getSecondArgument();
         String blueBet = context.getThirdArgument();
         String goldBet = context.getFourthArgument();
-
-        System.out.println(blackBet+"-"+redBet+"-"+blueBet+"-"+goldBet+"-" );
     
         int blackBetParsed = parseBetAmount(blackBet);
         int redBetParsed = parseBetAmount(redBet);
@@ -184,9 +143,8 @@ public class ColorsService {
 
     public static int getResult(int shift) {
         int[] colorOrder = {3, 2, 0, 1, 0, 1, 0, 1, 0, 2, 0, 2, 0, 1, 0, 1, 0, 1, 0, 2, 0, 2, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 2, 0, 2, 0, 1, 0, 1, 3, 1, 0, 2, 0, 2, 0, 1, 0, 1, 0, 1, 0, 2};
-        colorOrder = ColorsImageGenerator.rotateArray(colorOrder, shift);
-        System.out.println("Colors result: " + colorOrder[40]);
-        return colorOrder[40]; // wining position
+        colorOrder = ColorsGifGenerator.rotateArray(colorOrder, shift);
+        return colorOrder[0]; // wining position
     }
 
 }
