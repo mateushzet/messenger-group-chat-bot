@@ -58,13 +58,19 @@ import service.MessageService;
         );
 
         public static Paint generateGradientFromUsername(String username, boolean isDark, int width, int height) {
-            String cacheKey = username + "_" + width + "_" + height + "_" + isDark;
+            String skinId = UserSkinRepository.getActiveSkinForUser(username);
+            String cacheKey = username + "_" + width + "_" + height + "_" + isDark + "_" + skinId;
     
             if (gradientCache.containsKey(cacheKey)) {
                 return gradientCache.get(cacheKey);
             }
     
-            Paint gradient = generateNewGradient(username, isDark, width, height);
+            Paint gradient;
+            if (skinId != null && !skinId.equals("default")) {
+                gradient = getGradientForSkin(skinId, width, height, 0, 0);
+            } else {
+                gradient = generateNewGradient(username, isDark, width, height);
+            }
     
             gradientCache.put(cacheKey, gradient);
     
