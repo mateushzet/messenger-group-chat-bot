@@ -11,6 +11,7 @@ import java.awt.TexturePaint;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +21,8 @@ import repository.UserSkinRepository;
 import service.MessageService;
 
     public class GradientGenerator {
+
+        private static final Map<String, Paint> gradientCache = new HashMap<>();
         
         public static final List<Map<String, Object>> skinIds = List.of(
             Map.of("id", "red_flame", "name", "Red Flame", "price", 10),
@@ -54,47 +57,46 @@ import service.MessageService;
             Map.of("id", "neon_rainbow", "name", "Neon Rainbow", "price", 150)
         );
 
-    public static Paint generateGradientFromUsername(String username, boolean isDark, int width, int height) {
-
-        String skinId = UserSkinRepository.getActiveSkinForUser(username);
-        
-        if (skinId != null && !skinId.equals("default")) {
-            return getGradientForSkin(skinId, width, height, 0, 0);
-        }
-        
-        int hash = (username).hashCode();
-        int colorComponent1 = (hash >>> 16) & 0xFF;
-        int colorComponent2 = (hash >>> 8) & 0xFF;
-        int colorComponent3 = (hash) & 0xFF;
+        public static Paint generateGradientFromUsername(String username, boolean isDark, int width, int height) {
+            String cacheKey = username + "_" + width + "_" + height + "_" + isDark;
     
-        int red1 = (colorComponent1 + 128) % 256;
-        int green1 = (colorComponent2 + 128) % 256;
-        int blue1 = (colorComponent3 + 128) % 256;
+            if (gradientCache.containsKey(cacheKey)) {
+                return gradientCache.get(cacheKey);
+            }
     
-        int red2 = (colorComponent1 + 180) % 256;
-        int green2 = (colorComponent2 + 180) % 256;
-        int blue2 = (colorComponent3 + 180) % 256;
+            Paint gradient = generateNewGradient(username, isDark, width, height);
     
-        red1 = Math.min(red1 + 80, 255);
-        green1 = Math.min(green1 + 80, 255);
-        blue1 = Math.min(blue1 + 80, 255);
+            gradientCache.put(cacheKey, gradient);
     
-        red2 = Math.min(red2 + 80, 255);
-        green2 = Math.min(green2 + 80, 255);
-        blue2 = Math.min(blue2 + 80, 255);
-    
-        Color color1 = new Color(red1, green1, blue1);
-        Color color2 = new Color(red2, green2, blue2);
-
-        if (isDark) {
-            color1 = darkenGradient(color1, 0.9f);
-            color2 = darkenGradient(color2, 0.9f);
+            return gradient;
         }
     
-        GradientPaint gradient = new GradientPaint(0, 0, limitBrightnessAndSaturation(color1,550,50), width, height, limitBrightnessAndSaturation(color2,550,50));
-        
-        return gradient;
-    }
+        private static Paint generateNewGradient(String username, boolean isDark, int width, int height) {
+            String skinId = UserSkinRepository.getActiveSkinForUser(username);
+    
+            if (skinId != null && !skinId.equals("default")) {
+                return getGradientForSkin(skinId, width, height, 0, 0);
+            }
+    
+            int hash = username.hashCode();
+            int red1 = (hash >>> 16) & 0xFF;
+            int green1 = (hash >>> 8) & 0xFF;
+            int blue1 = hash & 0xFF;
+    
+            int red2 = (red1 + 180) % 256;
+            int green2 = (green1 + 180) % 256;
+            int blue2 = (blue1 + 180) % 256;
+    
+            Color color1 = new Color(red1, green1, blue1);
+            Color color2 = new Color(red2, green2, blue2);
+    
+            if (isDark) {
+                color1 = darkenGradient(color1, 0.9f);
+                color2 = darkenGradient(color2, 0.9f);
+            }
+    
+            return new GradientPaint(0, 0, color1, width, height, color2);
+        }
 
     public static Paint generateGradientFromUsername(String username, boolean isDark, int width, int height, int x, int y) {
 
