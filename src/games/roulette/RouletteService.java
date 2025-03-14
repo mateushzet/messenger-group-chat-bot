@@ -43,8 +43,8 @@ public class RouletteService {
         int userBalance = UserService.updateAndRetriveUserBalance(username, winAmount);
         GameHistoryRepository.addGameHistory(username, "Roulette", context.getFullCommand(), amount, winAmount, "Result: " + randomNumber);
 
-        RouletteImageGenerator.generateImage(randomNumber, winAmount, userBalance, username, amount, GameHistoryRepository.getGameHistory(13, "Roulette"));
-        MessageService.sendMessageFromClipboard(false);
+        RouletteGifGenerator.generateGif(randomNumber, winAmount, userBalance, username, amount, GameHistoryRepository.getGameHistory(14, "Roulette"));
+        MessageService.sendMessageFromClipboard(true);
     }
 
     private static int parseFieldArgument(String field) {

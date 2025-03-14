@@ -48,13 +48,7 @@ public class ColorsGifGenerator {
         }
 
         byte[] gifBytes = createGif(frames);
-        if (gifBytes != null) {
-            System.out.println("Sukces: GIF wygenerowany");
-            ImageUtils.setClipboardGif(gifBytes);
-        } else {
-            System.out.println("Błąd: Nie udało się wygenerować GIF-a");
-        }
-        System.out.println("Koniec");
+        ImageUtils.setClipboardGif(gifBytes);
     }
 
     private static BufferedImage generateFrame(int i, BufferedImage background, BufferedImage colorWheel, int initialShift, int shift, int[] colorOrder, String userName, int currentBalance, int betAmount, int winAmount, Queue<Integer> history, boolean showResult) {
