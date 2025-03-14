@@ -8,6 +8,10 @@ import java.io.ByteArrayOutputStream;
 import java.util.*;
 import java.util.List;
 import java.util.Queue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import com.madgag.gif.fmsware.AnimatedGifEncoder;
 import utils.GradientGenerator;
@@ -15,37 +19,50 @@ import utils.ImageUtils;
 
 public class ColorsGifGenerator {
 
-    private static final int WIDTH = 300;
-    private static final int HEIGHT = 300;
-    private static final int RADIUS = 125;
+    private static final int WIDTH = 400;
+    private static final int HEIGHT = 400;
+    private static final int RADIUS = 175;
     private static final Color[] COLORS = {
         new Color(90, 90, 90),
         new Color(197, 52, 81),
         new Color(72, 179, 221),
         new Color(252, 194, 120)
     };
-    private static int[] colorOrder = {3, 2, 0, 1, 0, 1, 0, 1, 0, 2, 0, 2, 0, 1, 0, 1, 0, 1, 0, 2, 0, 2, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 2, 0, 2, 0, 1, 0, 1, 0, 1, 0, 2, 0, 2, 0, 1, 0, 1, 0, 1, 0, 2};
-
+    private static final int[] COLOR_ORDER = {3, 2, 0, 1, 0, 1, 0, 1, 0, 2, 0, 2, 0, 1, 0, 1, 0, 1, 0, 2, 0, 2, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 2, 0, 2, 0, 1, 0, 1, 0, 1, 0, 2, 0, 2, 0, 1, 0, 1, 0, 1, 0, 2};
+    private static Paint gradient;
 
     public static void generateColorsGif(int winAmount, String userName, int updatedBalance, int currentBalance, int shift, int betAmount, Queue<Integer> history) {
-
-        BufferedImage colorWheel = generateColorWheel(colorOrder);
-
+        BufferedImage colorWheel = generateColorWheel(COLOR_ORDER);
         List<BufferedImage> frames = new ArrayList<>();
-
         BufferedImage background = createBackground(userName);
 
-        int initialShift = (shift - 30 + colorOrder.length) % colorOrder.length;
+        int initialShift = (shift - 30 + COLOR_ORDER.length) % COLOR_ORDER.length;
+        gradient = GradientGenerator.generateGradientFromUsername(userName, false, WIDTH, HEIGHT);
+
+        ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        List<Future<BufferedImage>> futures = new ArrayList<>();
 
         for (int i = 0; i < 20; i++) {
-            BufferedImage frame = generateFrame(i, background, colorWheel, initialShift, shift, colorOrder, userName, currentBalance, betAmount, winAmount, history, false);
-            frames.add(frame);
+            int finalI = i;
+            futures.add(executor.submit(() -> 
+                generateFrame(finalI, background, colorWheel, initialShift, shift, COLOR_ORDER, userName, currentBalance, betAmount, winAmount, history, false)
+            ));
         }
 
-        BufferedImage resultFrame = generateFrame(0, background, colorWheel, shift, shift, colorOrder, userName, updatedBalance, betAmount, winAmount, history, true);
+        for (Future<BufferedImage> future : futures) {
+            try {
+                frames.add(future.get());
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+        }
+
+        BufferedImage resultFrame = generateFrame(0, background, colorWheel, shift, shift, COLOR_ORDER, userName, updatedBalance, betAmount, winAmount, history, true);
         for (int i = 0; i < 40; i++) {
             frames.add(resultFrame);
         }
+
+        executor.shutdown();
 
         byte[] gifBytes = createGif(frames);
         ImageUtils.setClipboardGif(gifBytes);
@@ -66,9 +83,8 @@ public class ColorsGifGenerator {
 
         drawRotatedColorWheel(g, colorWheel, angle);
 
-        Paint gradient = GradientGenerator.generateGradientFromUsername(userName, false, WIDTH, HEIGHT);
         g.setPaint(gradient);
-        g.fillOval(WIDTH / 2 - RADIUS + 15, HEIGHT / 2 - RADIUS + 7, 220, 220);
+        g.fillOval(WIDTH / 2 - RADIUS + 13, HEIGHT / 2 - RADIUS + 5, 325, 320);
 
         drawArrow(g);
 
@@ -152,7 +168,7 @@ public class ColorsGifGenerator {
         FontMetrics metrics = g.getFontMetrics();
 
         if (showResult) {
-            g.setColor(getColorFromIndex(colorOrder[shift]));
+            g.setColor(getColorFromIndex(COLOR_ORDER[shift]));
             String winText = winAmount > 0 ? "WIN " : "LOSE ";
             winText += winAmount;
             int textX = centerX - metrics.stringWidth(winText) / 2;
