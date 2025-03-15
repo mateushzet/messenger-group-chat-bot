@@ -3,6 +3,7 @@ package service;
 import repository.RewardsHistoryRepository;
 import repository.UserRepository;
 import utils.Logger;
+import utils.MathQuestionImageGenerator;
 
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -82,9 +83,9 @@ public class MathQuestionService {
         currentMathQuestion = question.generateQuestion();
         currentAnswer = question.calculateAnswer();
         Logger.logInfo("Current math question: %s current answer: %d", "MathQuestionService.sendMathQuestion()", currentMathQuestion, currentAnswer);
-
         isQuestionSolved = false;
-        MessageService.sendMessage("Math question (/bot answer): %s", currentMathQuestion);
+        MathQuestionImageGenerator.generateMathQuestionImage(currentMathQuestion);
+        MessageService.sendMessageFromClipboard(true);
     }
 
     public static int setRandomMinute() {
