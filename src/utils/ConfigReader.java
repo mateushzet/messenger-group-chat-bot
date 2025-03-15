@@ -117,6 +117,10 @@ public class ConfigReader {
         return getProperty("the_odds_api_key", "key");
     }
 
+    public static String getChatGptApiKey() {
+        return getProperty("chat_gpt_api_key", "key");
+    }
+
     public static int getSlotsAccessCost() {
         return getPropertyInt("slots_access_cost", 200);
     }

@@ -11,9 +11,10 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import model.CommandContext;
+import utils.ConfigReader;
 
 public class AskCommandService {
-    private static final String API_KEY = "key";
+    private static final String API_KEY =  ConfigReader.getChatGptApiKey();
     private static final String API_URL = "https://api.aimlapi.com/v1/chat/completions";
 
     public static void handleAskCommand(CommandContext context) {
