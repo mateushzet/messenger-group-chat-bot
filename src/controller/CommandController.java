@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import games.Poker.PokerService;
 import games.blackjack.BlackjackService;
 import games.caseopening.CaseOpeningService;
 import games.coinflip.CoinflipService;
@@ -88,7 +89,8 @@ public class CommandController {
         commands.put("tree", MoneyTreeService::handleTreeCommand);
         commands.put("ask", AskCommandService::handleAskCommand);
         commands.put("weekly", CommandService::handleWeeklyCommand); 
-    
+        commands.put("poker", PokerService::handlePokerCommand); 
+        commands.put("pk", PokerService::handlePokerCommand); 
     }
 
     public static void processCommand(String userName, String message) {
