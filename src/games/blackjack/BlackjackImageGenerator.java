@@ -24,7 +24,7 @@ public class BlackjackImageGenerator {
     private static final String CARD_BACK_IMAGE_URL = "https://cdn.pixabay.com/photo/2012/05/07/18/53/card-game-48983_1280.png";
 
 
-    public static void generateBlackjackImage(String userName, List<String> playerHand, List<String> dealerHand, String gameStatus, int playerBalance, int betAmount, boolean revealDealerCard, int playerScore, int dealerScore) {
+    public static void generateBlackjackImage(String userName, List<String> playerHand, List<String> dealerHand, String gameStatus, int playerBalance, int betAmount, boolean revealDealerCard, String playerScore, String dealerScore) {
         int maxCards = Math.max(playerHand.size(), dealerHand.size());
         int imageWidth = Math.max(MARGIN * 2 + maxCards * CARD_WIDTH, 380);
     
@@ -88,7 +88,7 @@ public class BlackjackImageGenerator {
         }
     }
 
-    private static void drawGameInfo(Graphics2D g, String gameStatus, int playerBalance, int betAmount, int playerScore, int dealerScore, boolean revealDealerCard, int imageWidth) {
+    private static void drawGameInfo(Graphics2D g, String gameStatus, int playerBalance, int betAmount, String playerScore, String dealerScore, boolean revealDealerCard, int imageWidth) {
         g.setFont(new Font("Arial", Font.BOLD, 16));
         FontMetrics fm = g.getFontMetrics();
         

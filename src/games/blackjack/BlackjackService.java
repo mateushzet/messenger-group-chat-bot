@@ -70,13 +70,16 @@ public class BlackjackService {
             existingGame.getPlayerHand().add(drawCard());
         
             int playerScore = calculateHandValue(existingGame.getPlayerHand());
+            String playerScoreString = calculateHandValueString(existingGame.getPlayerHand());
+
             int dealerScore = calculateSecondCardScore(existingGame.getDealerHand());
-        
+            String dealerScoreString = calculateSecondCardScoreString(existingGame.getDealerHand());
+
             BlackjackGameRepository.updateGame(existingGame);
 
             if (playerScore > 21) {
                 endGame(userName, false, false, playerScore, dealerScore, context);
-                BlackjackImageGenerator.generateBlackjackImage(userName, existingGame.getPlayerHand(), existingGame.getDealerHand(), userName + " you lost " + existingGame.getCurrentBet() + "!", userBalance, existingGame.getCurrentBet(), true, playerScore, dealerScore);
+                BlackjackImageGenerator.generateBlackjackImage(userName, existingGame.getPlayerHand(), existingGame.getDealerHand(), userName + " you lost " + existingGame.getCurrentBet() + "!", userBalance, existingGame.getCurrentBet(), true, playerScoreString, dealerScoreString);
                 MessageService.sendMessageFromClipboard(true);
                 BlackjackGameRepository.deleteGame(userName);
                 return;
@@ -99,8 +102,8 @@ public class BlackjackService {
         if (existingGame != null && existingGame.isGameInProgress()) {
 
             int userBalance = UserRepository.getCurrentUserBalance(userName, false);
-            int playerScore = calculateHandValue(existingGame.getPlayerHand());
-            int dealerScore = calculateSecondCardScore(existingGame.getDealerHand());
+            String playerScore = calculateHandValueString(existingGame.getPlayerHand());
+            String dealerScore = calculateSecondCardScoreString(existingGame.getDealerHand());
     
             BlackjackImageGenerator.generateBlackjackImage(
                 userName,
@@ -139,6 +142,9 @@ public class BlackjackService {
         int playerScore = calculateHandValue(playerHand);
         int dealerScore = calculateSecondCardScore(dealerHand);
     
+        String playerScoreString = calculateHandValueString(playerHand);
+        String dealerScoreString = calculateSecondCardScoreString(dealerHand);
+
         if (playerScore == 21 ) {
             dealerScore = calculateHandValue(dealerHand);
             if(dealerScore != 21){
@@ -150,7 +156,7 @@ public class BlackjackService {
             String gameStatus = userName + " Blackjack! You won " + winnings + "!";
             GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), betAmount, winnings, "Player hand: " + handToString(playerHand) + " Dealer hand: " + handToString(dealerHand));
             
-            BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, dealerHand, gameStatus, userBalance, betAmount, true, playerScore, dealerScore);
+            BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, dealerHand, gameStatus, userBalance, betAmount, true, playerScoreString, dealerScoreString);
             MessageService.sendMessageFromClipboard(true);
             BlackjackGameRepository.deleteGame(userName);
             return;
@@ -161,13 +167,13 @@ public class BlackjackService {
                 
                 userBalance = UserService.updateAndRetriveUserBalance(userName, betAmount);
 
-                BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, dealerHand, gameStatus, userBalance, betAmount, true, playerScore, dealerScore);
+                BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, dealerHand, gameStatus, userBalance, betAmount, true, playerScoreString, dealerScoreString);
                 MessageService.sendMessageFromClipboard(true);
                 BlackjackGameRepository.deleteGame(userName);
             }
         }
 
-        BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, dealerHand, userName + " game started", userBalance, betAmount, false, playerScore, dealerScore);
+        BlackjackImageGenerator.generateBlackjackImage(userName, playerHand, dealerHand, userName + " game started", userBalance, betAmount, false, playerScoreString, dealerScoreString);
         MessageService.sendMessageFromClipboard(true);
     }
     
@@ -196,20 +202,24 @@ public class BlackjackService {
     
         int dealerScore = calculateHandValue(game.getDealerHand());
         int playerScore = calculateHandValue(activeHand);
+
+        String dealerScoreString = calculateHandValueString(game.getDealerHand());
+        String playerScoreString = calculateHandValueString(activeHand);
+
         int userBalance = UserRepository.getCurrentUserBalance(userName, false);
     
         if (playerScore > 21) {
             BlackjackGameRepository.updateGame(game);
             endGame(userName, false, false, playerScore, dealerScore, context);
-            BlackjackImageGenerator.generateBlackjackImage(userName, activeHand, game.getDealerHand(), userName + " you lost " + game.getBetAmount() + "!", userBalance, game.getBetAmount(), true, playerScore, dealerScore);
+            BlackjackImageGenerator.generateBlackjackImage(userName, activeHand, game.getDealerHand(), userName + " you lost " + game.getBetAmount() + "!", userBalance, game.getBetAmount(), true, playerScoreString, dealerScoreString);
             MessageService.sendMessageFromClipboard(true);
             if (!isSplit) BlackjackGameRepository.deleteGame(userName);
             return false;
         }
     
         BlackjackGameRepository.updateGame(game);
-        dealerScore = calculateSecondCardScore(game.getDealerHand());
-        BlackjackImageGenerator.generateBlackjackImage(userName, activeHand, game.getDealerHand(), userName + " you drew a card", userBalance, game.getBetAmount(), false, playerScore, dealerScore);
+        dealerScoreString = calculateSecondCardScoreString(game.getDealerHand());
+        BlackjackImageGenerator.generateBlackjackImage(userName, activeHand, game.getDealerHand(), userName + " you drew a card", userBalance, game.getBetAmount(), false, playerScoreString, dealerScoreString);
         MessageService.sendMessageFromClipboard(true);
         return true;
     }
@@ -225,6 +235,9 @@ public class BlackjackService {
         int playerScore = calculateHandValue(game.getPlayerHand());
         int splitScore = game.isSplit() ? calculateHandValue(game.getSplitHand()) : 0;
 
+        String playerScoreString = calculateHandValueString(game.getPlayerHand());
+        String splitScoreString = game.isSplit() ? calculateHandValueString(game.getSplitHand()) : "0";
+
         if(game.isSplit()){
             while (calculateHandValue(dealerHand) < playerScore && calculateHandValue(dealerHand) < splitScore && calculateHandValue(dealerHand) < 17) {
                 dealerHand.add(drawCard());
@@ -239,18 +252,19 @@ public class BlackjackService {
         BlackjackGameRepository.updateGame(game);
     
         int dealerScore = calculateHandValue(dealerHand);
+        String dealerScoreString = calculateHandValueString(dealerHand);
         int userBalance;
         String gameStatusMain = resolveGame(userName, playerScore, dealerScore, context, game.getPlayerHand(), game.getBetAmount());
     
         if (game.isSplit()) {
             String gameStatusSplit = resolveGame(userName, splitScore, dealerScore, context, game.getSplitHand(), game.getBetAmount());
             userBalance = UserRepository.getCurrentUserBalance(userName, false);
-            BlackjackImageGenerator.generateBlackjackImage(userName, game.getSplitHand(), dealerHand, gameStatusSplit, userBalance, game.getBetAmount(), true, splitScore, dealerScore);
+            BlackjackImageGenerator.generateBlackjackImage(userName, game.getSplitHand(), dealerHand, gameStatusSplit, userBalance, game.getBetAmount(), true, splitScoreString, dealerScoreString);
             MessageService.sendMessageFromClipboard(true);
         }
     
         userBalance = UserRepository.getCurrentUserBalance(userName, false);
-        BlackjackImageGenerator.generateBlackjackImage(userName, game.getPlayerHand(), dealerHand, gameStatusMain, userBalance, game.getBetAmount(), true, playerScore, dealerScore);
+        BlackjackImageGenerator.generateBlackjackImage(userName, game.getPlayerHand(), dealerHand, gameStatusMain, userBalance, game.getBetAmount(), true, playerScoreString, dealerScoreString);
         MessageService.sendMessageFromClipboard(true);
     
         BlackjackGameRepository.deleteGame(userName);
@@ -353,6 +367,40 @@ public class BlackjackService {
         return value;
     }
 
+    private static String calculateHandValueString(List<String> hand) {
+        int value = 0;
+        int aces = 0;
+    
+        for (String card : hand) {
+            String cardValue = card.replaceAll("[♠♣♦♥]", "");
+    
+            if (cardValue.equals("A")) {
+                aces++;
+                value += 11;
+            } else if (cardValue.equals("K") || cardValue.equals("Q") || cardValue.equals("J") || cardValue.equals("10")) {
+                value += 10;
+            } else {
+                value += Integer.parseInt(cardValue);
+            }
+        }
+    
+        int softValue = value;
+        int hardValue = value;
+        for (int i = 0; i < aces; i++) {
+            hardValue -= 10;
+        }
+
+        if (softValue > 21) {
+            return String.valueOf(hardValue);
+        }
+    
+        if (aces > 0 && softValue != hardValue) {
+            return hardValue + "/" + softValue;
+        } else {
+            return String.valueOf(hardValue);
+        }
+    }
+
     private static String handToString(List<String> hand) {
         return String.join(", ", hand);
     }
@@ -367,6 +415,18 @@ public class BlackjackService {
         }
         
         return 0;
+    }
+
+    private static String calculateSecondCardScoreString(List<String> dealerHand) {
+        List<String> handCopy = new ArrayList<>(dealerHand);
+        
+        if (handCopy.size() >= 2) {
+            handCopy.remove(0);
+            
+            return calculateHandValueString(handCopy);
+        }
+        
+        return "0";
     }
 
     private static void splitHand(String userName, CommandContext context) {
@@ -394,9 +454,9 @@ public class BlackjackService {
         game.getPlayerHand().add(drawCard());
         game.getSplitHand().add(drawCard());
         BlackjackGameRepository.updateGame(game);
-        int playerScore1 = calculateHandValue(game.getPlayerHand());
-        int playerScore2 = calculateHandValue(game.getSplitHand());
-        int dealerScore = calculateSecondCardScore(game.getDealerHand());
+        String playerScore1 = calculateHandValueString(game.getPlayerHand());
+        String playerScore2 = calculateHandValueString(game.getSplitHand());
+        String dealerScore = calculateHandValueString(game.getDealerHand());
     
         BlackjackImageGenerator.generateBlackjackImage(userName, game.getPlayerHand(), game.getDealerHand(), userName + " split hand 1", userBalance, betAmount, false, playerScore1, dealerScore);
         MessageService.sendMessageFromClipboard(true);
