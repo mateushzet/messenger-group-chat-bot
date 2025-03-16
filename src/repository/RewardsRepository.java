@@ -93,6 +93,11 @@ public class RewardsRepository {
             }
     
             String lastReceivedString = resultSet.getString("hourly_reward_claimed_at");
+
+            if (lastReceivedString == null) {
+                return false;
+            }
+
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             LocalDateTime lastReceived = LocalDateTime.parse(lastReceivedString, formatter);
             LocalDateTime now = LocalDateTime.now();
