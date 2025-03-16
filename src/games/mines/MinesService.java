@@ -232,7 +232,6 @@ public class MinesService {
 
         List<String> status = List.of(userName, "Bet: " + betAmount, "Reward: " + (int) Math.round(multiplier * betAmount), "Bombs: " + totalBombs, "Multiplier: " + multiplier);
         MinesImageGenerator.generateMinesweeperImage(game.getRevealedBoard(), game.getBombBoard(), userName, status, gameStatus, userBalance);
-    
         MessageService.sendMessageFromClipboard(true);
     }
 
@@ -241,9 +240,15 @@ public class MinesService {
             if (win) {
                 int userBalance = UserRepository.getCurrentUserBalance(userName, true);
                 int totalAmount = (int) Math.round(game.getBetAmount() * calculateMultiplier(game));
+                int betAmount = game.getBetAmount();
+                int totalBombs = game.getTotalBombs();
+                Double multiplier = calculateMultiplier(game);
                 UserRepository.updateUserBalance(userName, userBalance + totalAmount);
-                MessageService.sendMessage(userName + " has cashed out " + totalAmount + "!" + " Current balance: " + (userBalance + totalAmount));
+                String gameStatus = "You won " + totalAmount;
+                List<String> status = List.of(userName, "Bet: " + betAmount, "Reward: " + (int) Math.round(multiplier * betAmount), "Bombs: " + totalBombs, "Multiplier: " + multiplier);  
+                MinesImageGenerator.generateMinesweeperImage(game.getRevealedBoard(), game.getBombBoard(), userName, status, gameStatus, userBalance);
                 GameHistoryRepository.addGameHistory(userName, "Mines", context.getFullCommand(), game.getBetAmount(), totalAmount, "Bombs: " + booleanArrayToString(game.getBombBoard()) + " RevealedFields: " + booleanArrayToString(game.getRevealedBoard()));
+                MessageService.sendMessageFromClipboard(true);
             }
             GameHistoryRepository.addGameHistory(userName, "Mines", context.getFullCommand(), game.getBetAmount(), -game.getBetAmount(), "Bombs: " + booleanArrayToString(game.getBombBoard()) + " RevealedFields: " + booleanArrayToString(game.getRevealedBoard()));
             MinesGameRepository.deleteGame(userName);

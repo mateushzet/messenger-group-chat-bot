@@ -45,7 +45,6 @@ public class MinesImageGenerator {
                 int y = MARGIN + row * TILE_SIZE;
 
                 if (revealed[row][col]) {
-
                     if (bombs[row][col]) {
                         try {
                             g.setColor(RED_COLOR);
@@ -67,6 +66,20 @@ public class MinesImageGenerator {
                         g.setColor(Color.BLACK);
                         g.drawRect(x, y, TILE_SIZE, TILE_SIZE);
                     }
+                } else if (bombs[row][col] && gameStatus != null) {
+                    try {
+                        g.setColor(Color.GRAY);
+                        g.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+
+                        BufferedImage bombImage = ImageIO.read(new URL(BOMB_IMAGE_URL));
+                        g.drawImage(bombImage, x, y, TILE_SIZE, TILE_SIZE, null);
+
+                        g.setColor(Color.BLACK);
+                        g.drawRect(x, y, TILE_SIZE, TILE_SIZE);
+                    } catch (IOException e) {
+                        g.setColor(Color.RED);
+                        g.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                    }
                 } else {
                     Paint darkGradient = GradientGenerator.generateGradientFromUsername(username, true, x + TILE_SIZE, y + TILE_SIZE, x, y);
                     
@@ -85,7 +98,7 @@ public class MinesImageGenerator {
                     g.drawString(fieldText, textX, textY);
                 }
             }
-        }   
+        }
 
         ImageUtils.drawUserAvatar(g, username, 150, 240, 40, 40);
 
@@ -109,8 +122,12 @@ public class MinesImageGenerator {
             if(gameStatus.equals("Game over!")) g.setColor(RED_COLOR);
             else  g.setColor(GREEN_COLOR);
             g.setFont(new Font("Arial", Font.BOLD, 20));
-            g.drawString(gameStatus, 30, 100);
-            }
+
+            FontMetrics gameStatusMetrics = g.getFontMetrics();
+            int gameStatusX = (width - gameStatusMetrics.stringWidth(gameStatus)) / 2;
+            int gameStatusY = 100;
+            g.drawString(gameStatus, gameStatusX, gameStatusY);
+        }
 
             g.setFont(new Font("Arial", Font.BOLD, 10));
             g.setColor(Color.WHITE);
