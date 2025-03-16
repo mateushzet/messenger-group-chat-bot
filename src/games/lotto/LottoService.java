@@ -2,6 +2,7 @@ package games.lotto;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.Random;
 
 import model.CommandContext;
@@ -180,10 +181,8 @@ public class LottoService {
         int currentMinute = currentDateTime.getMinute();
         currentMinute = (currentMinute / 10) * 10;
 
-        LocalDate currentDate = currentDateTime.toLocalDate();
-    
-        int hashValue = currentDate.hashCode() + currentHour + currentMinute;
-        Random random = new Random(hashValue);
+        int seed = Objects.hash(currentDateTime.toLocalDate(), currentHour, currentMinute * 7919);
+        Random random = new Random(seed);
     
         double chance = random.nextDouble();
     
@@ -265,5 +264,5 @@ public class LottoService {
         
         return rangeMin + normalizedPrize * (rangeMax - rangeMin);
     }
-    
+
 }
