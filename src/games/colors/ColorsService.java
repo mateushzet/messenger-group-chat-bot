@@ -29,13 +29,14 @@ public class ColorsService {
             betResult = handleSingleColorBet(context, currentBalance, resultColorNumber, betColor);
         }
 
-        if(resultColorNumber == 3) UserAvatarRepository.assignAvatarToUser(playerName, "colors gold");
         if(betResult == null) return;
 
         winnings = betResult[0];
         balanceChange = betResult[1];
         betAmount = betResult[2];
-    
+
+        if(resultColorNumber == 3 && winnings > 0) UserAvatarRepository.assignAvatarToUser(playerName, "colors gold");
+
         int updatedBalance = currentBalance + balanceChange;
         UserRepository.updateUserBalance(playerName, updatedBalance);
 
@@ -142,7 +143,7 @@ public class ColorsService {
     }
 
     public static int getResult(int shift) {
-        int[] colorOrder = {3, 2, 0, 1, 0, 1, 0, 1, 0, 2, 0, 2, 0, 1, 0, 1, 0, 1, 0, 2, 0, 2, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 2, 0, 2, 0, 1, 0, 1, 3, 1, 0, 2, 0, 2, 0, 1, 0, 1, 0, 1, 0, 2};
+        int[] colorOrder = {3, 2, 0, 1, 0, 1, 0, 1, 0, 2, 0, 2, 0, 1, 0, 1, 0, 1, 0, 2, 0, 2, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 2, 0, 2, 0, 1, 0, 1, 0, 1, 0, 2, 0, 2, 0, 1, 0, 1, 0, 1, 0, 2};
         colorOrder = ColorsGifGenerator.rotateArray(colorOrder, shift);
         return colorOrder[0]; // wining position
     }
