@@ -395,6 +395,7 @@ public class BlackjackService {
         }
     
         if (aces > 0 && softValue != hardValue) {
+            if(softValue == 21) return "21";
             return hardValue + "/" + softValue;
         } else {
             return String.valueOf(hardValue);
