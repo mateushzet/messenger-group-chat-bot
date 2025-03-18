@@ -27,7 +27,7 @@ public class CrashService {
 
         int userBalance = UserRepository.getCurrentUserBalance(username, false);
         if (userBalance < betAmount) {
-            MessageService.sendMessage("You can't afford it, your balance is: %d", userBalance);
+            MessageService.sendMessage("You can't afford it, your balance is: " + userBalance);
             return;
         }
         

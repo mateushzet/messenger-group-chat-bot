@@ -74,7 +74,7 @@ public class ColorsService {
         }
     
         if (currentBalance < totalBetAmount) {
-            MessageService.sendMessage("You can't afford the bet, current balance: %d", currentBalance);
+            MessageService.sendMessage("You can't afford the bet, current balance: " + currentBalance);
             return null;
         }
     
@@ -95,7 +95,7 @@ public class ColorsService {
         }
     
         if (currentBalance < betAmountParsed) {
-            MessageService.sendMessage("You can't afford the bet, current balance: %d", currentBalance);
+            MessageService.sendMessage("You can't afford the bet, current balance: " + currentBalance);
             return null;
         }
     

@@ -50,12 +50,12 @@ public class LottoService {
 
         if (betAmountParsed < 10) {
             MessageService.sendMessage("Your bet amount must be greater than 10");
-            Logger.logInfo("Player %s attempted to place a bet of %d coins, which is less than 10", "LottoService.handleLottoCommand()", playerName, betAmountParsed);
+            Logger.logInfo("Player " + playerName + " attempted to place a bet of " + betAmountParsed + " coins, which is less than 10", "LottoService.handleLottoCommand()");
             return;
         }
 
         if(isMulti && currentBalance < 5*betAmountParsed || currentBalance < betAmountParsed){
-            MessageService.sendMessage("You don't have enough coins. Your balance: %d", currentBalance);
+            MessageService.sendMessage("You don't have enough coins. Your balance: " + currentBalance);
             return;
         }
 
@@ -74,9 +74,9 @@ public class LottoService {
         UserRepository.updateUserBalance(playerName, newBalance);
     
         if (winnings > 0) {
-            Logger.logInfo("%s won %d coins in Lotto. New balance: %d", "LottoService.playLotto()", playerName, winnings, newBalance);
+            Logger.logInfo(playerName + " won " + winnings + " coins in Lotto. New balance: " + newBalance, "LottoService.playLotto()");
         } else {
-            Logger.logInfo("%s did not win in Lotto. New balance: %d", "LottoService.playLotto()", playerName, newBalance);
+            Logger.logInfo(playerName + " did not win in Lotto. New balance: " + newBalance, "LottoService.playLotto()");
         }
 
         LottoImageGenerator.drawLottoResults(winningNumbers, playerNumbers, winnings, betAmount, newBalance, playerName, prizePool);

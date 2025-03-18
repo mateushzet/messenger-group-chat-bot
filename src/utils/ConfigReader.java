@@ -69,7 +69,7 @@ public class ConfigReader {
             try {
                 return Integer.parseInt(value);
             } catch (NumberFormatException e) {
-                Logger.logError("Invalid number format for %s: %s", "ConfigReader.getPropertyInt()", e, value, key);
+                Logger.logError("Invalid number format for " + value + " : "+key, "ConfigReader.getPropertyInt()", e);
             }
         }
         return defaultValue;

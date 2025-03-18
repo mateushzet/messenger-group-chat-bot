@@ -33,16 +33,16 @@ public class MathQuestionService {
                     rewardUser(userName);
 
                 } else {
-                    MessageService.sendMessage("%s incorrect answer!", userName);
-                    Logger.logInfo("%s incorrect answer: %s", "MathQuestionService.handleMathAnswer()", userName, answer);
+                    MessageService.sendMessage(userName + " incorrect answer!");
+                    Logger.logInfo(userName + " incorrect answer: " + answer, "MathQuestionService.handleMathAnswer()");
                 }
             } catch (NumberFormatException e) {
                 MessageService.sendMessage("Invalid answer arguments!");
-                Logger.logInfo("%s incorrect command: %s", "MathQuestionService.handleMathAnswer()", userName, answer);
+                Logger.logInfo(userName + " incorrect command: " + answer, "MathQuestionService.handleMathAnswer()");
             }
         } else {
             MessageService.sendMessage("The last task was solved. Please wait for the next one.");
-            Logger.logInfo("%s tried to solve old question: %s", "MathQuestionService.handleMathAnswer()", userName, answer);
+            Logger.logInfo(userName + " tried to solve old question: " + answer, "MathQuestionService.handleMathAnswer()");
         }
     }
 
@@ -58,14 +58,14 @@ public class MathQuestionService {
                     mathQuestionRandomMinute = setRandomMinute();
                     isQuestionSolved = false;
                     lastHour = currentHour;
-                    Logger.logInfo("Math question sent at random minute: %d", "MathQuestionService.checkAndSendMathQuestion()", currentMinute);
+                    Logger.logInfo("Math question sent at random minute: " + currentMinute, "MathQuestionService.checkAndSendMathQuestion()");
                 }
             } else {
                 // full hour
                 sendMathQuestion();
                 isQuestionSolved = false;
                 lastHour = currentHour;
-                Logger.logInfo("Math question sent on the hour: %d", "MathQuestionService.checkAndSendMathQuestion()", currentHour);
+                Logger.logInfo("Math question sent on the hour: " + currentHour, "MathQuestionService.checkAndSendMathQuestion()");
             }
         }
     }
@@ -73,8 +73,8 @@ public class MathQuestionService {
     private static void rewardUser(String userName) {
         int userBalance = UserRepository.getCurrentUserBalance(userName, true);
         UserRepository.updateUserBalance(userName, userBalance + mathQuestionPrize);
-        MessageService.sendMessage("%s correct answer! You earn %d coins! Current balance: %d", userName, mathQuestionPrize, (userBalance + mathQuestionPrize));
-        Logger.logInfo("%s solved math question and earned %d coins, previous balance: %d", "MathQuestionService.rewardUser()", userName, mathQuestionPrize, userBalance);
+        MessageService.sendMessage(userName + " correct answer! You earn " + mathQuestionPrize + " coins! Current balance: " +  (userBalance + mathQuestionPrize));
+        Logger.logInfo(userName + " solved math question and earned " + mathQuestionPrize + " coins, previous balance: " + userBalance, "MathQuestionService.rewardUser()");
         RewardsHistoryRepository.addRewardHistory(userName, "Answer", mathQuestionPrize);
     }
 
@@ -82,7 +82,7 @@ public class MathQuestionService {
         MathQuestion question = new MathQuestion();
         currentMathQuestion = question.generateQuestion();
         currentAnswer = question.calculateAnswer();
-        Logger.logInfo("Current math question: %s current answer: %d", "MathQuestionService.sendMathQuestion()", currentMathQuestion, currentAnswer);
+        Logger.logInfo("Current math question: " + currentMathQuestion + " current answer: " + currentAnswer, "MathQuestionService.sendMathQuestion()");
         isQuestionSolved = false;
         MathQuestionImageGenerator.generateMathQuestionImage(currentMathQuestion);
         MessageService.sendMessageFromClipboard(true);
@@ -101,7 +101,7 @@ public class MathQuestionService {
         }
         
         int randomMinute = ThreadLocalRandom.current().nextInt(mathQuestionRandomMinuteStart, mathQuestionRandomMinuteEnd);
-        Logger.logInfo("Time range: %d - %d, random minute set to = %d", "MathQuestionService.setRandomMinute()", mathQuestionRandomMinuteStart, mathQuestionRandomMinuteEnd, randomMinute);
+        Logger.logInfo("Time range: " + mathQuestionRandomMinuteStart + " - " + mathQuestionRandomMinuteEnd + ", random minute set to = " + randomMinute, "MathQuestionService.setRandomMinute()");
         return randomMinute;
     }
 }

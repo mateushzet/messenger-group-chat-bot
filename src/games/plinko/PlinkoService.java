@@ -17,7 +17,7 @@ public class PlinkoService {
         if (betAmountParsed == -1) return; 
 
         if (currentBalance < betAmountParsed) {
-                MessageService.sendMessage("You can't afford it, your balance is: %d", currentBalance);
+                MessageService.sendMessage("You can't afford it, your balance is: " + currentBalance);
                 return;
             } 
 

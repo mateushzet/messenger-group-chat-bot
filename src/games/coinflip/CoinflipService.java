@@ -45,7 +45,7 @@ public class CoinflipService {
             Integer gameId = CoinflipRepository.addCoinflipGame(username, betAmountParsed);
             if (gameId != null) {
                 UserService.updateAndRetriveUserBalance(username, -betAmountParsed);
-                MessageService.sendMessage("%s has started a coinflip with a bet of %d and ID: %d", username, betAmountParsed, gameId);
+                MessageService.sendMessage(username + " has started a coinflip with a bet of " + betAmountParsed + " and ID: " + gameId);
             } else {
                 MessageService.sendMessage("Failed to start the coinflip");
             }
@@ -111,7 +111,7 @@ public class CoinflipService {
         if (owner.equals(username)) {
             CoinflipRepository.cancelGame(gameIdParsed);
             UserService.updateAndRetriveUserBalance(username, betAmount);
-            MessageService.sendMessage("%s has canceled the coinflip.", username);
+            MessageService.sendMessage(username + " has canceled the coinflip.");
         } else {
             MessageService.sendMessage("You can only cancel the game if you're the host.");
         }

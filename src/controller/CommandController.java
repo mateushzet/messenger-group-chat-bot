@@ -108,8 +108,8 @@ public class CommandController {
     
             commandHandler.accept(context);
         } else {
-            MessageService.sendMessage("Unknown command: %s", context.getCommand());
-            Logger.logInfo("%s used unknown command: %s", "CommandController.processCommand()", userName, context.getCommand());
+            MessageService.sendMessage("Unknown command: " + context.getCommand());
+            Logger.logInfo(userName + " used unknown command: " +  context.getCommand(), "CommandController.processCommand()");
         }
     }
 
@@ -151,7 +151,7 @@ public class CommandController {
                 commandAndArgs = message.substring(botAlternativeCommand.length()).trim();
             } else {
                 commandAndArgs = "";
-                Logger.logInfo("%s used empty command", "CommandController.processCommand()", userName);
+                Logger.logInfo(userName + " used empty command", "CommandController.processCommand()");
             }
 
         String[] parts = commandAndArgs.split(" ", 2);

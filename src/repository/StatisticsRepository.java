@@ -30,7 +30,7 @@ public class StatisticsRepository {
             }
 
         } catch (SQLException e) {
-            Logger.logError("Error retrieving data from view: %s", "ViewDataRepository.printViewData()", e, viewName);
+            Logger.logError("Error retrieving data from view: " + viewName, "ViewDataRepository.printViewData()", e);
             e.printStackTrace();
         }
     }

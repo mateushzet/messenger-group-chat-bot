@@ -33,7 +33,7 @@ public class CoinflipRepository {
                 }
             }
         } catch (SQLException e) {
-            Logger.logError("Error while creating coinflip game for user: %s, bet amount: %d", "CoinflipRepository.addCoinflipGame()", e, player1Username, betAmount);
+            Logger.logError("Error while creating coinflip game for user: " + player1Username + ", bet amount: " + betAmount, "CoinflipRepository.addCoinflipGame()", e);
         }
     
         return null;
@@ -51,7 +51,7 @@ public class CoinflipRepository {
             
             return rowsAffected > 0;
         } catch (SQLException e) {
-            Logger.logError("Error while updating game result, gameId: %d", "CoinflipRepository.updateGameResult()", e, gameId);
+            Logger.logError("Error while updating game result, gameId: " + gameId, "CoinflipRepository.updateGameResult()", e);
             return false;
         }
     }
@@ -67,7 +67,7 @@ public class CoinflipRepository {
             
             return rowsAffected > 0;
         } catch (SQLException e) {
-            Logger.logError("Error while canceling game result, gameId: %d", "CoinflipRepository.cancelGame()", e, gameId);
+            Logger.logError("Error while canceling game result, gameId: " + gameId, "CoinflipRepository.cancelGame()", e);
             return false;
         }
     }

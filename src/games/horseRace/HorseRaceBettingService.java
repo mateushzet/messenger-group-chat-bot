@@ -49,7 +49,7 @@ public class HorseRaceBettingService {
             }
 
             if (currentBalance < betAmountParesd) {
-                MessageService.sendMessage("You can't afford the bet, current balance: %d", currentBalance);
+                MessageService.sendMessage("You can't afford the bet, current balance: " + currentBalance);
                 return;
             }        
 

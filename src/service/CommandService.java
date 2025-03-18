@@ -31,8 +31,8 @@ public class CommandService {
         if(balance >= 100000) UserAvatarRepository.assignAvatarToUser(userName, "100000");
         if(balance >= 1000000) UserAvatarRepository.assignAvatarToUser(userName, "1000000");
         if(balance >= 10000000) UserAvatarRepository.assignAvatarToUser(userName, "10000000");
-        MessageService.sendMessage("%s, current balance: %d", userName ,balance);
-        Logger.logInfo("%s, current balance: %d","CommandService.handleMoneyCommand()", userName, balance);
+        MessageService.sendMessage(userName + ", current balance: " + balance);
+        Logger.logInfo(userName + ", current balance: " + balance,"CommandService.handleMoneyCommand()");
     }
 
     public static void handleTimeCommand(CommandContext context) {
@@ -41,7 +41,7 @@ public class CommandService {
 
     public static void handleKillCommand(CommandContext context) {
         MessageService.sendMessage("Shutting down the bot");
-        Logger.logInfo("Shutting down the bot at the request of %s", "CommandService.handleKillCommand()", context.getUserName());
+        Logger.logInfo("Shutting down the bot at the request of " + context.getUserName(), "CommandService.handleKillCommand()");
         System.exit(0);
     }
 
@@ -57,7 +57,7 @@ public class CommandService {
 
     public static void handleStatusCommand(CommandContext context) {
         String status = (App.running == 1) ? "running" : "stopped";
-        MessageService.sendMessage("Status: %s", status);
+        MessageService.sendMessage("Status: " + status);
     }
 
     public static void handleSayCommand(CommandContext context) {
@@ -80,10 +80,10 @@ public class CommandService {
         boolean correctTransfer = UserRepository.handleTransfer(senderName, amount, receiverName);
 
         if (correctTransfer) {
-            MessageService.sendMessage("Transferred %s coins to %s", amount, receiverFullName);
+            MessageService.sendMessage("Transferred " + amount + " coins to " + receiverFullName);
         } else {
             MessageService.sendMessage("Transfer failed");
-            Logger.logWarning("Transfer failed sender: %s, amount: %s, receiver: %s", "CommandService.handleTransferCommand()" , senderName, amount, receiverFullName);
+            Logger.logWarning("Transfer failed sender: " + senderName + ", amount: " + amount + ", receiver: " + receiverFullName, "CommandService.handleTransferCommand()");
         }
     }
 
@@ -122,7 +122,7 @@ public class CommandService {
         try {
             if (RewardsRepository.hasReceivedDailyReward(userName)) {
                 MessageService.sendMessage("You have already claimed your daily reward.");
-                Logger.logInfo("User %s tried to claim daily reward but already received it.","CommandService.handleDailyCommand()" , userName);
+                Logger.logInfo("User " + userName + " tried to claim daily reward but already received it.","CommandService.handleDailyCommand()");
                 return;
             }
             
@@ -132,11 +132,11 @@ public class CommandService {
             UserRepository.updateUserBalance(userName, newBalance);
             RewardsRepository.updateDailyReward(userName);
     
-            MessageService.sendMessage("%s has claimed the daily reward. Current balance: %d", userName, newBalance);
-            Logger.logInfo("User %s claimed daily reward. New balance: %d", "CommandService.handleDailyCommand()", userName, newBalance);
+            MessageService.sendMessage(userName + " has claimed the daily reward. Current balance: " + newBalance);
+            Logger.logInfo("User " + userName + " claimed daily reward. New balance: " + newBalance, "CommandService.handleDailyCommand()");
             RewardsHistoryRepository.addRewardHistory(userName, "Daily", dailyRewardPrize);
         } catch (Exception e) {
-            Logger.logError("Error processing daily reward for user %s: %s", "CommandService.handleDailyCommand()", e, userName);
+            Logger.logError("Error processing daily reward for user " + userName, "CommandService.handleDailyCommand()", e);
             MessageService.sendMessage("An error occurred while claiming your daily reward. Please try again later.");
         }
     }
@@ -157,7 +157,7 @@ public class CommandService {
             UserRepository.updateUserBalance(userName, newBalance);
             RewardsRepository.updateWeeklyReward(userName);
     
-            MessageService.sendMessage("%s has claimed the weekly reward. Current balance: %d", userName, newBalance);
+            MessageService.sendMessage(userName + " has claimed the weekly reward. Current balance: " + newBalance);
             RewardsHistoryRepository.addRewardHistory(userName, "Weekly", weeklyRewardPrize);
         } catch (Exception e) {
             System.out.println(e);
@@ -175,7 +175,7 @@ public class CommandService {
         }
 
         if (RewardsRepository.hasReceivedHourlyReward(userName)) {
-            MessageService.sendMessage("%s, you have already claimed your reward for this hour.", userName);
+            MessageService.sendMessage(userName + ", you have already claimed your reward for this hour.");
             return;
         }
 
@@ -187,11 +187,11 @@ public class CommandService {
 
             UserRepository.updateUserBalance(userName, newBalance);
 
-            MessageService.sendMessage("%s has claimed the hourly reward %d coins. Current balance: %d", userName, hourlyRewardPrize, newBalance);
-            Logger.logInfo("User %s claimed hourly reward. New balance: %d","CommandService.handleHourlyCommand()", userName, newBalance);
+            MessageService.sendMessage(userName + " has claimed the hourly reward " + hourlyRewardPrize + " coins. Current balance: " + newBalance);
+            Logger.logInfo("User " + userName + " claimed hourly reward. New balance: " + newBalance,"CommandService.handleHourlyCommand()");
             RewardsHistoryRepository.addRewardHistory(userName, "Hourly", hourlyRewardPrize);
         } catch (Exception e) {
-            Logger.logError("Error processing hourly reward for user %s", "CommandService.handleHourlyCommand()", e, userName);
+            Logger.logError("Error processing hourly reward for user " + userName, "CommandService.handleHourlyCommand()", e);
             MessageService.sendMessage("An error occurred while claiming your hourly reward. Please try again later.");
         }
     }
@@ -212,12 +212,12 @@ public class CommandService {
     
                     int userBalance = UserRepository.getCurrentUserBalance(username, false);
                     if (userBalance < coinFlipAmount) {
-                        MessageService.sendMessage("Insufficient balance. You have %d coins, but your bet is %d.", userBalance, coinFlipAmount);
+                        MessageService.sendMessage("Insufficient balance. You have " + userBalance + " coins, but your bet is " + coinFlipAmount);
                         return;
                     }
     
                     coinFlipCurrentPlayer = username;
-                    MessageService.sendMessage("%s has started a coinflip with a bet of %d. Use /bot coinflip accept to join.", username, coinFlipAmount);
+                    MessageService.sendMessage(username + " has started a coinflip with a bet of " + coinFlipAmount + ". Use /bot coinflip accept to join.");
                 } catch (NumberFormatException e) {
                     MessageService.sendMessage("Invalid bet amount. Please provide a valid number.");
                 }
@@ -230,16 +230,16 @@ public class CommandService {
                 int userBalance = UserRepository.getCurrentUserBalance(username, false);
     
                 if (userBalance < coinFlipAmount) {
-                    MessageService.sendMessage("Insufficient balance to accept the coinflip. You need at least %d coins.", coinFlipAmount);
+                    MessageService.sendMessage("Insufficient balance to accept the coinflip. You need at least " + coinFlipAmount + "coins.");
                     return;
                 }
     
                 if (result == 1) {
-                    MessageService.sendMessage("%s won %d coins!", username, coinFlipAmount);
+                    MessageService.sendMessage(username + " won " + coinFlipAmount + " coins!");
                     userBalance += coinFlipAmount;
                     UserRepository.updateUserBalance(coinFlipCurrentPlayer, UserRepository.getCurrentUserBalance(coinFlipCurrentPlayer, false) - coinFlipAmount);
                 } else {
-                    MessageService.sendMessage("%s won %d coins!", coinFlipCurrentPlayer, coinFlipAmount);
+                    MessageService.sendMessage(coinFlipCurrentPlayer + " won " + coinFlipAmount + " coins!");
                     userBalance -= coinFlipAmount;
                     UserRepository.updateUserBalance(coinFlipCurrentPlayer, UserRepository.getCurrentUserBalance(coinFlipCurrentPlayer, false) + coinFlipAmount);
                 }
@@ -257,13 +257,13 @@ public class CommandService {
                 UserRepository.updateUserBalance(coinFlipCurrentPlayer, UserRepository.getCurrentUserBalance(coinFlipCurrentPlayer, false) + coinFlipAmount);
                 coinFlipAmount = 0;
                 coinFlipCurrentPlayer = "";
-                MessageService.sendMessage("%s canceled the coinflip game.", username);
+                MessageService.sendMessage(username + " canceled the coinflip game.");
             } else {
                 MessageService.sendMessage("Only the player who started the coinflip can cancel it.");
             }
         } else if (command.equalsIgnoreCase("")) {
             if (!coinFlipCurrentPlayer.isEmpty()) {
-                MessageService.sendMessage("Active coinflip: %s has bet %d coins.", coinFlipCurrentPlayer, coinFlipAmount);
+                MessageService.sendMessage("Active coinflip: " + coinFlipCurrentPlayer + " has bet " + coinFlipAmount + " coins.");
             } else {
                 MessageService.sendMessage("No active coinflip game at the moment.");
             }

@@ -5,8 +5,6 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.stream.Collectors;
 
 import database.DatabaseConnectionManager;
 
@@ -45,47 +43,16 @@ public class Logger {
         logToConsole(level, message, source);
     }
 
-    public static void info(String message, String source) {
+    public static void logInfo(String message, String source) {
         log("INFO", message, source);
     }
 
-    public static void warning(String message, String source) {
+    public static void logWarning(String message, String source) {
         log("WARNING", message, source);
     }
 
-    public static void error(String message, String source) {
+    public static void logError(String message, String source, Exception e) {
         log("ERROR", message, source);
-    }
-
-    public static void logInfo(String message, String source, Object... params) {
-        try {
-            info(String.format(message, params), source);
-        } catch (Exception e) {
-            error("Logger failed to format log message. Error: " + e.getMessage(), source);
-        }
-    }
-
-    public static void logWarning(String message, String source, Object... params) {
-        try {
-            warning(String.format(message, params), source);
-        } catch (Exception e) {
-            error("Logger failed to format log message. Error: " + e.getMessage(), source);
-        }
-    }
-
-    public static void logError(String message, String source, Exception e, Object... params) {
-        try {
-            String formattedMessage = String.format(message, params);
-            String fullMessage = formattedMessage + " Exception: " + e.getMessage() + " Stack trace: " + Arrays.stream(e.getStackTrace())
-                .map(StackTraceElement::toString)
-                .collect(Collectors.joining("\n"));
-            error(fullMessage, source);
-        } catch (Exception e2) {
-            String errorMessage = "Logger failed to format log message. Error: " + e2.getMessage() + " Stack trace: " + Arrays.stream(e2.getStackTrace())
-                .map(StackTraceElement::toString)
-                .collect(Collectors.joining("\n"));
-            error(errorMessage, source);
-        }
     }
 
     public static boolean doesLogExist(String message) {
@@ -105,7 +72,7 @@ public class Logger {
                 }
             }
         } catch (SQLException e) {
-            error("Encountered Error while checking log existence: " + e.getMessage(), "doesLogExist()");
+            logError("Encountered Error while checking log existence: " + e.getMessage(), "doesLogExist()", e);
         }
         return false;
     }

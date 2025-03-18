@@ -37,7 +37,7 @@ public class RewardsRepository {
             return today.equals(lastReceivedDate);
 
         } catch (SQLException e) {
-            Logger.logError("Error while checking daily reward info for user: %s", "RewardsRepository.hasReceivedDailyReward()", e, userName);
+            Logger.logError("Error while checking daily reward info for user:  " + userName, "RewardsRepository.hasReceivedDailyReward()", e);
             return false;
         }
     }
@@ -74,7 +74,7 @@ public class RewardsRepository {
             return (lastYear == currentYear) && (lastWeek == currentWeek);
 
         } catch (SQLException e) {
-            Logger.logError("Error while checking weekly reward info for user: %s", "RewardsRepository.hasReceivedWeeklyReward()", e, userName);
+            Logger.logError("Error while checking weekly reward info for user:  " + userName, "RewardsRepository.hasReceivedWeeklyReward()", e);
             return false;
         }
     }
@@ -108,8 +108,8 @@ public class RewardsRepository {
                    lastReceived.getHour() == now.getHour();
     
         } catch (SQLException e) {
-            Logger.logError("Error while checking hourly reward info for user: %s", 
-                            "RewardsRepository.hasReceivedHourlyReward()", e, userName);
+            Logger.logError("Error while checking hourly reward info for user:  " + userName, 
+                            "RewardsRepository.hasReceivedHourlyReward()", e);
             return false;
         }
     }
@@ -125,13 +125,13 @@ public class RewardsRepository {
             int rowsUpdated = statement.executeUpdate();
 
             if (rowsUpdated > 0) {
-                Logger.logInfo("Successfully updated daily reward for user: %s", "ColorsRepository.updateDailyReward()", userName);
+                Logger.logInfo("Successfully updated daily reward for user:  " + userName, "ColorsRepository.updateDailyReward()");
             } else {
-                Logger.logWarning("User not found: %s", "DailyRewardRepository.updateDailyReward()", userName);
+                Logger.logWarning("User not found:  " + userName, "DailyRewardRepository.updateDailyReward()");
             }
 
         } catch (SQLException e) {
-            Logger.logError("Error while updating daily reward info for user: %s", "RewardsRepository.updateDailyReward()", e, userName);
+            Logger.logError("Error while updating daily reward info for user:  " + userName, "RewardsRepository.updateDailyReward()", e);
         }
     }
 
@@ -146,13 +146,13 @@ public class RewardsRepository {
             int rowsUpdated = statement.executeUpdate();
 
             if (rowsUpdated > 0) {
-                Logger.logInfo("Successfully updated hourly reward for user: %s", "ColorsRepository.updateHourlyReward()", userName);
+                Logger.logInfo("Successfully updated hourly reward for user:  " + userName, "ColorsRepository.updateHourlyReward()");
             } else {
-                Logger.logWarning("User not found: %s", "RewardsRepository.updateHourlyReward()", userName);
+                Logger.logWarning("User not found:  " + userName, "RewardsRepository.updateHourlyReward()");
             }
 
         } catch (SQLException e) {
-            Logger.logError("Error while updating hourly reward info for user: %s", "RewardsRepository.updateHourlyReward()", e, userName);
+            Logger.logError("Error while updating hourly reward info for user:  " + userName, "RewardsRepository.updateHourlyReward()", e);
         }
     }
 
@@ -167,13 +167,13 @@ public class RewardsRepository {
             int rowsUpdated = statement.executeUpdate();
 
             if (rowsUpdated > 0) {
-                Logger.logInfo("Successfully updated hourly reward for user: %s", "ColorsRepository.updateHourlyReward()", userName);
+                Logger.logInfo("Successfully updated hourly reward for user: " + userName, "ColorsRepository.updateHourlyReward()");
             } else {
-                Logger.logWarning("User not found: %s", "RewardsRepository.updateHourlyReward()", userName);
+                Logger.logWarning("User not found:  " + userName, "RewardsRepository.updateHourlyReward()");
             }
 
         } catch (SQLException e) {
-            Logger.logError("Error while updating hourly reward info for user: %s", "RewardsRepository.updateHourlyReward()", e, userName);
+            Logger.logError("Error while updating hourly reward info for user:  " + userName, "RewardsRepository.updateHourlyReward()", e);
         }
     }
 

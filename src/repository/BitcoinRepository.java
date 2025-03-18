@@ -26,7 +26,7 @@ public class BitcoinRepository {
                 return 0.0;
             }
         } catch (SQLException e) {
-            Logger.logError("Error while getting Bitcoin balance for user: %s", "BitcoinRepository.getBitcoinBalance()", e, userName);
+            Logger.logError("Error while getting Bitcoin balance for user: " + userName, "BitcoinRepository.getBitcoinBalance()", e);
             return 0.0;
         }
     }
@@ -47,7 +47,7 @@ public class BitcoinRepository {
                 return 0;
             }
         } catch (SQLException e) {
-            Logger.logError("Error while getting Bitcoin balance for user: %s", "BitcoinRepository.getBitcoinBalance()", e, userName);
+            Logger.logError("Error while getting Bitcoin balance for user: " + userName, "BitcoinRepository.getBitcoinBalance()", e);
             return 0;
         }
     }
@@ -60,10 +60,10 @@ public class BitcoinRepository {
             statement.setDouble(1, newBalance);
             statement.setString(2, userName);
             statement.executeUpdate();
-            Logger.logInfo("Bitcoin balance updated: %s = %.8f BTC", "BitcoinRepository.updateBitcoinBalance()", userName, newBalance);
+            Logger.logInfo("Bitcoin balance updated: " + userName + " = " + newBalance + " BTC", "BitcoinRepository.updateBitcoinBalance()");
             return true;
         } catch (SQLException e) {
-            Logger.logError("Error while updating Bitcoin balance for user: %s", "BitcoinRepository.updateBitcoinBalance()", e, userName);
+            Logger.logError("Error while updating Bitcoin balance for user: " + userName, "BitcoinRepository.updateBitcoinBalance()", e);
             return false;
         }
     }
@@ -75,9 +75,9 @@ public class BitcoinRepository {
 
             statement.setString(1, userName);
             statement.executeUpdate();
-            Logger.logInfo("Added user to Bitcoin table: %s", "BitcoinRepository.addUserIfNotExists()", userName);
+            Logger.logInfo("Added user to Bitcoin table: " + userName, "BitcoinRepository.addUserIfNotExists()");
         } catch (SQLException e) {
-            Logger.logError("Error while adding user to Bitcoin table: %s", "BitcoinRepository.addUserIfNotExists()", e, userName);
+            Logger.logError("Error while adding user to Bitcoin table: " + userName, "BitcoinRepository.addUserIfNotExists()", e);
         }
     }
 }

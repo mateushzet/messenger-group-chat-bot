@@ -38,14 +38,14 @@ public class UserRepository {
             ResultSet resultSet = statement.executeQuery();
             return resultSet.next();
         } catch (SQLException e) {
-            Logger.logError("Error adding user colors access for user: %s", "UserRepository.doesUserExist()", e, userName);
+            Logger.logError("Error adding user colors access for user: " + userName, "UserRepository.doesUserExist()", e);
         }
         return false;
     }
 
     private static boolean validateTransferParams(String amount, String receiverName) {
         if (amount == null || receiverName == null || amount.trim().isEmpty()) {
-            Logger.logWarning("Invalid parameters: amount = %s, receiverName = %s", "UserRepository.validateTransferParams()", amount, receiverName);
+            Logger.logWarning("Invalid parameters: amount = " + amount + ", receiverName = " + receiverName, "UserRepository.validateTransferParams()");
             MessageService.sendMessage("Invalid transfer parameters.");
             return false;
         }
@@ -56,7 +56,7 @@ public class UserRepository {
         try {
             return Integer.parseInt(amount.trim());
         } catch (NumberFormatException e) {
-            Logger.logWarning("Invalid transfer amount: %s", "UserRepository.parseTransferAmount()", amount);
+            Logger.logWarning("Invalid transfer amount: " + amount, "UserRepository.parseTransferAmount()");
             MessageService.sendMessage("Invalid transfer amount.");
             return -1;
         }
@@ -78,7 +78,7 @@ public class UserRepository {
     private static void addUserIfNotExists(String userName) {
         if (!doesUserExist(userName)) {
             addUserToDatabase(userName, 0);
-            Logger.logInfo("Added user to database: %s", "UserRepository.addUserIfNotExists()", userName);
+            Logger.logInfo("Added user to database: " + userName, "UserRepository.addUserIfNotExists()");
         }
     }
 
@@ -92,17 +92,17 @@ public class UserRepository {
         updateUserBalance(senderName, balanceSender - transferAmount);
         updateUserBalance(receiverName, balanceReceiver + transferAmount);
 
-        Logger.logInfo("Transaction successful: %s -> %s, Amount: %d", "UserRepository.processTransaction()", senderName, receiverName, transferAmount);
+        Logger.logInfo("Transaction successful: " + senderName + " -> " + receiverName + ", Amount: " + transferAmount, "UserRepository.processTransaction()");
         return true;
     }
 
     private static void notifyInvalidReceiver(String receiverName) {
-        Logger.logWarning("Receiver not found or incorrect name: %s", "UserRepository.notifyInvalidReceiver()", receiverName);
+        Logger.logWarning("Receiver not found or incorrect name: " + receiverName, "UserRepository.notifyInvalidReceiver()");
         MessageService.sendMessage("The recipient has not activated their balance or the name is incorrect.");
     }
 
     private static void notifySameSenderAndReceiver(String senderName, String receiverName) {
-        Logger.logWarning("Sender and receiver are the same: %s = %s", "UserRepository.notifySameSenderAndReceiver()", senderName, receiverName);
+        Logger.logWarning("Sender and receiver are the same: " + senderName + " = " + receiverName, "UserRepository.notifySameSenderAndReceiver()");
     }
 
     public static int getCurrentUserBalance(String userName, boolean createNewUser) {
@@ -118,11 +118,11 @@ public class UserRepository {
 
             if (createNewUser) {
                 addUserToDatabase(userName, 0);
-                Logger.logInfo("Created new user: %s", "UserRepository.getUserBalance()", userName);
+                Logger.logInfo("Created new user: " + userName, "UserRepository.getUserBalance()");
                 return 0;
             }
         } catch (SQLException e) {
-            Logger.logError("Error while geting user balance for user: %s", "UserRepository.notifySameSenderAndReceiver()", e, userName);
+            Logger.logError("Error while geting user balance for user: " + userName, "UserRepository.notifySameSenderAndReceiver()", e);
         }
         return -1;
     }
@@ -135,10 +135,10 @@ public class UserRepository {
             statement.setInt(1, newBalance);
             statement.setString(2, userName);
             statement.executeUpdate();
-            Logger.logInfo("User balance updated: %s = %d", "UserRepository.updateUserBalance()", userName, newBalance);
+            Logger.logInfo("User balance updated: " + userName + " = " + newBalance, "UserRepository.updateUserBalance()");
             return true;
         } catch (SQLException e) {
-            Logger.logError("Error while updating user balance for user: %s", "UserRepository.updateUserBalance()", e, userName);
+            Logger.logError("Error while updating user balance for user: " + userName, "UserRepository.updateUserBalance()", e);
             return false;
         }
     }
@@ -151,14 +151,14 @@ public class UserRepository {
             }
             retryCount++;
             if (retryCount >= 5) {
-                Logger.logWarning("Failed to update user balance after 5 retries for user: %s", "UserRepository.updateUserBalance()", userName);
+                Logger.logWarning("Failed to update user balance after 5 retries for user: " + userName, "UserRepository.updateUserBalance()");
                 return false;
             }
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
-                Logger.logError("Thread interrupted while retrying update for user: %s", "UserRepository.updateUserBalance()", ie, userName);
+                Logger.logError("Thread interrupted while retrying update for user: " + userName, "UserRepository.updateUserBalance()", ie);
                 return false;
             }
         }
@@ -173,9 +173,9 @@ public class UserRepository {
             statement.setString(1, userName);
             statement.setInt(2, balance);
             statement.executeUpdate();
-            Logger.logInfo("Added user: %s with balance: %d", "UserRepository.addUserToDatabase()", userName, balance);
+            Logger.logInfo("Added user: " + userName + " with balance: " + balance, "UserRepository.addUserToDatabase()");
         } catch (SQLException e) {
-            Logger.logError("Error while adding user to database for user: %s", "UserRepository.addUserToDatabase()", e, userName);
+            Logger.logError("Error while adding user to database for user: " + userName, "UserRepository.addUserToDatabase()", e);
         }
     }
 
