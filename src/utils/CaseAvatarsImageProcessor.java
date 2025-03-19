@@ -5,6 +5,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 
 public class CaseAvatarsImageProcessor {
 
@@ -17,8 +18,8 @@ public class CaseAvatarsImageProcessor {
     private static File outputFolder;
 
     public static void main(String[] args) {
-        File inputFolder = new File("src\\games\\caseopening\\skins");
-        outputFolder = new File("src\\resources\\user_avatars");
+        File inputFolder = new File(buildPath("src","games","caseopening","skins"));
+        outputFolder = new File(buildPath("src","resources","user_avatars"));
 
         if (!outputFolder.exists()) {
             outputFolder.mkdirs();
@@ -92,4 +93,9 @@ public class CaseAvatarsImageProcessor {
     private static int adjustBrightness(int colorValue, float factor) {
         return Math.min(255, Math.max(0, (int) (colorValue * factor)));
     }
+
+    public static String buildPath(String... parts) {
+        return Paths.get("", parts).toString();
+    }
+
 }
