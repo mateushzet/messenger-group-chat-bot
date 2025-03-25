@@ -41,6 +41,7 @@ public class CommandController {
     private static final Map<String, Consumer<CommandContext>> commands = new HashMap<>();
     private static final String botCommand = ConfigReader.getBotCommand();
     private static final String botAlternativeCommand = ConfigReader.getBotAlternativeCommand();
+    private static final boolean requireGameAccess = ConfigReader.isGameAccessRequired();
 
     static {
         commands.put("time", CommandService::handleTimeCommand);
@@ -98,7 +99,7 @@ public class CommandController {
         Consumer<CommandContext> commandHandler = commands.get(context.getCommand().toLowerCase());
     
         if (commandHandler != null) {
-            if (requiresGameAccess(context.getCommand())) {
+            if (requiresGameAccess(context.getCommand()) && requireGameAccess) {
                 String gameName = getGameNameFromCommand(context.getCommand());
                 if (!UserRepository.hasGameAccess(userName, gameName)) {
                     MessageService.sendMessage(userName + ", you do not have access to " + gameName + ". /buy " + gameName + " (50 coins)");
