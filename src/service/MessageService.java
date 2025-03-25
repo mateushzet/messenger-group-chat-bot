@@ -13,6 +13,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
@@ -118,6 +119,14 @@ public class MessageService {
                 processCommonTasks();
                 
                 List<WebElement> messages = driver.findElements(By.cssSelector(messageCssSelector));
+
+                messages = messages.stream()
+                    .filter(el -> {
+                        String text = el.getText().toLowerCase();
+                        return text.contains(botCommand.toLowerCase()) || text.contains(botAlternativeCommand.toLowerCase());
+                    })
+                    .collect(Collectors.toList());
+
                 for (WebElement message : messages) {
                     if (!isValidMessage(message)) {
                         continue;
@@ -153,6 +162,14 @@ public class MessageService {
 
     private static void processAllValidMessages() {
         List<WebElement> messages = driver.findElements(By.cssSelector(messageCssSelector));
+
+        messages = messages.stream()
+                    .filter(el -> {
+                        String text = el.getText().toLowerCase();
+                        return text.contains(botCommand.toLowerCase()) || text.contains(botAlternativeCommand.toLowerCase());
+                    })
+                    .collect(Collectors.toList());
+
         for (WebElement message : messages) {
             if (!isValidMessage(message)) {
                 continue;
@@ -193,12 +210,12 @@ public class MessageService {
 
     private static boolean isValidMessage(WebElement message) {
 
-        String text = message.getText().toLowerCase();
-        if (!text.startsWith(botCommand.toLowerCase()) && !text.startsWith(botAlternativeCommand.toLowerCase())) {
+        if (hasEmoji(message)) {
             return false;
         }
 
-        if (hasEmoji(message)) {
+        String text = message.getText().toLowerCase();
+        if (!text.startsWith(botCommand.toLowerCase()) && !text.startsWith(botAlternativeCommand.toLowerCase())) {
             return false;
         }
 
@@ -234,7 +251,7 @@ public class MessageService {
     }
 
     private static void processUserCommand(String userName, String messageText) {
-        CommandController.processCommand(userName, messageText);
+        CommandController.processCommand(userName.toLowerCase(), messageText.toLowerCase());
     }
 
     private static String getSenderName(WebElement message) {
