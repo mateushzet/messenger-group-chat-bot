@@ -10,9 +10,9 @@ import utils.Logger;
 
 import java.time.Duration;
 import java.time.LocalTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
@@ -25,7 +25,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 
 public class MessageService {
 
-    private static WebDriver driver = WebDriverFactory.getDriver();
+    private static final WebDriver driver = WebDriverFactory.getDriver();
     private static final String botCommand = ConfigReader.getBotCommand();
     private static final String botAlternativeCommand = ConfigReader.getBotAlternativeCommand();
     private static final String messageUserAvatarCssSelector = ConfigReader.getMessageUserAvatarCssSelector();
@@ -37,61 +37,22 @@ public class MessageService {
     private static final String messageReceivedReactionsHeartCssSelector = ConfigReader.getMessageReceivedReactionsHeartCssSelector();
     private static final String messageHeartReactionCssSelector = ConfigReader.getMessageHeartReactionCssSelector();
     private static final String messageReactButtonCssSelector = ConfigReader.getMessageReactButtonCssSelector();
+    
+    private static final boolean optimizedModeEnabled = ConfigReader.isOptimizedModeEnabled();
+    private static final int MAX_MESSAGES_BEFORE_COOLDOWN = 5;
+    private static final int CLIPBOARD_MESSAGE_THRESHOLD = 5;
+    private static final int MAX_CLIPBOARD_IDLE_SECONDS = 10;
+    
     private static int counter = 0;
-    private static int lasthourAPIfetch = 0;
-
-    private static LocalTime lastHour = java.time.LocalTime.now();
-
-    public static boolean validateMessage(WebElement message) {
-        
-        // Check if message has profile picture
-        List<WebElement> userImages = message.findElements(By.cssSelector(messageUserAvatarCssSelector));
-        if (userImages.isEmpty()) {
-            // No profile picture, message from bot, skip
-            return false;
-        }
-
-        String text = message.getText();
-
-        //dont check heart reaction for answer commands
-        //if (text.startsWith(botCommand.toLowerCase()+" answer") && !Logger.doesLogExist(getSenderName(message) + text + LocalDateTime.now().withMinute(0).withSecond(0).withNano(0))) {
-        //    Logger.logToDatabase("INFO",getSenderName(message) + text + LocalDateTime.now().withMinute(0).withSecond(0).withNano(0),"validateMessage");
-        //    return true;
-        //}
-
-        // check if message starts with /bot
-        if (!text.startsWith(botCommand.toLowerCase()) && !text.startsWith(botAlternativeCommand.toLowerCase())) {
-            return false;
-        }
-    
-        // Check if message has reactions (emojis)
-        if (hasEmoji(message)) {
-            // There is already a reaction, message already processed, skip
-            return false;
-        }
-    
-        // Add heart emoji if not already reacted
-        addEmoji(message);
-    
-        return true;
-    }
-    
-    public static void sendMessage(String message, Object... params) {
-        String messageInputBoxCssSelector = ConfigReader.getMessageInputBoxCssSelector();
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        WebElement inputBox = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(messageInputBoxCssSelector)));
-
-        String formattedMessage = String.format(message, params);
-        inputBox.sendKeys(formattedMessage);
-        inputBox.sendKeys(Keys.RETURN);
-        Logger.logInfo("Message sent: %s", "MessageService.sendMessage()", formattedMessage);
-    }
+    private static int lastHourAPIfetch = 0;
+    private static LocalTime lastHour = LocalTime.now();
 
     public static void sendMessage(String message) {
         String messageInputBoxCssSelector = ConfigReader.getMessageInputBoxCssSelector();
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        WebElement inputBox = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(messageInputBoxCssSelector)));
-    
+        WebElement inputBox = wait.until(ExpectedConditions.visibilityOfElementLocated(
+            By.cssSelector(messageInputBoxCssSelector)));
+        
         inputBox.sendKeys(message);
         inputBox.sendKeys(Keys.RETURN);
         Logger.logInfo("Message sent: " + message, "MessageService.sendMessage()");
@@ -100,132 +61,191 @@ public class MessageService {
     public static void sendMessageFromClipboard(boolean instant) {
         String messageInputBoxCssSelector = ConfigReader.getMessageInputBoxCssSelector();
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        WebElement inputBox = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(messageInputBoxCssSelector)));
-    
+        WebElement inputBox = wait.until(ExpectedConditions.visibilityOfElementLocated(
+            By.cssSelector(messageInputBoxCssSelector)));
+        
         inputBox.click();
-    
-
-
+        
         Actions actions = new Actions(driver);
         actions.keyDown(Keys.CONTROL)
-        .sendKeys("v")
-        .keyUp(Keys.CONTROL)
-        .perform();
+               .sendKeys("v")
+               .keyUp(Keys.CONTROL)
+               .perform();
 
-        counter++;
-
-        if(instant == true){
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+        if(instant || optimizedModeEnabled) {
             actions.sendKeys(Keys.RETURN).perform();
-            lastHour = java.time.LocalTime.now();
+            lastHour = LocalTime.now();
             counter = 0;
-        } else if(counter==5) {
+        } else if(++counter == CLIPBOARD_MESSAGE_THRESHOLD) {
             actions.sendKeys(Keys.RETURN).perform();
-            lastHour = java.time.LocalTime.now();
+            lastHour = LocalTime.now();
             counter = 0;
         }
-    
+        
         Logger.logToConsole("INFO", "Message sent from clipboard.", "MessageService.sendMessage()");
     }
 
     public static void processMessages() throws InterruptedException {
+        Logger.logInfo(("Starting message processing in " + (optimizedModeEnabled ? "OPTIMIZED" : "NORMAL") + " mode"),"MessageService.processMessages()");
+        
+        if (optimizedModeEnabled) {
+            processMessagesInOptimizedMode();
+        } else {
+            processMessagesInNormalMode();
+        }
+    }
 
-        Map<String, UserCooldownInfo> userCooldownMap = new HashMap<>();
-
+    private static void processMessagesInOptimizedMode() {
         while (true) {
             try {
-
-                LocalTime currentTime = java.time.LocalTime.now();
-                int currentHour = currentTime.getHour();
-                int currentMinute = currentTime.getMinute();
-
-                if((Duration.between(lastHour, currentTime).getSeconds() > 10) && counter != 0) {
-                    Actions actions = new Actions(driver);
-                    actions.sendKeys(Keys.RETURN).perform();
-                    lastHour = java.time.LocalTime.now();
-                    counter = 0;
-                }
-
-                if((currentHour >= 12 && currentHour <= 24) && currentMinute == 0 && lasthourAPIfetch != currentHour){
-                    try {
-                        lasthourAPIfetch = currentHour;
-                        SportsApiToDatabase.fetchAndStoreMatchData();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                if(JackpotService.hasTenMinutesPassedSinceOldestTimestamp()){
-                    JackpotService.startJackpotGame();
-                }
-
-                MathQuestionService.checkAndSendMathQuestion();
-
-                List<WebElement> messages = driver.findElements(By.cssSelector(messageCssSelector));
-
-                for (WebElement message : messages) {
-                    if (validateMessage(message)) {
-                        String userName;
-
-                        try {
-                            userName = getSenderName(message).toLowerCase();
-                        } catch (Exception e) {
-                            continue;
-                        }
-
-                        if (!userName.isEmpty()) {
-                            UserCooldownInfo userInfo = userCooldownMap.getOrDefault(userName, new UserCooldownInfo());
-
-                            currentTime = java.time.LocalTime.now();
-
-                            if (Duration.between(userInfo.getLastMessageTime(), currentTime).getSeconds() > userInfo.getCooldownDuration()) {
-                                userInfo.reset();
-                            }
-
-                            userInfo.incrementMessageCount();
-
-                            if (userInfo.getMessageCount() > 5) {
-                                long elapsedTime = Duration.between(userInfo.getLastMessageTime(), currentTime).getSeconds();
-                                userInfo.increaseCooldownDuration(elapsedTime);
-                                MessageService.sendMessage(userName + " cooldown: " + userInfo.getCooldownDuration() + " s");
-                                continue;
-                            }
-
-                            userInfo.setLastMessageTime(currentTime);
-
-                            userCooldownMap.put(userName, userInfo);
-
-                            String text = message.getText().toLowerCase();
-                            if (text.startsWith(botCommand.toLowerCase()) || text.startsWith(botAlternativeCommand.toLowerCase())) {
-                                CommandController.processCommand(userName, text);
-                            }
-                        }
-                    }
-                }
+                processCommonTasks();
+                processAllValidMessages();
             } catch (StaleElementReferenceException e) {
-                // The element has been changed in the DOM. Ignoring the exception.
+                continue;
             }
         }
+    }
+
+    private static void processMessagesInNormalMode() {
+        ConcurrentHashMap<String, UserCooldownInfo> userCooldownMap = new ConcurrentHashMap<>();
+        
+        while (true) {
+            try {
+                LocalTime currentTime = LocalTime.now();
+                
+                handleClipboardTimeout(currentTime);
+                handleScheduledTasks(currentTime);
+                processCommonTasks();
+                
+                List<WebElement> messages = driver.findElements(By.cssSelector(messageCssSelector));
+                for (WebElement message : messages) {
+                    if (!isValidMessage(message)) {
+                        continue;
+                    }
+                    
+                    String userName = getSenderName(message);
+                    if (userName == null || userName.isEmpty()) {
+                        continue;
+                    }
+                    
+                    UserCooldownInfo userInfo = userCooldownMap.computeIfAbsent(
+                        userName.toLowerCase(), 
+                        k -> new UserCooldownInfo());
+                    
+                    if (handleUserCooldown(userName, userInfo, currentTime)) {
+                        continue;
+                    }
+                    
+                    processUserCommand(userName, message.getText().toLowerCase());
+                }
+            } catch (StaleElementReferenceException e) {
+                continue;
+            }
+        }
+    }
+
+    private static void processCommonTasks() {
+        if (JackpotService.hasTenMinutesPassedSinceOldestTimestamp()) {
+            CompletableFuture.runAsync(JackpotService::startJackpotGame);
+        }
+        CompletableFuture.runAsync(MathQuestionService::checkAndSendMathQuestion);
+    }
+
+    private static void processAllValidMessages() {
+        List<WebElement> messages = driver.findElements(By.cssSelector(messageCssSelector));
+        for (WebElement message : messages) {
+            if (!isValidMessage(message)) {
+                continue;
+            }
+            
+            String userName = getSenderName(message);
+            if (userName == null || userName.isEmpty()) {
+                continue;
+            }
+            
+            processUserCommand(userName, message.getText().toLowerCase());
+        }
+    }
+
+    private static void handleClipboardTimeout(LocalTime currentTime) {
+        if (Duration.between(lastHour, currentTime).getSeconds() > MAX_CLIPBOARD_IDLE_SECONDS && counter != 0) {
+            new Actions(driver).sendKeys(Keys.RETURN).perform();
+            lastHour = currentTime;
+            counter = 0;
+        }
+    }
+
+    private static void handleScheduledTasks(LocalTime currentTime) {
+        int currentHour = currentTime.getHour();
+        int currentMinute = currentTime.getMinute();
+        
+        if ((currentHour >= 12 && currentHour <= 24) && currentMinute == 0 && lastHourAPIfetch != currentHour) {
+            lastHourAPIfetch = currentHour;
+            CompletableFuture.runAsync(() -> {
+                try {
+                    SportsApiToDatabase.fetchAndStoreMatchData();
+                } catch (Exception e) {
+                    Logger.logError("Failed to fetch sports data", "MessageService.processMessages", e);
+                }
+            });
+        }
+    }
+
+    private static boolean isValidMessage(WebElement message) {
+        try {
+            if (message.findElements(By.cssSelector(messageUserAvatarCssSelector)).isEmpty()) {
+                return false;
+            }
+        } catch (StaleElementReferenceException e) {
+            return false;
+        }
+
+        String text = message.getText().toLowerCase();
+        if (!text.startsWith(botCommand.toLowerCase()) && !text.startsWith(botAlternativeCommand.toLowerCase())) {
+            return false;
+        }
+
+        if (hasEmoji(message)) {
+            return false;
+        }
+
+        addEmoji(message);
+        return true;
+    }
+
+    private static boolean handleUserCooldown(String userName, UserCooldownInfo userInfo, LocalTime currentTime) {
+        long elapsedSeconds = Duration.between(userInfo.getLastMessageTime(), currentTime).getSeconds();
+        if (elapsedSeconds > userInfo.getCooldownDuration()) {
+            userInfo.reset();
+            return false;
+        }
+        
+        userInfo.incrementMessageCount();
+        userInfo.setLastMessageTime(currentTime);
+        
+        if (userInfo.getMessageCount() > MAX_MESSAGES_BEFORE_COOLDOWN) {
+            long elapsedTime = Duration.between(userInfo.getLastMessageTime(), currentTime).getSeconds();
+            userInfo.increaseCooldownDuration(elapsedTime);
+            sendMessage(userName + " cooldown: " + userInfo.getCooldownDuration() + " s");
+            return true;
+        }
+        return false;
+    }
+
+    private static void processUserCommand(String userName, String messageText) {
+        CommandController.processCommand(userName, messageText);
     }
 
     private static String getSenderName(WebElement message) {
         String name = null;
         String avatarUrl = null;
         try {
-            // Find the <img> element within the message
             WebElement avatarElement = message.findElement(By.cssSelector(messageUserAvatarCssSelector));
     
-            // Extract the name from the "alt" attribute
             name = avatarElement.getAttribute("alt");
     
-            // Extract the avatar URL from the "src" attribute
             avatarUrl = avatarElement.getAttribute("src");
     
-            // Save the avatar URL to the database
             if (name != null && !name.trim().isEmpty() && avatarUrl != null && !avatarUrl.trim().isEmpty()) {
                 UserRepository.saveAvatarToDatabase(name.toLowerCase(), avatarUrl);
             } else {
@@ -239,8 +259,7 @@ public class MessageService {
 
     public static void clickEmoji(String emojiUrl, String emojiName) {
    
-        // click on emoji selection icon
-         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         WebElement emojiButton = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(emojiButtonCssSelector)));
 
         emojiButton.click();
@@ -251,14 +270,12 @@ public class MessageService {
             Logger.logError("clickEmoji: Thread.sleep failure", "MessageService.clickEmoji()", e);
     }
 
-    // find emoji search input and type emoji name, than click on the emoji based on src url
     WebElement inputField = driver.findElement(By.cssSelector(searchEmojiInputCssSelector));
     inputField.sendKeys(emojiName);
     
     WebElement imgElement = wait.until(ExpectedConditions.presenceOfElementLocated(
         By.cssSelector("img[src='" + emojiUrl + "']")));
 
-    // click on emoji, clean search bar and leave emoji selector
     imgElement.click();
     WebElement clearSearchButton = driver.findElement(By.cssSelector(clearSearchEmojiButtonCssSelector));
     clearSearchButton.click();
@@ -266,19 +283,16 @@ public class MessageService {
     }
 
     public static boolean hasEmoji(WebElement message) {
-        // Check if the message has any reaction (emoji)
         List<WebElement> reactions = message.findElements(By.cssSelector(messageReceivedReactionsCssSelector));
     
-        // If there are no reactions found, try to check for a a heart reaction
         if (reactions.isEmpty()) {
             reactions = message.findElements(By.cssSelector(messageReceivedReactionsHeartCssSelector));
         }
     
-        return !reactions.isEmpty(); // Return true if there is at least one reaction, false otherwise
+        return !reactions.isEmpty();
     }
 
     public static void addEmoji(WebElement message) {
-        // Hover the message to make the reaction button appear
 
         boolean hasEmoji = false;
 
@@ -288,16 +302,14 @@ public class MessageService {
                 Actions actions = new Actions(driver);
                 actions.moveToElement(message).perform();
                 
-                // Try to find and click the react button
                 WebElement reactButton = message.findElement(By.cssSelector(messageReactButtonCssSelector));
                 reactButton.click();
                 
-                // Find the heart emoji and click it
                 WebElement heartEmoticon = driver.findElement(By.cssSelector(messageHeartReactionCssSelector));
                 heartEmoticon.click();
-                Logger.logInfo("Added heart reaction to message: %s", "MessageService.addEmoji()", message.getText());
+                Logger.logInfo("Added heart reaction to message: " +  message.getText(), "MessageService.addEmoji()");
             } catch (Exception e) {
-                Logger.logError("Failed to add heart reaction to message: %s", "MessageService.addEmoji()", e, message.getText());
+                Logger.logError("Failed to add heart reaction to message: " +  message.getText(), "MessageService.addEmoji()", e);
             }
 
             hasEmoji = hasEmoji(message);

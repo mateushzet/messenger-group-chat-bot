@@ -241,6 +241,10 @@ public class ConfigReader {
         return Boolean.parseBoolean(getProperty("enable_gui", "true"));
     }
 
+    public static boolean isOptimizedModeEnabled() {
+        return Boolean.parseBoolean(getProperty("is_optimized_mode_enabled", "false"));
+    }
+
     public static boolean getMathQuestionSkipFirstHourAfterRestart() {
         return Boolean.parseBoolean(getProperty("math_question_skip_first_hour_after_restart", "false"));
     }
