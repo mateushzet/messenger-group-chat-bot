@@ -248,8 +248,10 @@ public class ConfigReader {
     public static boolean isGameAccessRequired() {
         return Boolean.parseBoolean(getProperty("require_game_access", "true"));
     }
-
     
+    public static boolean isSavingLogstodatabaseenabled() {
+        return Boolean.parseBoolean(getProperty("save_logs_to_db", "true"));
+    }
 
     public static boolean getMathQuestionSkipFirstHourAfterRestart() {
         return Boolean.parseBoolean(getProperty("math_question_skip_first_hour_after_restart", "false"));

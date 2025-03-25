@@ -192,13 +192,6 @@ public class MessageService {
     }
 
     private static boolean isValidMessage(WebElement message) {
-        try {
-            if (message.findElements(By.cssSelector(messageUserAvatarCssSelector)).isEmpty()) {
-                return false;
-            }
-        } catch (StaleElementReferenceException e) {
-            return false;
-        }
 
         String text = message.getText().toLowerCase();
         if (!text.startsWith(botCommand.toLowerCase()) && !text.startsWith(botAlternativeCommand.toLowerCase())) {
@@ -206,6 +199,14 @@ public class MessageService {
         }
 
         if (hasEmoji(message)) {
+            return false;
+        }
+
+        try {
+            if (message.findElements(By.cssSelector(messageUserAvatarCssSelector)).isEmpty()) {
+                return false;
+            }
+        } catch (StaleElementReferenceException e) {
             return false;
         }
 

@@ -5,41 +5,45 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-
 import database.DatabaseConnectionManager;
 
 public class Logger {
+    private static final boolean SAVE_LOGS_TO_DB = ConfigReader.isSavingLogstodatabaseenabled();
+    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+    private static final String LOG_FORMAT = "LOG: %s%n  Log message: %s%n  Source: %s%n  Level: %s%n";
+    private static final String INSERT_LOG_SQL = "INSERT INTO logs(timestamp, level, message, source) VALUES(?, ?, ?, ?)";
 
     public static void logToDatabase(String level, String message, String source) {
-        String sql = "INSERT INTO logs(timestamp, level, message, source) VALUES(?, ?, ?, ?)";
+        if (!SAVE_LOGS_TO_DB) {
+            return;
+        }
 
         try (Connection conn = DatabaseConnectionManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, java.time.LocalDateTime.now().toString());
+             PreparedStatement pstmt = conn.prepareStatement(INSERT_LOG_SQL)) {
+            
+            pstmt.setString(1, LocalDateTime.now().format(TIMESTAMP_FORMATTER));
             pstmt.setString(2, level);
             pstmt.setString(3, message);
             pstmt.setString(4, source);
             pstmt.executeUpdate();
         } catch (SQLException e) {
-            System.out.println("Encountered Error while logging to database: " + e.getMessage());
+            System.err.println("Error while logging to database: " + e.getMessage());
         }
     }
 
     public static void logToConsole(String level, String message, String source) {
-        System.out.println(String.format(
-            "LOG: %s\n" +
-            "  Log message: %s\n" +
-            "  Source: %s\n" +
-            "  Level: %s\n",
-            java.time.LocalDateTime.now().toString(),
+        System.out.printf(LOG_FORMAT,
+            LocalDateTime.now().format(TIMESTAMP_FORMATTER),
             message,
             source,
             level
-        ));
+        );
     }
 
     public static void log(String level, String message, String source) {
-        logToDatabase(level, message, source);
+        if (SAVE_LOGS_TO_DB) {
+            logToDatabase(level, message, source);
+        }
         logToConsole(level, message, source);
     }
 
@@ -52,28 +56,8 @@ public class Logger {
     }
 
     public static void logError(String message, String source, Exception e) {
-        log("ERROR", message, source);
-    }
-
-    public static boolean doesLogExist(String message) {
-
-        String sql = "SELECT COUNT(*) FROM logs WHERE message = ? AND timestamp > ?";
-        try (Connection conn = DatabaseConnectionManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setString(1, message);
-            
-            String currentTime = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm"));
-            pstmt.setString(2, currentTime);
-            
-            try (java.sql.ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt(1) > 0;
-                }
-            }
-        } catch (SQLException e) {
-            logError("Encountered Error while checking log existence: " + e.getMessage(), "doesLogExist()", e);
-        }
-        return false;
+        String errorMessage = message + " - Exception: " + e.getMessage();
+        log("ERROR", errorMessage, source);
+        e.printStackTrace();
     }
 }
