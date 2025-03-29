@@ -77,6 +77,15 @@ public class MessageService {
             actions.sendKeys(Keys.RETURN).perform();
             lastHour = LocalTime.now();
             counter = 0;
+
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            actions.sendKeys(Keys.RETURN).perform();
+
         } else if(++counter == CLIPBOARD_MESSAGE_THRESHOLD) {
             actions.sendKeys(Keys.RETURN).perform();
             lastHour = LocalTime.now();
@@ -120,12 +129,12 @@ public class MessageService {
                 
                 List<WebElement> messages = driver.findElements(By.cssSelector(messageCssSelector));
 
-                messages = messages.stream()
-                    .filter(el -> {
-                        String text = el.getText().toLowerCase();
-                        return text.contains(botCommand.toLowerCase()) || text.contains(botAlternativeCommand.toLowerCase());
-                    })
-                    .collect(Collectors.toList());
+                    messages = messages.stream()
+                        .filter(el -> {
+                            String text = el.getText().toLowerCase();
+                            return text.contains(botCommand.toLowerCase()) || text.contains(botAlternativeCommand.toLowerCase());
+                        })
+                        .collect(Collectors.toList());
 
                 for (WebElement message : messages) {
                     if (!isValidMessage(message)) {
@@ -147,7 +156,7 @@ public class MessageService {
                     
                     processUserCommand(userName, message.getText().toLowerCase());
                 }
-            } catch (StaleElementReferenceException e) {
+            } catch (Exception e) {
                 continue;
             }
         }
@@ -155,12 +164,13 @@ public class MessageService {
 
     private static void processCommonTasks() {
         if (JackpotService.hasTenMinutesPassedSinceOldestTimestamp()) {
-            CompletableFuture.runAsync(JackpotService::startJackpotGame);
+            JackpotService.startJackpotGame();
         }
-        CompletableFuture.runAsync(MathQuestionService::checkAndSendMathQuestion);
+        MathQuestionService.checkAndSendMathQuestion();
     }
 
     private static void processAllValidMessages() {
+        try {
         List<WebElement> messages = driver.findElements(By.cssSelector(messageCssSelector));
 
         messages = messages.stream()
@@ -168,7 +178,7 @@ public class MessageService {
                         String text = el.getText().toLowerCase();
                         return text.contains(botCommand.toLowerCase()) || text.contains(botAlternativeCommand.toLowerCase());
                     })
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toList()); 
 
         for (WebElement message : messages) {
             if (!isValidMessage(message)) {
@@ -182,6 +192,9 @@ public class MessageService {
             
             processUserCommand(userName, message.getText().toLowerCase());
         }
+    } catch (Exception e) {
+        System.out.println(e);
+    }
     }
 
     private static void handleClipboardTimeout(LocalTime currentTime) {
@@ -210,6 +223,7 @@ public class MessageService {
 
     private static boolean isValidMessage(WebElement message) {
 
+        try{
         if (hasEmoji(message)) {
             return false;
         }
@@ -229,6 +243,10 @@ public class MessageService {
 
         addEmoji(message);
         return true;
+    } catch (Exception e){
+        System.out.println(e);
+        return false;
+    }
     }
 
     private static boolean handleUserCooldown(String userName, UserCooldownInfo userInfo, LocalTime currentTime) {
