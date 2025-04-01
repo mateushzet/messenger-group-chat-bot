@@ -60,7 +60,7 @@ public class JackpotService {
         int winnerBalance = UserRepository.getCurrentUserBalance(result.getWinnerName(), false);
         UserRepository.updateUserBalance(result.getWinnerName(), winnerBalance + result.getPrizeAmount());
         JackpotGameRepository.deleteAllJackpotBets();
-        MessageService.sendMessageFromClipboard(false);
+        MessageService.sendMessageFromClipboard(true);
         } catch (IOException e) {
             MessageService.sendMessage("Error while starting jackpot game!");
             e.printStackTrace();
