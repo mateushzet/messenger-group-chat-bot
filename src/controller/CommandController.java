@@ -92,6 +92,7 @@ public class CommandController {
         commands.put("weekly", CommandService::handleWeeklyCommand); 
         commands.put("poker", PokerService::handlePokerCommand); 
         commands.put("pk", PokerService::handlePokerCommand); 
+        commands.put("gift", CommandService::handleGiftCommand);
     }
 
     public static void processCommand(String userName, String message) {
