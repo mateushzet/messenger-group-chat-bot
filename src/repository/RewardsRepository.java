@@ -125,7 +125,7 @@ public class RewardsRepository {
             int rowsUpdated = statement.executeUpdate();
 
             if (rowsUpdated > 0) {
-                Logger.logInfo("Successfully updated daily reward for user:  " + userName, "ColorsRepository.updateDailyReward()");
+                Logger.logInfo("Successfully updated daily reward for user:  " + userName, "RewardsRepository.updateDailyReward()");
             } else {
                 Logger.logWarning("User not found:  " + userName, "DailyRewardRepository.updateDailyReward()");
             }
@@ -146,7 +146,7 @@ public class RewardsRepository {
             int rowsUpdated = statement.executeUpdate();
 
             if (rowsUpdated > 0) {
-                Logger.logInfo("Successfully updated hourly reward for user:  " + userName, "ColorsRepository.updateHourlyReward()");
+                Logger.logInfo("Successfully updated hourly reward for user:  " + userName, "RewardsRepository.updateHourlyReward()");
             } else {
                 Logger.logWarning("User not found:  " + userName, "RewardsRepository.updateHourlyReward()");
             }
@@ -167,13 +167,58 @@ public class RewardsRepository {
             int rowsUpdated = statement.executeUpdate();
 
             if (rowsUpdated > 0) {
-                Logger.logInfo("Successfully updated hourly reward for user: " + userName, "ColorsRepository.updateHourlyReward()");
+                Logger.logInfo("Successfully updated hourly reward for user: " + userName, "RewardsRepository.updateHourlyReward()");
             } else {
                 Logger.logWarning("User not found:  " + userName, "RewardsRepository.updateHourlyReward()");
             }
 
         } catch (SQLException e) {
             Logger.logError("Error while updating hourly reward info for user:  " + userName, "RewardsRepository.updateHourlyReward()", e);
+        }
+    }
+
+    public static void updateGiftTimestamp(String userName) {
+        String query = "UPDATE users SET gift_claimed_at = ? WHERE username = ?";
+
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+
+            statement.setString(1, getCurrentDate());
+            statement.setString(2, userName);
+            int rowsUpdated = statement.executeUpdate();
+
+            if (rowsUpdated > 0) {
+                Logger.logInfo("Successfully updated gift timestamp for user:  " + userName, "RewardsRepository.updateGiftTimestamp()");
+            } else {
+                Logger.logWarning("User not found:  " + userName, "RewardsRepository.updateGiftTimestamp()");
+            }
+
+        } catch (SQLException e) {
+            Logger.logError("Error while updating daily reward info for user:  " + userName, "RewardsRepository.updateGiftTimestamp()", e);
+        }
+    }
+
+    public static boolean hasSentDailyGift(String userName) {
+        String query = "SELECT gift_claimed_at FROM users WHERE username = ?";
+
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            
+            statement.setString(1, userName);
+            ResultSet resultSet = statement.executeQuery();
+            
+            if (!resultSet.next()) {
+                return false;
+            }
+
+            String lastReceivedDate = resultSet.getString("gift_claimed_at");
+            String today = getCurrentDate();
+
+            return today.equals(lastReceivedDate);
+
+        } catch (SQLException e) {
+            Logger.logError("Error while checking gift info for user:  " + userName, "RewardsRepository.hasSentDailyGift()", e);
+            return false;
         }
     }
 

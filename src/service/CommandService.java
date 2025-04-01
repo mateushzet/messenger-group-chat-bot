@@ -87,6 +87,43 @@ public class CommandService {
         }
     }
 
+    public static void handleGiftCommand(CommandContext context) {
+        String userName = context.getUserName();
+        List<String> receiverNameParts = context.getArguments().subList(0, context.getArguments().size());
+        String receiverName = String.join(" ", receiverNameParts);
+
+        try {
+
+            if (userName.toLowerCase().equals(receiverName.toLowerCase())) {
+                MessageService.sendMessage("You can't send a gift to yourself.");
+                return;
+            }
+
+            if (RewardsRepository.hasSentDailyGift(userName)) {
+                MessageService.sendMessage("You have already sent a gift today.");
+                return;
+            }
+
+            boolean correctTransfer = UserRepository.processGiftCommand(userName.toLowerCase(), dailyRewardPrize, receiverName.toLowerCase());
+
+            if (correctTransfer) {
+                MessageService.sendMessage(userName + " has sent a gift of " + dailyRewardPrize + " coins to " + receiverName + "!");
+                Logger.logInfo("User " + userName + " sent a gift of " + dailyRewardPrize + " to " + receiverName, "CommandService.handleGiftCommand()");
+                RewardsHistoryRepository.addRewardHistory(userName, "Gift Sent", dailyRewardPrize);
+                RewardsHistoryRepository.addRewardHistory(receiverName, "Gift Received", dailyRewardPrize);
+            } else {
+                Logger.logWarning("Error processing gift from " + userName + " to " + receiverName, "CommandService.handleGiftCommand()");
+                MessageService.sendMessage("An error occurred while sending your gift. Please try again later.");
+            }
+    
+
+        } catch (Exception e) {
+            Logger.logError("Error processing gift from " + userName + " to " + receiverName, "CommandService.handleGiftCommand()", e);
+            MessageService.sendMessage("An error occurred while sending your gift. Please try again later.");
+        }
+    }
+
+
     public static void handleRankCommand(CommandContext context) {
         List<Map.Entry<String, Integer>> rankingString = UserRepository.getRanking();
         RankingImageGenerator.generateRankingImage(rankingString, context.getUserName());

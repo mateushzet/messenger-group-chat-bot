@@ -29,6 +29,20 @@ public class UserRepository {
         return processTransaction(senderName, receiverName, balanceSender, balanceReceiver, transferAmount);
     }
 
+    
+    public static boolean processGiftCommand(String senderName, int amount, String receiverName) {
+        if (!validateTransferParams(String.valueOf(amount), receiverName)) return false;
+
+        if (!isValidReceiver(senderName, receiverName)) return false;
+
+        int balanceReceiver = getCurrentUserBalance(receiverName, false);
+
+        updateUserBalance(receiverName, balanceReceiver + amount);
+        RewardsRepository.updateGiftTimestamp(senderName);
+        return true;
+
+    }
+
     public static boolean doesUserExist(String userName) {
         String query = "SELECT 1 FROM users WHERE username = ?";
         try (Connection connection = DatabaseConnectionManager.getConnection();
