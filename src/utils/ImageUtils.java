@@ -7,12 +7,16 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Paths;
+import java.util.Collections;
 
 import javax.imageio.ImageIO;
 
 import repository.UserAvatarRepository;
 
 public class ImageUtils {
+
+    private static final File USER_AVATAR_DIR = Paths.get("src", "resources", "user_avatars").toFile();
 
     public static void setClipboardImage(final BufferedImage image) {
         TransferableImage transferable = new TransferableImage(image);
@@ -66,7 +70,7 @@ public class ImageUtils {
                         try (FileOutputStream fos = new FileOutputStream(tempFile)) {
                             fos.write(gifBytes);
                         }
-                        return java.util.Collections.singletonList(tempFile);
+                        return Collections.singletonList(tempFile);
                     } catch (Exception e) {
                         e.printStackTrace();
                         return null;
@@ -82,33 +86,33 @@ public class ImageUtils {
             e.printStackTrace();
         }
     }
-    
+
     public static void drawUserAvatar(Graphics2D g, String username, int x, int y, int width, int height) {
         try {
             String avatarName = UserAvatarRepository.getActiveAvatarForUser(username);
-    
+
             if (avatarName == null || avatarName.isEmpty()) {
                 drawDefaultAvatarFromUrl(g, username, x, y, width, height);
                 return;
             }
-    
-            File avatarFile = new File("src\\resources\\user_avatars\\" + avatarName + ".png");
+
+            File avatarFile = new File(USER_AVATAR_DIR, avatarName + ".png");
             if (!avatarFile.exists()) {
                 Logger.logWarning("Avatar file not found: " + avatarFile.getAbsolutePath(), "AvatarService.drawUserAvatar()");
                 drawDefaultAvatarFromUrl(g, username, x, y, width, height);
                 return;
             }
-    
+
             BufferedImage avatar = ImageIO.read(avatarFile);
             Image scaledAvatar = avatar.getScaledInstance(width, height, Image.SCALE_SMOOTH);
             g.drawImage(scaledAvatar, x, y, null);
-    
+
         } catch (IOException e) {
             Logger.logError("Failed to draw user avatar", "AvatarService.drawUserAvatar()", e);
             drawDefaultAvatarFromUrl(g, username, x, y, width, height);
         }
     }
-    
+
     private static void drawDefaultAvatarFromUrl(Graphics2D g, String username, int x, int y, int width, int height) {
         try {
             String defaultAvatarUrl = UserAvatarRepository.getDefaultAvatarUrl(username);
@@ -116,13 +120,13 @@ public class ImageUtils {
                 Logger.logWarning("No default avatar URL found for user: " + username, "AvatarService.drawDefaultAvatarFromUrl()");
                 return;
             }
-    
+
             URL url = new URL(defaultAvatarUrl);
             BufferedImage avatar = ImageIO.read(url);
-    
+
             Image scaledAvatar = avatar.getScaledInstance(width, height, Image.SCALE_SMOOTH);
             g.drawImage(scaledAvatar, x, y, null);
-    
+
         } catch (IOException e) {
             Logger.logError("Failed to draw default avatar from URL", "AvatarService.drawDefaultAvatarFromUrl()", e);
         }
@@ -133,7 +137,7 @@ public class ImageUtils {
             String avatarName = UserAvatarRepository.getActiveAvatarForUser(username);
             if (avatarName == null || avatarName.isEmpty()) return "";
 
-            File avatarFile = new File("src\\resources\\user_avatars\\" + avatarName + ".png");
+            File avatarFile = new File(USER_AVATAR_DIR, avatarName + ".png");
             if (!avatarFile.exists()) return "";
 
             return avatarName;
@@ -146,7 +150,7 @@ public class ImageUtils {
 
     public static void drawUserAvatarFromAvatarName(Graphics2D g, String username, int x, int y, int width, int height, String avatarName) {
         try {
-            File avatarFile = new File("src\\resources\\user_avatars\\" + avatarName + ".png");
+            File avatarFile = new File(USER_AVATAR_DIR, avatarName + ".png");
             if (!avatarFile.exists()) return;
 
             BufferedImage avatar = ImageIO.read(avatarFile);
@@ -159,5 +163,4 @@ public class ImageUtils {
             e.printStackTrace();
         }
     }
-
 }
