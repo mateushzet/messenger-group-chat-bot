@@ -257,4 +257,8 @@ public class ConfigReader {
         return Boolean.parseBoolean(getProperty("math_question_skip_first_hour_after_restart", "false"));
     }
 
+    public static String getBrowserType() {
+        return getProperty("browser_type", "chrome");
+    }
+
 }
