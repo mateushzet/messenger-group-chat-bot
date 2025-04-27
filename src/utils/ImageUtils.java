@@ -3,9 +3,11 @@ package utils;
 import java.awt.*;
 import java.awt.datatransfer.*;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.util.Collections;
@@ -13,15 +15,42 @@ import java.util.Collections;
 import javax.imageio.ImageIO;
 
 import repository.UserAvatarRepository;
+import service.MessageService;
 
 public class ImageUtils {
+
+    private static final String operatingSystem = getOperatingSystem();
 
     private static final File USER_AVATAR_DIR = Paths.get("src", "resources", "user_avatars").toFile();
 
     public static void setClipboardImage(final BufferedImage image) {
-        TransferableImage transferable = new TransferableImage(image);
-        Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-        clipboard.setContents(transferable, null);
+
+        if(operatingSystem.equals("Linux")){
+            try {
+
+                Runtime.getRuntime().exec("pkill wl-paste");
+        
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ImageIO.write(image, "png", baos);
+                byte[] imageBytes = baos.toByteArray();
+        
+                Process process = new ProcessBuilder("wl-copy", "--type", "image/png").start();
+        
+                try (OutputStream out = process.getOutputStream()) {
+                    out.write(imageBytes);
+                    out.flush();
+                }
+        
+                process.waitFor();
+        
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
+            }
+        } else {
+            TransferableImage transferable = new TransferableImage(image);
+            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+            clipboard.setContents(transferable, null);
+        }
     }
 
     private static class TransferableImage implements Transferable {
@@ -51,39 +80,45 @@ public class ImageUtils {
     }
 
     public static void setClipboardGif(byte[] gifBytes) {
-        try {
-            Transferable transferable = new Transferable() {
-                @Override
-                public DataFlavor[] getTransferDataFlavors() {
-                    return new DataFlavor[]{DataFlavor.javaFileListFlavor};
-                }
 
-                @Override
-                public boolean isDataFlavorSupported(DataFlavor flavor) {
-                    return DataFlavor.javaFileListFlavor.equals(flavor);
-                }
+        if(operatingSystem.equals("Linux")){
+            MessageService.simulateGifDrop(gifBytes);
+        } else{
 
-                @Override
-                public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException {
-                    try {
-                        File tempFile = File.createTempFile("plinko", ".gif");
-                        try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-                            fos.write(gifBytes);
-                        }
-                        return Collections.singletonList(tempFile);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        return null;
+            try {
+                Transferable transferable = new Transferable() {
+                    @Override
+                    public DataFlavor[] getTransferDataFlavors() {
+                        return new DataFlavor[]{DataFlavor.javaFileListFlavor};
                     }
-                }
-            };
 
-            Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-            clipboard.setContents(transferable, null);
+                    @Override
+                    public boolean isDataFlavorSupported(DataFlavor flavor) {
+                        return DataFlavor.javaFileListFlavor.equals(flavor);
+                    }
 
-            System.out.println("GIF skopiowano do schowka.");
-        } catch (Exception e) {
-            e.printStackTrace();
+                    @Override
+                    public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException {
+                        try {
+                            File tempFile = File.createTempFile("game", ".gif");
+                            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                                fos.write(gifBytes);
+                            }
+                            return Collections.singletonList(tempFile);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            return null;
+                        }
+                    }
+                };
+
+                Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+                clipboard.setContents(transferable, null);
+
+                System.out.println("GIF skopiowano do schowka.");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -161,6 +196,20 @@ public class ImageUtils {
 
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    private static String getOperatingSystem() {
+        final String os = System.getProperty("os.name").toLowerCase();
+    
+        if (os.contains("win")) {
+            return "Windows";
+        } else if (os.contains("nux") || os.contains("nix") || os.contains("aix")) {
+            return "Linux";
+        } else if (os.contains("mac")) {
+            return "MacOS";
+        } else {
+            return "Unknown";
         }
     }
 }
