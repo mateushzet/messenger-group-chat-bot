@@ -44,7 +44,7 @@ public class RouletteService {
         GameHistoryRepository.addGameHistory(username, "Roulette", context.getFullCommand(), amount, winAmount, "Result: " + randomNumber);
 
         RouletteGifGenerator.generateGif(randomNumber, winAmount, userBalance, username, amount, GameHistoryRepository.getGameHistory(14, "Roulette"));
-        MessageService.sendMessageFromClipboard(true);
+        MessageService.sendMessageFromClipboardWindows(true);
     }
 
     private static int parseFieldArgument(String field) {

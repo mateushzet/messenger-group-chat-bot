@@ -38,7 +38,7 @@ public class JackpotService {
             return;
         }
 
-        MessageService.sendMessageFromClipboard(true);
+        MessageService.sendMessageFromClipboardWindows(true);
         } catch (Exception e) {
             MessageService.sendMessage("Error while joining jackpot game!");
         }
@@ -60,7 +60,7 @@ public class JackpotService {
         int winnerBalance = UserRepository.getCurrentUserBalance(result.getWinnerName(), false);
         UserRepository.updateUserBalance(result.getWinnerName(), winnerBalance + result.getPrizeAmount());
         JackpotGameRepository.deleteAllJackpotBets();
-        MessageService.sendMessageFromClipboard(true);
+        MessageService.sendMessageFromClipboardWindows(true);
         } catch (IOException e) {
             MessageService.sendMessage("Error while starting jackpot game!");
             e.printStackTrace();

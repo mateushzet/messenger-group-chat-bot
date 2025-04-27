@@ -47,8 +47,7 @@ public class CaseOpeningService {
 
             GameHistoryRepository.addGameHistory(userName, "Case", context.getFullCommand(), caseCost, winnings, "");
 
-            MessageService.sendMessageFromClipboard(true);
-
+            MessageService.sendMessageFromClipboardWindows(true);
         } catch (Exception e) {
             MessageService.sendMessage(userName + ", error while processing command.");
             e.printStackTrace();

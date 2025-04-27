@@ -26,7 +26,7 @@ public class HorseRaceService {
         if (gifBytes != null) {
             ImageUtils.setClipboardGif(gifBytes);
         }
-        MessageService.sendMessageFromClipboard(true);
+        MessageService.sendMessageFromClipboardWindows(true);
         return winnerHorse;
     }
 

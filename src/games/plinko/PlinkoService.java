@@ -32,7 +32,7 @@ public class PlinkoService {
 
         GameHistoryRepository.addGameHistory(playerName, "Plinko", context.getFullCommand(), betAmountParsed, resultAmount, String.valueOf(multiplier));
         UserRepository.updateUserBalance(playerName, currentBalance - betAmountParsed + resultAmount);
-        MessageService.sendMessageFromClipboard(true);
+        MessageService.sendMessageFromClipboardWindows(true);
     }
 
     public static int parseBetAmount(String betAmount) {

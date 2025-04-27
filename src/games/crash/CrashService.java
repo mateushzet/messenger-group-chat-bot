@@ -43,7 +43,7 @@ public class CrashService {
 
         GameHistoryRepository.addGameHistory(username, "Crash", context.getFullCommand(), betAmount, winnings, String.valueOf(finalMultiplier));
         UserRepository.updateUserBalance(username, userBalance - betAmount + winnings);
-        MessageService.sendMessageFromClipboard(true);
+        MessageService.sendMessageFromClipboardWindows(true);
     }
 
     private static double calculateCrashMultiplier() {

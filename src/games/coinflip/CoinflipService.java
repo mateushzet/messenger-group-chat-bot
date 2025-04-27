@@ -91,7 +91,7 @@ public class CoinflipService {
             MessageService.sendMessage(message);
             e.printStackTrace();
         }
-        MessageService.sendMessageFromClipboard(true);
+        MessageService.sendMessageFromClipboardWindows(true);
     }
 
     private static void handleCancelCommand(CommandContext context, String username, int userBalance) {
