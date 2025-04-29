@@ -26,26 +26,29 @@ public class ImageUtils {
     public static void setClipboardImage(final BufferedImage image) {
 
         if(operatingSystem.equals("Linux")){
-            try {
+            MessageService.simulateImageDrop(image);
+            // try {
 
-                Runtime.getRuntime().exec("pkill wl-paste");
+            //     Runtime.getRuntime().exec("pkill wl-paste");
         
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                ImageIO.write(image, "png", baos);
-                byte[] imageBytes = baos.toByteArray();
+            //     ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            //     ImageIO.write(image, "png", baos);
+            //     byte[] imageBytes = baos.toByteArray();
         
-                Process process = new ProcessBuilder("wl-copy", "--type", "image/png").start();
+            //     Process process = new ProcessBuilder("wl-copy", "--type", "image/png").start();
         
-                try (OutputStream out = process.getOutputStream()) {
-                    out.write(imageBytes);
-                    out.flush();
-                }
+            //     try (OutputStream out = process.getOutputStream()) {
+            //         out.write(imageBytes);
+            //         out.flush();
+            //     }
         
-                process.waitFor();
+            //     process.waitFor();
         
-            } catch (IOException | InterruptedException e) {
-                e.printStackTrace();
-            }
+            // } catch (IOException | InterruptedException e) {
+            //     e.printStackTrace();
+            // }
+
+
         } else {
             TransferableImage transferable = new TransferableImage(image);
             Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();

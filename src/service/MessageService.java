@@ -7,6 +7,7 @@ import model.UserCooldownInfo;
 import utils.ConfigReader;
 import utils.Logger;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,6 +19,8 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
@@ -66,7 +69,7 @@ public class MessageService {
 
     public static void sendMessageFromClipboard(boolean instant) {
         if(operatingSystem.equals("Linux")){
-            sendMessageFromClipboardLinux(instant);
+            //sendMessageFromClipboardLinux(instant);
         } else {
             sendMessageFromClipboardWindows(instant);
         }
@@ -177,6 +180,53 @@ public class MessageService {
             Logger.logError("Error during GIF drop", "simulateGifDrop()", e);
         }
     }
+
+    public static void simulateImageDrop(BufferedImage image) {
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(image, "png", baos);
+            byte[] imageBytes = baos.toByteArray();
+
+            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+            WebElement dropTarget = driver.findElement(By.cssSelector(ConfigReader.getMessageInputBoxCssSelector()));
+
+            String js = """
+                const dropZone = arguments[0];
+                const fileContentBase64 = arguments[1];
+                const fileName = "image.png";
+                const fileMime = "image/png";
+
+                const byteCharacters = atob(fileContentBase64);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: fileMime });
+                const file = new File([blob], fileName, { type: fileMime });
+
+                const dt = new DataTransfer();
+                dt.items.add(file);
+
+                const event = new DragEvent('drop', {
+                    dataTransfer: dt,
+                    bubbles: true,
+                    cancelable: true
+                });
+
+                dropZone.dispatchEvent(event);
+            """;
+
+            ((JavascriptExecutor) driver).executeScript(js, dropTarget, base64Image);
+
+            Logger.logInfo("Image dropped into message input.", "simulateImageDrop()");
+            sleep(1000);
+            new Actions(driver).sendKeys(Keys.RETURN).perform();
+        } catch (IOException | NoSuchElementException e) {
+            Logger.logError("Error during Image drop", "simulateImageDrop()", e);
+        }
+    }
+    
 
     public static void processMessages() throws InterruptedException {
         Logger.logInfo("Starting message processing in " + (optimizedModeEnabled ? "OPTIMIZED" : "NORMAL") + " mode", "MessageService.processMessages()");
