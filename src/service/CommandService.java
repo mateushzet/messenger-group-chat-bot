@@ -14,6 +14,7 @@ import utils.ConfigReader;
 import utils.Logger;
 import utils.RankingImageGenerator;
 import app.App;
+import controller.CommandController;
 import model.CommandContext;
 
 public class CommandService {
@@ -308,5 +309,66 @@ public class CommandService {
             MessageService.sendMessage("Invalid command. Use /bot coinflip bet <amount>, /bot coinflip accept, or /bot coinflip cancel.");
         }
     }
+
+    public static void handleBindCommand(CommandContext context) {
+        String command = context.getCommand();
+        String firstArg = context.getFirstArgument();
+        String arguments = context.getArgumentsJoined();
+        String userName = context.getUserName();
+
+        if (command.equalsIgnoreCase("bind")) {
+            if (firstArg == null) {
+                MessageService.sendMessage(userName + ", you must specify a bind ID (0-9) or 'list'.");
+                return;
+            }
+
+            if (firstArg.equalsIgnoreCase("list")) {
+                MessageService.sendMessage(BindService.listUserBinds(userName));
+                return;
+            }
+
+            int bindId;
+            try {
+                bindId = Integer.parseInt(firstArg);
+            } catch (NumberFormatException e) {
+                MessageService.sendMessage(userName + ", invalid bind ID. Must be a number between 0 and 9.");
+                return;
+            }
+
+            if (bindId < 0 || bindId > 9) {
+                MessageService.sendMessage(userName + ", bind ID must be between 0 and 9.");
+                return;
+            }
+
+            if (arguments.isEmpty()) {
+                MessageService.sendMessage(userName + ", you must provide a command to bind.");
+                return;
+            }
+
+            BindService.saveUserCommand(userName, bindId, arguments);
+            return;
+        }
+
+        int bindId;
+        try {
+            bindId = Integer.parseInt(command);
+        } catch (NumberFormatException e) {
+            return;
+        }
+
+        if (bindId < 0 || bindId > 9) {
+            return;
+        }
+
+        String bindedCommand = BindService.getUserCommand(userName, bindId);
+        if (bindedCommand == null) {
+            MessageService.sendMessage(userName + ", no command bound to ID " + bindId + ".");
+            return;
+        }
+
+        CommandContext bindedContext = CommandController.parseCommand(bindedCommand, userName);
+        CommandController.processCommand(bindedContext);
+    }
+
 
 }

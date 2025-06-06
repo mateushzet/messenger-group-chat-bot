@@ -93,10 +93,42 @@ public class CommandController {
         commands.put("poker", PokerService::handlePokerCommand); 
         commands.put("pk", PokerService::handlePokerCommand); 
         commands.put("gift", CommandService::handleGiftCommand);
+        commands.put("bind", CommandService::handleBindCommand);
+        commands.put("1", CommandService::handleBindCommand);
+        commands.put("2", CommandService::handleBindCommand);
+        commands.put("3", CommandService::handleBindCommand);
+        commands.put("4", CommandService::handleBindCommand);
+        commands.put("5", CommandService::handleBindCommand);
+        commands.put("6", CommandService::handleBindCommand);
+        commands.put("7", CommandService::handleBindCommand);
+        commands.put("8", CommandService::handleBindCommand);
+        commands.put("9", CommandService::handleBindCommand);
+        commands.put("0", CommandService::handleBindCommand);
+
     }
 
     public static void processCommand(String userName, String message) {
         CommandContext context = parseCommand(message, userName);
+        Consumer<CommandContext> commandHandler = commands.get(context.getCommand().toLowerCase());
+    
+        if (commandHandler != null) {
+            if (requiresGameAccess(context.getCommand()) && requireGameAccess) {
+                String gameName = getGameNameFromCommand(context.getCommand());
+                if (!UserRepository.hasGameAccess(userName, gameName)) {
+                    MessageService.sendMessage(userName + ", you do not have access to " + gameName + ". /buy " + gameName + " (50 coins)");
+                    return;
+                }
+            }
+    
+            commandHandler.accept(context);
+        } else {
+            MessageService.sendMessage("Unknown command: " + context.getCommand());
+            Logger.logInfo(userName + " used unknown command: " +  context.getCommand(), "CommandController.processCommand()");
+        }
+    }
+
+    public static void processCommand(CommandContext context) {
+        String userName = context.getUserName();
         Consumer<CommandContext> commandHandler = commands.get(context.getCommand().toLowerCase());
     
         if (commandHandler != null) {
@@ -145,7 +177,7 @@ public class CommandController {
         return commandToGameMap.getOrDefault(command, command);
     }
 
-    private static CommandContext parseCommand(String message, String userName) {
+    public static CommandContext parseCommand(String message, String userName) {
         String commandAndArgs;
             if (message.startsWith(botCommand) && message.length() > botCommand.length()) {
                 commandAndArgs = message.substring(botCommand.length()).trim();
