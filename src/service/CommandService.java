@@ -79,7 +79,7 @@ public class CommandService {
         String senderName = context.getUserName();
 
         boolean correctTransfer = UserRepository.handleTransfer(senderName, amount, receiverName);
-
+        
         if (correctTransfer) {
             MessageService.sendMessage("Transferred " + amount + " coins to " + receiverFullName);
         } else {
@@ -314,8 +314,8 @@ public class CommandService {
         String command = context.getCommand();
         String firstArg = context.getFirstArgument();
         String arguments = context.getArgumentsJoined();
+        String allArguments = context.getAllArgumentsJoined();
         String userName = context.getUserName();
-
         if (command.equalsIgnoreCase("bind")) {
             if (firstArg == null) {
                 MessageService.sendMessage(userName + ", you must specify a bind ID (0-9) or 'list'.");
@@ -365,10 +365,44 @@ public class CommandService {
             MessageService.sendMessage(userName + ", no command bound to ID " + bindId + ".");
             return;
         }
-
-        CommandContext bindedContext = CommandController.parseCommand(bindedCommand, userName);
+        
+        CommandContext bindedContext = CommandController.parseCommand(bindedCommand + " " + allArguments, userName);
         CommandController.processCommand(bindedContext);
     }
 
+
+    public static void handleAdminCommand(CommandContext context) {
+
+        String userName = context.getUserName();
+        String adminName = ConfigReader.getAdminName();
+        String command = context.getFirstArgument();
+        
+        if (!userName.equals(adminName)) {
+            MessageService.sendMessage(userName + ", you have no rights to use admin commands!");
+            return;
+        }
+
+        if (command.equals( "addmoney")) {
+            List<String> arguments = context.getArguments();
+            if (arguments.size() < 3) {
+                MessageService.sendMessage("Usage: addMoney <amount> <user name>");
+                return;
+            }
+
+            String amount = arguments.get(1);
+            String receiverFullName = String.join(" ", arguments.subList(2, arguments.size()));
+
+            if (!UserRepository.validateTransferParams(amount, receiverFullName)) return;
+
+            int parsedAmount = UserRepository.parseTransferAmount(amount);
+            if (parsedAmount == -1) return;
+
+            UserService.updateAndRetriveUserBalance(receiverFullName, parsedAmount);
+
+            MessageService.sendMessage(receiverFullName + " balance succesfully increased");
+        } else {
+            MessageService.sendMessage("Invalid admin command!");
+        }
+    }
 
 }

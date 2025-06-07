@@ -104,7 +104,7 @@ public class CommandController {
         commands.put("8", CommandService::handleBindCommand);
         commands.put("9", CommandService::handleBindCommand);
         commands.put("0", CommandService::handleBindCommand);
-
+        commands.put("admin", CommandService::handleAdminCommand);
     }
 
     public static void processCommand(String userName, String message) {

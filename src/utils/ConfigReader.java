@@ -2,6 +2,8 @@ package utils;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -53,7 +55,7 @@ public class ConfigReader {
     private static Properties loadProperties(String filePath) throws IOException {
         FileInputStream input = new FileInputStream(filePath);
         Properties props = new Properties();
-        props.load(input);
+        props.load(new InputStreamReader(input, StandardCharsets.UTF_8));
         input.close();
         return props;
     }
@@ -259,6 +261,10 @@ public class ConfigReader {
 
     public static String getBrowserType() {
         return getProperty("browser_type", "chrome");
+    }
+
+    public static String getAdminName() {
+        return getProperty("admin_name", "missing");
     }
 
 }

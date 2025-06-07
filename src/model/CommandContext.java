@@ -129,5 +129,9 @@ public class CommandContext {
         }
         return String.join(" ", this.arguments.subList(1, this.arguments.size()));
     }
+    
+    public String getAllArgumentsJoined() {
+        return String.join(" ", this.arguments.subList(0, this.arguments.size()));
+    }
 
 }
