@@ -4,6 +4,7 @@ import controller.CommandController;
 import factory.WebDriverFactory;
 import games.jackpot.JackpotService;
 import model.UserCooldownInfo;
+import repository.UserRepository;
 import utils.ConfigReader;
 import utils.Logger;
 
@@ -291,27 +292,28 @@ public class MessageService {
     }
 
     private static void processAllValidMessages() {
-        List<WebElement> messages = driver.findElements(By.cssSelector("div[role='row'] div[role='gridcell'] div[dir='auto']"));
-
-        for (WebElement message : messages) {
+        List<WebElement> messageRows = driver.findElements(By.cssSelector("div[role='row']"));
+            
+        for (WebElement row : messageRows) {
             try {
-                String text = message.getText().trim().toLowerCase();
+                WebElement messageElement = row.findElement(By.cssSelector("div[role='gridcell'] div[dir='auto']"));
+                String text = messageElement.getText().trim().toLowerCase();
                 if (text.isEmpty()) continue;
 
-                String sender = findSenderName(message);
+                String sender = findSenderName(row);
                 if (sender == null || sender.isEmpty()) continue;
 
                 if (isValidMessage(text)) {
-                    addEmoji(message);
+                    addEmoji(messageElement);
                 }
 
                 boolean success = false;
                 int attempts = 0;
                 while (!success && attempts < 10) {
                     try {
-                        clickMoreButton(message);
+                        clickMoreButton(messageElement);
                         clickRemoveMessageOption();
-                        confirmRemovalInModal(message);
+                        confirmRemovalInModal(messageElement);
                         success = true;
                     } catch (Exception e) {
                         attempts++;
@@ -383,24 +385,23 @@ public class MessageService {
         CommandController.processCommand(userName.toLowerCase(), messageText.toLowerCase());
     }
 
-    private static String findSenderName(WebElement messageElement) {
+    private static String findSenderName(WebElement messageRow) {
+        String name = null;
+        String avatarUrl = null;
         try {
-            List<WebElement> containers = messageElement.findElements(By.xpath(
-                    "./ancestor::div[contains(@class, 'x78zum5') and contains(@class, 'xdj266r') and contains(@class, 'x11i5rnm') and contains(@class, 'xat24cr') and contains(@class, 'x1mh8g0r') and contains(@class, 'xexx8yu') and contains(@class, 'x4uap5') and contains(@class, 'x18d9i69') and contains(@class, 'xkhd6sd') and contains(@class, 'x1eb86dx')]"));
+            WebElement avatarElement = messageRow.findElement(By.cssSelector("img.x1rg5ohu"));
+            name = avatarElement.getAttribute("alt");
+            avatarUrl = avatarElement.getAttribute("src");
 
-            for (WebElement container : containers) {
-                List<WebElement> images = container.findElements(By.cssSelector("img[alt]"));
-                for (WebElement img : images) {
-                    String alt = img.getAttribute("alt");
-                    if (alt != null && !alt.trim().isEmpty()) {
-                        return alt.trim();
-                    }
-                }
+            if (name != null && !name.trim().isEmpty() && avatarUrl != null && !avatarUrl.trim().isEmpty()) {
+                UserRepository.saveAvatarToDatabase(name.toLowerCase(), avatarUrl);
+            } else {
+                Logger.logWarning("Name or avatar URL is null or empty", "MessageService.getSenderName()");
             }
-            return null;
-        } catch (Exception e) {
-            return null;
+        } catch (Exception ignored) {
+            //Logger.logError("Failed to get sender name or avatar URL", "MessageService.getSenderName()", e);
         }
+        return name;
     }
 
     public static void clickMoreButton(WebElement messageDiv) throws Exception {
