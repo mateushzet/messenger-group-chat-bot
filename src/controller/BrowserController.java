@@ -36,13 +36,31 @@ public class BrowserController {
 
         performLogin(wait);
 
+
+        
         try{
-            WebElement element = wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[contains(text(), '"+groupChatName+"')]")));
+            Thread.sleep(10000);
+                    WebElement element = wait.until(ExpectedConditions.elementToBeClickable(
+    By.xpath("//span[contains(text(), '" + groupChatName + "')]")
+));
+element.click();
             element.click();
         } catch(Exception e){
             Logger.logError( "Failed to open the group chat", "BrowserController.loginToMessenger()", e);
             System.out.println(e);
         }
+
+                try{
+            Thread.sleep(10000);WebElement element = wait.until(ExpectedConditions.elementToBeClickable(
+    By.xpath("//*[contains(@class, 'x1lliihq') and contains(text(), '" + groupChatName + "')]")
+));
+element.click();
+        } catch(Exception e){
+            Logger.logError( "Failed to open the group chat", "BrowserController.loginToMessenger()", e);
+            System.out.println(e);
+        }
+
+
 
 }
 
@@ -65,7 +83,7 @@ public class BrowserController {
             passwordField.sendKeys(password);
             WebElement loginButton = wait.until(ExpectedConditions.elementToBeClickable(By.id(loginButtonId)));
             Logger.logToConsole("INFO", "Waiting 10 seconds in login page to ommit the captcha", "BrowserController.performLogin()");
-            Thread.sleep(20000);
+            Thread.sleep(10000);
             loginButton.click();
             Logger.logToConsole("INFO", "Login submitted with username: " + username, "BrowserController.performLogin()");
 

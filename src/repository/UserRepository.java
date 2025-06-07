@@ -57,7 +57,7 @@ public class UserRepository {
         return false;
     }
 
-    private static boolean validateTransferParams(String amount, String receiverName) {
+    public static boolean validateTransferParams(String amount, String receiverName) {
         if (amount == null || receiverName == null || amount.trim().isEmpty()) {
             Logger.logWarning("Invalid parameters: amount = " + amount + ", receiverName = " + receiverName, "UserRepository.validateTransferParams()");
             MessageService.sendMessage("Invalid transfer parameters.");
@@ -66,7 +66,7 @@ public class UserRepository {
         return true;
     }
 
-    private static int parseTransferAmount(String amount) {
+    public static int parseTransferAmount(String amount) {
         try {
             return Integer.parseInt(amount.trim());
         } catch (NumberFormatException e) {

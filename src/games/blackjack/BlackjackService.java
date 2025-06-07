@@ -238,14 +238,8 @@ public class BlackjackService {
         String playerScoreString = calculateHandValueString(game.getPlayerHand());
         String splitScoreString = game.isSplit() ? calculateHandValueString(game.getSplitHand()) : "0";
 
-        if(game.isSplit()){
-            while (calculateHandValue(dealerHand) < playerScore && calculateHandValue(dealerHand) < splitScore && calculateHandValue(dealerHand) < 17) {
-                dealerHand.add(drawCard());
-            }
-        }else  {
-            while (calculateHandValue(dealerHand) < playerScore && calculateHandValue(dealerHand) < 17) {
-                dealerHand.add(drawCard());
-            }
+        while (calculateHandValue(dealerHand) < 17) {
+            dealerHand.add(drawCard());
         }
     
         game.setDealerHand(dealerHand);
@@ -457,7 +451,7 @@ public class BlackjackService {
         BlackjackGameRepository.updateGame(game);
         String playerScore1 = calculateHandValueString(game.getPlayerHand());
         String playerScore2 = calculateHandValueString(game.getSplitHand());
-        String dealerScore = calculateHandValueString(game.getDealerHand());
+        String dealerScore = calculateSecondCardScoreString(game.getDealerHand());
     
         BlackjackImageGenerator.generateBlackjackImage(userName, game.getPlayerHand(), game.getDealerHand(), userName + " split hand 1", userBalance, betAmount, false, playerScore1, dealerScore);
         MessageService.sendMessageFromClipboard(true);
