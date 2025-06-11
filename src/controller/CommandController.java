@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import games.Poker.PokerService;
+import games.balatro.BalatroGameController;
 import games.blackjack.BlackjackService;
 import games.caseopening.CaseOpeningService;
 import games.coinflip.CoinflipService;
@@ -105,6 +106,9 @@ public class CommandController {
         commands.put("9", CommandService::handleBindCommand);
         commands.put("0", CommandService::handleBindCommand);
         commands.put("admin", CommandService::handleAdminCommand);
+        commands.put("balatro", BalatroGameController::handleBalatroCommand);
+        commands.put("bal", BalatroGameController::handleBalatroCommand);
+        commands.put("b", BalatroGameController::handleBalatroCommand);
     }
 
     public static void processCommand(String userName, String message) {
