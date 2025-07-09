@@ -277,7 +277,7 @@ public class BlackjackService {
             gameStatus = userName + " draw!";
             GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), betAmount, winnings, "Player hand: " + handToString(hand) + " Dealer hand: " + handToString(game.getDealerHand()));
         } else if ((dealerScore > 21 || playerScore > dealerScore) && playerScore <= 21) {
-            int winnings = betAmount * 2;
+            int winnings = (int) (betAmount * 2.5);
             UserService.updateAndRetriveUserBalance(userName, winnings);
             gameStatus = userName + " you won " + betAmount + "!";
             GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), betAmount, winnings, "Player hand: " + handToString(hand) + " Dealer hand: " + handToString(game.getDealerHand()));
@@ -364,35 +364,32 @@ public class BlackjackService {
     private static String calculateHandValueString(List<String> hand) {
         int value = 0;
         int aces = 0;
-    
+
         for (String card : hand) {
             String cardValue = card.replaceAll("[♠♣♦♥]", "");
-    
             if (cardValue.equals("A")) {
                 aces++;
-                value += 11;
+                value += 1;
             } else if (cardValue.equals("K") || cardValue.equals("Q") || cardValue.equals("J") || cardValue.equals("10")) {
                 value += 10;
             } else {
                 value += Integer.parseInt(cardValue);
             }
         }
-    
+
         int softValue = value;
-        int hardValue = value;
-        for (int i = 0; i < aces; i++) {
-            hardValue -= 10;
+        if (aces > 0 && softValue + 10 <= 21) {
+            softValue += 10;
         }
 
         if (softValue > 21) {
-            return String.valueOf(hardValue);
+            return String.valueOf(value);
         }
-    
-        if (aces > 0 && softValue != hardValue) {
-            if(softValue == 21) return "21";
-            return hardValue + "/" + softValue;
+
+        if (aces > 0 && softValue != value) {
+            return value + "/" + softValue;
         } else {
-            return String.valueOf(hardValue);
+            return String.valueOf(value);
         }
     }
 
