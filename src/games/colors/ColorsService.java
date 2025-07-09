@@ -17,7 +17,7 @@ public class ColorsService {
         int currentBalance = UserRepository.getCurrentUserBalance(playerName, false);
 
         Random random = new Random();
-        int result = random.nextInt(53) + 1;
+        int result = random.nextInt(53);
         int resultColorNumber = getResult(result);
         int winnings = 0;
         int[] betResult;
