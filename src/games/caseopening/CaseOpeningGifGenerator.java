@@ -14,172 +14,202 @@ import java.util.List;
 import java.util.concurrent.*;
 
 public class CaseOpeningGifGenerator {
-    
+
     private static final int WIDTH = 800;
     private static final int HEIGHT = 300;
-    private static final int FRAME_COUNT = 121;
-    private static final int SKIN_WIDTH = 256;
-    private static final int SKIN_HEIGHT = 192;
-    private static final int SKIN_SPACING = 270;
+    private static final int OUTPUT_WIDTH = WIDTH / 2;
+    private static final int OUTPUT_HEIGHT = HEIGHT / 2;
+    private static final int FRAME_COUNT = 60;
+    private static final int FINAL_FRAME_REPEAT = 40;
+    private static final int SKIN_WIDTH = 256 / 2;
+    private static final int SKIN_HEIGHT = 192 / 2;
+    private static final int SKIN_SPACING = 270 / 2;
     private static final String SKIN_FOLDER = "src/games/caseopening/skins";
-    
+    private static final int FINAL_FRAME_COUNT = 1;
+
+    private static final Map<String, Map<BufferedImage, String>> skinsCache = new ConcurrentHashMap<>();
+
     private static final List<String> CONDITIONS = Arrays.asList(
         "Factory New", "Minimal Wear", "Field-Tested", "Well-Worn", "Battle-Scarred"
     );
     private static final List<String> STATTRAK_STATUSES = Arrays.asList("StatTrak", "No");
-    
+
     private static final ExecutorService executor = Executors.newFixedThreadPool(
         Runtime.getRuntime().availableProcessors()
     );
 
+    private static BufferedImage cachedBackgroundGradient;
+
     public static int generateCaseOpeningGif(String playerName, int totalBalance, int priceMin, int priceMax) throws IOException {
-        
         Future<Map<BufferedImage, String>> skinsFuture = executor.submit(() -> loadSkins(priceMin, priceMax));
-        
+        Map<BufferedImage, String> skins;
         try {
-            Map<BufferedImage, String> skins = skinsFuture.get();
-            if (skins.isEmpty()) throw new IOException("No skins found in " + SKIN_FOLDER);
-
-            List<Map.Entry<BufferedImage, String>> skinEntries = new ArrayList<>(skins.entrySet());
-            Collections.shuffle(skinEntries);
-
-            List<BufferedImage> skinsImages = new ArrayList<>(skinEntries.size());
-            List<String> skinNames = new ArrayList<>(skinEntries.size());
-            
-            for (Map.Entry<BufferedImage, String> entry : skinEntries) {
-                skinsImages.add(entry.getKey());
-                skinNames.add(entry.getValue());
-            }
-
-            Random random = ThreadLocalRandom.current();
-            int randomStopOffset = random.nextInt(220) - 160;
-            int randomEndSpeed = random.nextInt(301);
-
-            String skinName = skinNames.get(2);
-            skinName = skinName.substring(0, skinName.lastIndexOf('.'));
-            
-            SkinInfo skinInfo = findSuitableSkin(skinName, priceMin, priceMax);
-            if (skinInfo == null) {
-                throw new IOException("No suitable skin found for the given price range");
-            }
-
-            if (skinInfo.price >= 50) {
-                String avatarName = (skinName + " " + skinInfo.condition + 
-                                  (skinInfo.stattrakStatus.equals("StatTrak") ? " ST" : "")).toLowerCase();
-                UserAvatarRepository.assignAvatarToUser(playerName, avatarName);
-            }
-
-            List<BufferedImage> frames = generateFrames(
-                skinsImages, randomStopOffset, skinName, 
-                skinInfo.condition, skinInfo.stattrakStatus, 
-                skinInfo.price, playerName, totalBalance, randomEndSpeed
-            );
-
-            byte[] gifBytes = createGif(frames);
-            if (gifBytes != null) {
-                ImageUtils.setClipboardGif(gifBytes);
-            }
-
-            return skinInfo.price;
+            skins = skinsFuture.get();
         } catch (InterruptedException | ExecutionException e) {
             throw new IOException("Error during GIF generation", e);
         }
+
+        if (skins.isEmpty()) throw new IOException("No skins found in " + SKIN_FOLDER);
+
+        List<Map.Entry<BufferedImage, String>> skinEntries = new ArrayList<>(skins.entrySet());
+        Collections.shuffle(skinEntries);
+
+    
+
+        List<BufferedImage> skinsImages = new ArrayList<>(skinEntries.size());
+        List<String> skinNames = new ArrayList<>(skinEntries.size());
+
+
+
+        for (Map.Entry<BufferedImage, String> entry : skinEntries) {
+            skinsImages.add(entry.getKey());
+            skinNames.add(entry.getValue());
+        }
+
+        Random random = ThreadLocalRandom.current();
+        int randomStopOffset = random.nextInt(110);
+
+        String skinName = skinNames.get(1);
+        skinName = skinName.substring(0, skinName.lastIndexOf('.'));
+
+        SkinInfo skinInfo = findSuitableSkin(skinName, priceMin, priceMax);
+        if (skinInfo == null) {
+            throw new IOException("No suitable skin found for the given price range");
+        }
+
+        if (skinInfo.price >= 50) {
+            String avatarName = (skinName + " " + skinInfo.condition +
+                    (skinInfo.stattrakStatus.equals("StatTrak") ? " ST" : "")).toLowerCase();
+            UserAvatarRepository.assignAvatarToUser(playerName, avatarName);
+        }
+
+        cachedBackgroundGradient = generateBackgroundGradient(playerName);
+
+            if (skinsImages.size() > 13) {
+                skinsImages = new ArrayList<>(skinsImages.subList(0, 13));
+            }
+
+        List<BufferedImage> frames = generateFrames(skinsImages, randomStopOffset, skinName,
+                skinInfo.condition, skinInfo.stattrakStatus,
+                skinInfo.price, playerName, totalBalance);
+
+        byte[] gifBytes = createGif(frames);
+
+        if (gifBytes != null) {
+            ImageUtils.setClipboardGif(gifBytes);
+        }
+
+        return skinInfo.price;
     }
 
     private static SkinInfo findSuitableSkin(String skinName, int priceMin, int priceMax) {
         List<String> shuffledConditions = new ArrayList<>(CONDITIONS);
         Collections.shuffle(shuffledConditions);
-        
+
         List<String> shuffledStattrakStatuses = new ArrayList<>(STATTRAK_STATUSES);
         Collections.shuffle(shuffledStattrakStatuses);
 
         for (String condition : shuffledConditions) {
             for (String stattrakStatus : shuffledStattrakStatuses) {
-                int skinPrice = SkinPriceRepository.getSkinPrice(skinName, condition, stattrakStatus);
-                if (skinPrice > 0 && skinPrice >= priceMin && skinPrice <= priceMax) {
-                    return new SkinInfo(condition, stattrakStatus, skinPrice);
+                int price = SkinPriceRepository.getSkinPrice(skinName, condition, stattrakStatus);
+                if (price > 0 && price >= priceMin && price <= priceMax) {
+                    return new SkinInfo(condition, stattrakStatus, price);
                 }
             }
         }
         return null;
     }
 
-    private static Map<BufferedImage, String> loadSkins(int minPrice, int maxPrice) throws IOException {
-        List<String> skinsFilesNames = SkinPriceRepository.getSkinsFilesNames(minPrice, maxPrice);
-        File[] skinFiles = new File(SKIN_FOLDER).listFiles();
-        
-        if (skinFiles == null) {
-            throw new IOException("Skins folder is empty or does not exist: " + SKIN_FOLDER);
-        }
-    
-        Map<BufferedImage, String> skins = new ConcurrentHashMap<>();
-        List<Future<?>> futures = new ArrayList<>();
-        
-        for (File skinFile : skinFiles) {
-            if (skinsFilesNames.contains(skinFile.getName())) {
-                futures.add(executor.submit(() -> {
-                    try {
-                        BufferedImage skin = ImageIO.read(skinFile);
-                        if (skin != null) {
-                            skins.put(skin, skinFile.getName());
-                        }
-                    } catch (IOException e) {
-                        System.err.println("Error loading skin: " + skinFile.getName());
-                    }
-                }));
-            }
-        }
-        
-        for (Future<?> future : futures) {
-            try {
-                future.get();
-            } catch (InterruptedException | ExecutionException e) {
-                throw new IOException("Error loading skins", e);
-            }
-        }
-        
-        return skins;
+private static Map<BufferedImage, String> loadSkins(int priceMin, int priceMax) throws IOException {
+    String cacheKey = priceMin + "-" + priceMax;
+    if (skinsCache.containsKey(cacheKey)) {
+        return skinsCache.get(cacheKey);
     }
 
-    private static List<BufferedImage> generateFrames(List<BufferedImage> skins, int randomStopOffset, 
-                                                     String skinName, String skinCondition, String skinStattrakStatus, 
-                                                     int skinPrice, String playerName, int totalBalance, int endSpeed) {
-        List<BufferedImage> frames = new ArrayList<>(FRAME_COUNT + 400);
-        
-        double speed = 8000;
-        double deceleration = 0.97;
+    List<String> skinsFilesNames = SkinPriceRepository.getSkinsFilesNames(priceMin, priceMax);
+    File[] skinFiles = new File(SKIN_FOLDER).listFiles();
 
-        for (int i = 0; i < FRAME_COUNT; i++) {
-            boolean finalFrames = i >= 120;
-            if (finalFrames) {
-                for (int j = 0; j < 400; j++) {
-                    frames.add(generateFrame(skins, (int) speed, randomStopOffset, skinName, 
-                                          skinCondition, skinStattrakStatus, skinPrice, 
-                                          finalFrames, playerName, totalBalance));
+    if (skinFiles == null) {
+        throw new IOException("Skins folder is empty or does not exist: " + SKIN_FOLDER);
+    }
+
+    Map<BufferedImage, String> skins = new ConcurrentHashMap<>();
+    List<Future<?>> futures = new ArrayList<>();
+
+    for (File skinFile : skinFiles) {
+        if (skinsFilesNames.contains(skinFile.getName())) {
+            futures.add(executor.submit(() -> {
+                try {
+                    BufferedImage skin = ImageIO.read(skinFile);
+                    if (skin != null) {
+                        BufferedImage resizedSkin = resizeImage(skin, SKIN_WIDTH, SKIN_HEIGHT);
+                        skins.put(resizedSkin, skinFile.getName());
+                    }
+                } catch (IOException e) {
+                    System.err.println("Error loading skin: " + skinFile.getName());
                 }
-            }
-            frames.add(generateFrame(skins, (int) speed, randomStopOffset, skinName, 
-                                  skinCondition, skinStattrakStatus, skinPrice, 
-                                  finalFrames, playerName, totalBalance));
-            speed *= deceleration;
-            if (speed <= endSpeed) {
-                speed = endSpeed;
-            }
+            }));
         }
-        
+    }
+
+    for (Future<?> future : futures) {
+        try {
+            future.get();
+        } catch (InterruptedException | ExecutionException e) {
+            throw new IOException("Error loading skins", e);
+        }
+    }
+
+    skinsCache.put(cacheKey, skins);
+    return skins;
+}
+
+    private static List<BufferedImage> generateFrames(List<BufferedImage> skins, int randomStopOffset,
+                                                     String skinName, String skinCondition, String skinStattrakStatus,
+                                                     int skinPrice, String playerName, int totalBalance) {
+        List<BufferedImage> frames = new ArrayList<>(FRAME_COUNT + FINAL_FRAME_REPEAT);
+
+        double maxSpeed = 1500;
+        double minSpeed = 50;
+
+        int totalFrames = FRAME_COUNT;
+        double slowDownStart = 0.2;
+
+        for (int i = 0; i < totalFrames; i++) {
+            double progress = (double) i / (totalFrames - 1);
+
+            double speed;
+            if (progress < slowDownStart) {
+                speed = maxSpeed;
+            } else {
+                double t = (progress - slowDownStart) / (1.0 - slowDownStart);
+                speed = minSpeed + (maxSpeed - minSpeed) * Math.pow(1 - t, 2);
+            }
+
+            boolean finalFrames = i >= (FRAME_COUNT - FINAL_FRAME_COUNT);
+            frames.add(generateFrame(skins, (int) speed, randomStopOffset, skinName,
+                    skinCondition, skinStattrakStatus, skinPrice,
+                    finalFrames, playerName, totalBalance));
+        }
+
+        for (int j = 0; j < FINAL_FRAME_REPEAT; j++) {
+            frames.add(generateFrame(skins, (int) minSpeed, randomStopOffset, skinName,
+                    skinCondition, skinStattrakStatus, skinPrice,
+                    true, playerName, totalBalance));
+        }
+
         return frames;
     }
 
-    private static BufferedImage generateFrame(List<BufferedImage> skins, int speed, int randomStopOffset, 
-                                             String skinName, String skinCondition, String skinStattrakStatus,
-                                             int skinPrice, boolean finalFrames, 
-                                             String playerName, int totalBalance) {
-        BufferedImage image = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
+    private static BufferedImage generateFrame(List<BufferedImage> skins, int speed, int randomStopOffset,
+                                               String skinName, String skinCondition, String skinStattrakStatus,
+                                               int skinPrice, boolean finalFrames,
+                                               String playerName, int totalBalance) {
+        BufferedImage image = new BufferedImage(OUTPUT_WIDTH, OUTPUT_HEIGHT, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = image.createGraphics();
-        
+
         try {
-            g.setPaint(GradientGenerator.generateGradientFromUsername(playerName, true, WIDTH, HEIGHT));
-            g.fillRect(0, 0, WIDTH, HEIGHT);
+            g.drawImage(cachedBackgroundGradient, 0, 0, null);
 
             int totalSkins = skins.size();
             int offset = -(speed) % (totalSkins * SKIN_SPACING) + randomStopOffset;
@@ -187,97 +217,111 @@ public class CaseOpeningGifGenerator {
             for (int i = 0; i < totalSkins * 2; i++) {
                 int index = i % totalSkins;
                 int x = offset + i * SKIN_SPACING;
-                g.drawImage(skins.get(index), x, 50, SKIN_WIDTH, SKIN_HEIGHT, null);
+                g.drawImage(skins.get(index), x, 25, SKIN_WIDTH, SKIN_HEIGHT, null);
             }
 
             g.setColor(Color.YELLOW);
-            g.setStroke(new BasicStroke(3));
-            g.drawRect(400, 0, 2, 300);
+            g.setStroke(new BasicStroke(2));
+            g.drawRect(OUTPUT_WIDTH / 2, 0, 2, OUTPUT_HEIGHT);
 
             if (finalFrames) {
-                drawFinalFrameInfo(g, skinName, skinCondition, skinStattrakStatus, 
-                                 skinPrice, playerName, totalBalance);
+                drawFinalFrameInfo(g, skinName, skinCondition, skinStattrakStatus, skinPrice, playerName, totalBalance);
             }
-            
+
             return image;
         } finally {
             g.dispose();
         }
     }
 
-    private static void drawFinalFrameInfo(Graphics2D g, String skinName, String skinCondition, 
-                                         String skinStattrakStatus, int skinPrice, 
-                                         String playerName, int totalBalance) {
-        GradientPaint gradient = new GradientPaint(100, 100, new Color(0, 0, 0, 200), 
-                                             700, 200, new Color(50, 50, 50, 200));
-        g.setPaint(gradient);
-        g.fillRoundRect(100, 100, 600, 150, 20, 20);
-
-        g.setFont(new Font("Arial", Font.BOLD, 24));
-        drawTextWithShadow(g, 
-            skinStattrakStatus.equals("StatTrak") ? "StatTrak™ " + skinName : skinName,
-            150, 150, 
-            skinStattrakStatus.equals("StatTrak") ? Color.ORANGE : Color.WHITE
-        );
-        drawTextWithShadow(g, skinCondition, 150, 180, Color.WHITE);
-        drawTextWithShadow(g, "Price: $" + skinPrice, 150, 210, Color.WHITE);
-
-        g.setColor(Color.ORANGE);
-        g.fillOval(110, 130, 20, 20);
-        g.setColor(Color.WHITE);
-        g.setFont(new Font("Arial", Font.BOLD, 16));
-        g.drawString("$", 115, 145);
-
-        g.drawString(playerName + ": " + (totalBalance + skinPrice), 470, 230);
-
-        g.setColor(new Color(255, 255, 255, 100));
-        g.setStroke(new BasicStroke(2));
-        g.drawRoundRect(100, 100, 600, 150, 20, 20);
-    }
-
-    private static void drawTextWithShadow(Graphics2D g, String text, int x, int y, Color color) {
-        g.setColor(new Color(0, 0, 0, 150));
-        g.drawString(text, x+2, y+2);
-        g.setColor(color);
-        g.drawString(text, x, y);
-    }
-
-    private static byte[] createGif(List<BufferedImage> frames) {
-        try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
-            AnimatedGifEncoder encoder = new AnimatedGifEncoder();
-            encoder.start(byteArrayOutputStream);
-            encoder.setDelay(50);
-            encoder.setRepeat(0);
-            encoder.setQuality(10);
-
-            for (int i = 0; i < frames.size(); i += 2) {
-                encoder.addFrame(resizeImage(frames.get(i), WIDTH / 2, HEIGHT / 2));
-            }
-
-            encoder.finish();
-            return byteArrayOutputStream.toByteArray();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    private static BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
-        BufferedImage resizedImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = resizedImage.createGraphics();
+    private static BufferedImage generateBackgroundGradient(String playerName) {
+        BufferedImage bg = new BufferedImage(OUTPUT_WIDTH, OUTPUT_HEIGHT, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = bg.createGraphics();
         try {
-            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-            g.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null);
-            return resizedImage;
+            g.setPaint(GradientGenerator.generateGradientFromUsername(playerName, true, OUTPUT_WIDTH, OUTPUT_HEIGHT));
+            g.fillRect(0, 0, OUTPUT_WIDTH, OUTPUT_HEIGHT);
+            return bg;
         } finally {
             g.dispose();
         }
     }
 
+    private static void drawFinalFrameInfo(Graphics2D g, String skinName, String skinCondition,
+                                           String skinStattrakStatus, int skinPrice,
+                                           String playerName, int totalBalance) {
+        GradientPaint gradient = new GradientPaint(
+            10, 10, new Color(0, 0, 0, 200),
+            390, 140, new Color(50, 50, 50, 200)
+        );
+        g.setPaint(gradient);
+        g.fillRoundRect(10, 40, 380, 100, 20, 20);
+
+        g.setFont(new Font("Arial", Font.BOLD, 16));
+        drawTextWithShadow(g,
+            skinStattrakStatus.equals("StatTrak") ? "StatTrak™ " + skinName : skinName,
+            30, 70,
+            skinStattrakStatus.equals("StatTrak") ? Color.ORANGE : Color.WHITE
+        );
+
+        g.setFont(new Font("Arial", Font.PLAIN, 14));
+        drawTextWithShadow(g, skinCondition, 30, 95, Color.WHITE);
+        drawTextWithShadow(g, "Price: $" + skinPrice, 30, 115, Color.WHITE);
+
+        g.setColor(Color.ORANGE);
+        g.fillOval(15, 45, 15, 15);
+        g.setColor(Color.WHITE);
+        g.setFont(new Font("Arial", Font.BOLD, 12));
+        g.drawString("$", 20, 57);
+
+        g.setColor(Color.ORANGE);
+        g.setFont(new Font("Arial", Font.BOLD, 14));
+        String balanceText = playerName + ": " + (totalBalance + skinPrice);
+        g.drawString(balanceText, 200, 115);
+
+        g.setColor(new Color(255, 255, 255, 100));
+        g.setStroke(new BasicStroke(2));
+        g.drawRoundRect(10, 40, 380, 100, 20, 20);
+    }
+
+    private static void drawTextWithShadow(Graphics2D g, String text, int x, int y, Color color) {
+        g.setColor(Color.BLACK);
+        g.drawString(text, x + 2, y + 2);
+        g.setColor(color);
+        g.drawString(text, x, y);
+    }
+
+    private static byte[] createGif(List<BufferedImage> frames) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        AnimatedGifEncoder encoder = new AnimatedGifEncoder();
+
+        encoder.start(baos);
+        encoder.setDelay(40);
+        encoder.setRepeat(0);
+
+        for (BufferedImage frame : frames) {
+            encoder.addFrame(frame);
+        }
+
+        encoder.finish();
+        return baos.toByteArray();
+    }
+
+    private static BufferedImage resizeImage(BufferedImage originalImage, int targetWidth, int targetHeight) {
+        Image resultingImage = originalImage.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
+        BufferedImage outputImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2d = outputImage.createGraphics();
+        try {
+            g2d.drawImage(resultingImage, 0, 0, null);
+        } finally {
+            g2d.dispose();
+        }
+        return outputImage;
+    }
+
     private static class SkinInfo {
-        final String condition;
-        final String stattrakStatus;
-        final int price;
+        String condition;
+        String stattrakStatus;
+        int price;
 
         SkinInfo(String condition, String stattrakStatus, int price) {
             this.condition = condition;
@@ -286,7 +330,4 @@ public class CaseOpeningGifGenerator {
         }
     }
 
-    public static void shutdown() {
-        executor.shutdown();
-    }
 }
