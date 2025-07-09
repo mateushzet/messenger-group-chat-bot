@@ -8,7 +8,7 @@ import java.util.Map;
 public class RankingImageGenerator {
 
     public static void generateRankingImage(List<Map.Entry<String, Integer>> sortedUsers, String reguesterName) {
-        int imageWidth = 600;
+        int imageWidth = 550;
         int imageHeight = 100 + sortedUsers.size() * 50;
         BufferedImage image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_RGB);
 
@@ -43,7 +43,7 @@ public class RankingImageGenerator {
                 g.setColor(Color.WHITE); 
             }
 
-            g.drawString((i + 1) + ". " + username + " - " + balance + " coins", 20, yPosition);
+            g.drawString((i + 1) + ". " + username + " - " + balance, 20, yPosition);
 
             yPosition += 50;
         }
