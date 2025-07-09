@@ -75,16 +75,19 @@ public class CommandService {
         String amount = context.getFirstArgument();
         List<String> receiverNameParts = context.getArguments().subList(1, context.getArguments().size());
         String receiverName =  String.join(" ", receiverNameParts);
-        String receiverFullName = String.join(" ", receiverNameParts);
         String senderName = context.getUserName();
+
+        if (receiverName.startsWith("@")) {
+            receiverName = receiverName.substring(1);
+        }
 
         boolean correctTransfer = UserRepository.handleTransfer(senderName, amount, receiverName);
         
         if (correctTransfer) {
-            MessageService.sendMessage("Transferred " + amount + " coins to " + receiverFullName);
+            MessageService.sendMessage("Transferred " + amount + " coins to " + receiverName);
         } else {
             MessageService.sendMessage("Transfer failed");
-            Logger.logWarning("Transfer failed sender: " + senderName + ", amount: " + amount + ", receiver: " + receiverFullName, "CommandService.handleTransferCommand()");
+            Logger.logWarning("Transfer failed sender: " + senderName + ", amount: " + amount + ", receiver: " + receiverName, "CommandService.handleTransferCommand()");
         }
     }
 
@@ -92,6 +95,11 @@ public class CommandService {
         String userName = context.getUserName();
         List<String> receiverNameParts = context.getArguments().subList(0, context.getArguments().size());
         String receiverName = String.join(" ", receiverNameParts);
+
+        if (receiverName.startsWith("@")) {
+            receiverName = receiverName.substring(1);
+        }
+
 
         try {
 
