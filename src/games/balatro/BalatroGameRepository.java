@@ -28,7 +28,6 @@ public class BalatroGameRepository {
             statement.setString(9, convertIntListToString(game.getAvailableJokers()));
 
             statement.executeUpdate();
-            System.out.println(4321);
         } catch (Exception e) {
             Logger.logError("Error while saving game", "BalatroGameRepository.saveGame()", e);
         }
@@ -71,7 +70,7 @@ public class BalatroGameRepository {
     }
 
     public static void updateGame(BalatroGame game) {
-        String query = "UPDATE balatro_game SET bet_amount = ?, player_hand = ?, discard_pile = ?, game_in_progress = ?, game_status = ?, selected_joker_id = ?, available_jokers = ? " +
+        String query = "UPDATE balatro_game SET bet_amount = ?, player_hand = ?, discard_pile = ?, game_in_progress = ?, game_status = ?, selected_joker_id = ?, available_jokers = ? , deck = ? " +
                        "WHERE user_name = ? AND game_in_progress = 1";
 
         try (Connection connection = DatabaseConnectionManager.getConnection();
@@ -84,7 +83,8 @@ public class BalatroGameRepository {
             statement.setInt(5, game.getGameStatus());
             statement.setInt(6, game.getSelectedJokerId());
             statement.setString(7, convertIntListToString(game.getAvailableJokers()));
-            statement.setString(8, game.getUserName());
+            statement.setString(8, convertListToString(game.getDeck()));
+            statement.setString(9, game.getUserName());
 
             statement.executeUpdate();
         } catch (SQLException e) {

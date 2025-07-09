@@ -81,7 +81,6 @@ public class BalatroGameService {
     public static BalatroGame startNewGame(String userName, int betAmount, int startingBalance) {
         List<String> deck = new ArrayList<>(DECK);
         Collections.shuffle(deck);
-
         List<String> playerHand = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
             playerHand.add(deck.remove(0));
@@ -117,23 +116,19 @@ public class BalatroGameService {
 
     public static void playTurn(BalatroGame game, String action, Object param) {
         int status = game.getGameStatus();
-        System.out.println("w srodku playtrun");
         switch (status) {
             case STATUS_NEW:
-            System.out.println("status new");
                 if ("chooseJoker".equalsIgnoreCase(action) && param instanceof Integer) {
-                    System.out.println("pierwszy if");
                     int chosenJokerId = (Integer) param;
                     if (game.getAvailableJokerIds().contains(chosenJokerId)) {
                         game.setSelectedJokerId(chosenJokerId);
                         game.setGameStatus(STATUS_JOKER_SELECTED);
-                        System.out.println("jakis if");
                     }
                 }
-                System.out.println("przed obrazkiem");
+
                 ImageUtils.setClipboardImage(generateHandImage(game));
                 MessageService.sendMessageFromClipboard(true);
-System.out.println("po obrazku");
+
                 break;
 
             case STATUS_JOKER_SELECTED:
@@ -166,8 +161,8 @@ System.out.println("po obrazku");
                     game.setGameStatus(STATUS_CARDS_EXCHANGED);
                 } else {
                     game.setGameStatus(STATUS_GAME_OVER);
-                    BalatroGameRepository.updateGame(game);
                 }
+
             }
                 break;
 
@@ -296,7 +291,7 @@ System.out.println("po obrazku");
     }
 
     private static BufferedImage generateJokersSelectionImage(BalatroGame game) {
-        int width = 700;
+        int width = 750;
         int height = 430;
         int borderThickness = 10;
         String playerName = game.getUserName();
@@ -312,7 +307,7 @@ System.out.println("po obrazku");
         g.setPaint(gradient); 
         g.fillRect(borderThickness, borderThickness, width - 2*borderThickness, height - 2*borderThickness);
 
-        ImageUtils.drawUserAvatar(g, game.getUserName(), 625, 350, 60, 60);
+        ImageUtils.drawUserAvatar(g, game.getUserName(), 675, 15, 60, 60);
 
         g.translate(borderThickness, borderThickness);
 
@@ -386,8 +381,6 @@ System.out.println("po obrazku");
         int mult = result[1];
         int finalScore = result[2];
 
-        BalatroGameRepository.updateGame(game);
-
         int betAmount = game.getBetAmount();
         int winnings = 0;
 
@@ -410,8 +403,6 @@ System.out.println("po obrazku");
         }
 
         UserService.updateAndRetriveUserBalance(userName, winnings);
-
-        BalatroGameRepository.updateGame(game);
 
         String note = "Chips: " + chips + ", Mult: " + mult + ", Final Score: " + finalScore + ". You won: " + winnings + " coins. Game Details: "
         + game.getSelectedJokerId() + ", " + game.getAvailableJokerIds() + ", " + game.getDeck() + ", " + game.getDiscardPile() + ", " + game.getPlayerHand();

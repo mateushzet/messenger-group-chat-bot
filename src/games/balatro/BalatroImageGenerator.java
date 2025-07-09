@@ -10,7 +10,7 @@ public class BalatroImageGenerator {
 
     private static final int CARD_WIDTH = 120;
     private static final int CARD_HEIGHT = 150;
-    private static final int MARGIN = 20;
+    private static final int MARGIN = 40;
     private static final int HAND_Y = 200;
     private static final int IMAGE_HEIGHT = 480;
 
@@ -28,7 +28,7 @@ public class BalatroImageGenerator {
             int betAmount,
             BalatroGame game) {
 
-        int imageWidth = 690;
+        int imageWidth = 750;
         int borderThickness = 10;
 
         BufferedImage image = new BufferedImage(imageWidth, IMAGE_HEIGHT, BufferedImage.TYPE_INT_ARGB);
@@ -48,7 +48,7 @@ public class BalatroImageGenerator {
         g.setFont(new Font("Arial", Font.BOLD, 22));
         g.drawString("Balatro", MARGIN, 40);
 
-        ImageUtils.drawUserAvatar(g, userName, 380, 40, 70, 70);
+        ImageUtils.drawUserAvatar(g, userName, 650, 10, 70, 70);
 
         g.setFont(new Font("Arial", Font.BOLD, 16));
         g.drawString("Player: " + userName, MARGIN, 70);
@@ -68,17 +68,17 @@ public class BalatroImageGenerator {
         } else if (finalScore < 150) {
             winnings = betAmount / 2;
         } else if (finalScore < 200) {
-            winnings = betAmount;
+            winnings = betAmount * 2;
         } else if (finalScore < 400) {
-               winnings = betAmount * 2;
-        } else if (finalScore < 600) {
             winnings = betAmount * 3;
-        } else if (finalScore < 1000) {
+        } else if (finalScore < 600) {
             winnings = betAmount * 5;
-        } else if (finalScore < 1400) {
+        } else if (finalScore < 1000) {
             winnings = betAmount * 8;
-        } else {
+        } else if (finalScore < 1400) {
             winnings = betAmount * 12;
+        } else {
+            winnings = betAmount * 20;
         }
         String resultMessage = "Chips: " + chips + "  Mult: " + mult + "  Final Score: " + finalScore + " Prize: " + winnings;
 
@@ -119,7 +119,7 @@ public class BalatroImageGenerator {
     private static void drawCards(Graphics2D g, List<String> cards, int startX, int y, String label) {
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 16));
-        g.drawString(label, startX, y - 15);
+        g.drawString(label, startX + 25, y - 15);
 
         int x = startX;
         for (String card : cards) {
@@ -192,4 +192,5 @@ public class BalatroImageGenerator {
         g.dispose();
         return image;
     }
+    
 }

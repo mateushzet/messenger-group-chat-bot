@@ -63,17 +63,11 @@ public class BalatroGameController {
                         MessageService.sendMessage(userName + ", invalid joker number. Choose: 1, 2 or 3");
                         return;
                     }
-                    System.out.println(jokerId +" "+currentGame.getAvailableJokerIds().get(jokerId-1));
                     jokerId = currentGame.getAvailableJokerIds().get(jokerId-1);
 
                     BalatroGameService.playTurn(currentGame, "chooseJoker", jokerId);
-                    System.out.println("po playtrun");
                     BalatroGameRepository.updateGame(currentGame);
-                    System.out.println("update game");
                 } catch (NumberFormatException e) {
-                    System.out.println("teeeeeest2");
-                    System.out.println(e.toString());
-                    System.out.println(e);
                     e.printStackTrace();
                     MessageService.sendMessage(userName + ", invalid joker number. Choose: 1, 2 or 3");
                 }
