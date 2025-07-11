@@ -14,6 +14,10 @@ public class MathQuestionImageGenerator {
     private static final Font HINT_FONT = new Font("Arial", Font.PLAIN, 16);
     private static final int CORNER_RADIUS = 20;
     private static final Random random = new Random();
+    private static boolean isRandomPrizeEnabled = ConfigReader.isMathQuestionRandomPrizeEnabled();
+    private static int randomPrizeMin = ConfigReader.getMathQuestionRandomPrizeMinCap();
+    private static int randomPrizeMax = ConfigReader.getMathQuestionRandomPrizeMaxCap();
+    private static int mathQuestionPrize = ConfigReader.getMathQuestionPrize();
 
     public static void generateMathQuestionImage(String question) {
         BufferedImage image = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
@@ -48,14 +52,24 @@ public class MathQuestionImageGenerator {
 
         g.setColor(Color.DARK_GRAY);
         g.setFont(HINT_FONT);
+        FontMetrics rewardMetrics = g.getFontMetrics();
+        String rewardText;
+        if (isRandomPrizeEnabled) {
+            rewardText = "Reward: " + randomPrizeMin + "-" + randomPrizeMax + " coins";
+        } else {
+            rewardText = "Reward: " + mathQuestionPrize + " coins";
+        }
+        int rewardX = (WIDTH - rewardMetrics.stringWidth(rewardText)) / 2;
+        int rewardY = questionY + 45;
+        g.drawString(rewardText, rewardX, rewardY);
+
         FontMetrics hintMetrics = g.getFontMetrics();
         String hintText = "Use /answer <number> to respond";
         int hintX = (WIDTH - hintMetrics.stringWidth(hintText)) / 2;
-        int hintY = HEIGHT - 30;
+        int hintY = HEIGHT - 17;
         g.drawString(hintText, hintX, hintY);
 
         g.dispose();
-
         ImageUtils.setClipboardImage(image);
     }
 
