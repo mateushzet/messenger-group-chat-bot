@@ -8,7 +8,7 @@ import java.util.Map;
 public class RankingImageGenerator {
 
     public static void generateRankingImage(List<Map.Entry<String, Integer>> sortedUsers, String reguesterName) {
-        int imageWidth = 550;
+        int imageWidth = 750;
         int imageHeight = 100 + sortedUsers.size() * 50;
         BufferedImage image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_RGB);
 
