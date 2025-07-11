@@ -54,7 +54,7 @@ public class MessageService {
     private static int counter = 0;
     private static int lastHourAPIfetch = 0;
     private static LocalTime lastHour = LocalTime.now();
-    private static LocalDate jackpotLastAdditionDate = JackpotRepository.getJackpotLastUpdatedDate();
+    private static LocalDate jackpotLastAdditionDate = JackpotRepository.getJackpotDailyIncraseDate();
 
     public static void sendMessage(String message) {
         String inputCss = ConfigReader.getMessageInputBoxCssSelector();
@@ -293,7 +293,7 @@ public class MessageService {
         }
         MathQuestionService.checkAndSendMathQuestion();
 
-        addToJackpotPoolOncePerDay(10);
+        addToJackpotPoolOncePerDay(50);
     }
 
     private static void processAllValidMessages() {
@@ -528,11 +528,11 @@ public class MessageService {
         }
     }
     
-    public static void addToJackpotPoolOncePerDay(int betAmount) {
+    public static void addToJackpotPoolOncePerDay(int amount) {
         LocalDate today = LocalDate.now();
-
         if (jackpotLastAdditionDate == null || !jackpotLastAdditionDate.equals(today)) {
-            JackpotRepository.addToJackpotPool(betAmount);
+            jackpotLastAdditionDate = today;
+            JackpotRepository.jackpotDailyIncrease(amount);
         }
     }
 }

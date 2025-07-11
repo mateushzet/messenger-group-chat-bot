@@ -40,6 +40,22 @@ public class JackpotRepository {
         }
     }
 
+    public static void jackpotDailyIncrease(int amount) {
+        int jackpotPool = getJackpot();
+        jackpotPool += amount;
+
+        String query = "UPDATE jackpot SET amount = ?, last_updated = CURRENT_TIMESTAMP, daily_incrase_date = CURRENT_TIMESTAMP";
+
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            
+            statement.setInt(1, jackpotPool);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            Logger.logError("Error while updating jackpot amount", "DailyRewardRepository.addToJackpotPool()", e);
+        }
+    }
+
     public static void setJackpot(double newJackpotAmount) {
         String query = "UPDATE jackpot SET amount = ?, last_updated = CURRENT_TIMESTAMP";
         
@@ -68,6 +84,24 @@ public class JackpotRepository {
             }
         } catch (SQLException e) {
             Logger.logError("Error while getting jackpot last_updated", "JackpotRepository.getJackpotLastUpdatedDate()", e);
+        }
+        return null;
+    }
+
+    public static LocalDate getJackpotDailyIncraseDate() {
+        String query = "SELECT daily_incrase_date FROM jackpot LIMIT 1";
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(query)) {
+
+            if (resultSet.next()) {
+                Date sqlDate = resultSet.getDate("daily_incrase_date");
+                if (sqlDate != null) {
+                    return sqlDate.toLocalDate();
+                }
+            }
+        } catch (SQLException e) {
+            Logger.logError("Error while getting jackpot last_updated", "JackpotRepository.getJackpotDailyIncraseDate()", e);
         }
         return null;
     }
