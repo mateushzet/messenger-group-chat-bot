@@ -3,6 +3,7 @@ package service;
 import controller.CommandController;
 import factory.WebDriverFactory;
 import games.jackpot.JackpotService;
+import games.slots.JackpotRepository;
 import model.UserCooldownInfo;
 import repository.UserRepository;
 import utils.ConfigReader;
@@ -13,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.Base64;
 import java.util.List;
@@ -52,6 +54,7 @@ public class MessageService {
     private static int counter = 0;
     private static int lastHourAPIfetch = 0;
     private static LocalTime lastHour = LocalTime.now();
+    private static LocalDate jackpotLastAdditionDate = JackpotRepository.getJackpotLastUpdatedDate();
 
     public static void sendMessage(String message) {
         String inputCss = ConfigReader.getMessageInputBoxCssSelector();
@@ -289,6 +292,8 @@ public class MessageService {
             JackpotService.startJackpotGame();
         }
         MathQuestionService.checkAndSendMathQuestion();
+
+        addToJackpotPoolOncePerDay(10);
     }
 
     private static void processAllValidMessages() {
@@ -522,4 +527,13 @@ public class MessageService {
             return "Unknown";
         }
     }
+    
+    public static void addToJackpotPoolOncePerDay(int betAmount) {
+        LocalDate today = LocalDate.now();
+
+        if (jackpotLastAdditionDate == null || !jackpotLastAdditionDate.equals(today)) {
+            JackpotRepository.addToJackpotPool(betAmount);
+        }
+    }
 }
+

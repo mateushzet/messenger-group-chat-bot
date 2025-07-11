@@ -1,6 +1,7 @@
 package games.slots;
 
 import java.sql.*;
+import java.time.LocalDate;
 
 import database.DatabaseConnectionManager;
 import utils.Logger;
@@ -51,5 +52,23 @@ public class JackpotRepository {
         } catch (SQLException e) {
             Logger.logError("Error while setting new jackpot amount", "JackpotRepository.setJackpotAfterPayout()", e);
         }
+    }
+
+    public static LocalDate getJackpotLastUpdatedDate() {
+        String query = "SELECT last_updated FROM jackpot LIMIT 1";
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(query)) {
+
+            if (resultSet.next()) {
+                Date sqlDate = resultSet.getDate("last_updated");
+                if (sqlDate != null) {
+                    return sqlDate.toLocalDate();
+                }
+            }
+        } catch (SQLException e) {
+            Logger.logError("Error while getting jackpot last_updated", "JackpotRepository.getJackpotLastUpdatedDate()", e);
+        }
+        return null;
     }
 }
