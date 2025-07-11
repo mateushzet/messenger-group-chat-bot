@@ -12,9 +12,12 @@ public class BalatroGame {
     private int gameStatus;
     private int selectedJokerId;
     private List<Integer> availableJokers;
+    private List<String> keptPile;
+    private List<String> drawPile;
+    private List<String> handValues;
 
  public BalatroGame(String userName, int currentBet, List<String> playerHand, List<String> discardPile,
-                      boolean gameInProgress, int selectedJokerId) {
+                      boolean gameInProgress, int selectedJokerId, List<String> handValues) {
         this.userName = userName;
         this.betAmount = currentBet;
         this.playerHand = playerHand;
@@ -22,6 +25,21 @@ public class BalatroGame {
         this.gameInProgress = gameInProgress;
         this.gameStatus = 0;
         this.selectedJokerId = selectedJokerId;
+        this.handValues = handValues;
+    }
+
+public BalatroGame(String userName, int currentBet, List<String> playerHand, List<String> discardPile,
+                      boolean gameInProgress, int selectedJokerId, List<String> keptPile, List<String> drawPile, List<String> handValues) {
+        this.userName = userName;
+        this.betAmount = currentBet;
+        this.playerHand = playerHand;
+        this.discardPile = discardPile;
+        this.gameInProgress = gameInProgress;
+        this.gameStatus = 0;
+        this.selectedJokerId = selectedJokerId;
+        this.keptPile = keptPile;
+        this.drawPile = drawPile;
+        this.handValues = handValues;
     }
 
     public String getUserName() { return userName; }
@@ -43,5 +61,10 @@ public class BalatroGame {
     public void setAvailableJokerIds(List<Integer> availableJokerIds) { this.availableJokers = availableJokerIds; }
     public List<String> getDeck() { return deck; }
     public void setDeck(List<String> deck) { this.deck = deck; }
-
+    public List<String> getKeptPile() { return keptPile; }
+    public void setKeptPile(List<String> keptPile) { this.keptPile = keptPile; }
+    public List<String> getDrawPile() { return drawPile; }
+    public void setDrawPile(List<String> drawPile) { this.drawPile = drawPile; }
+    public List<String> getHandValues() { return handValues; }
+    public void setHandValues(List<String> handValues) { this.handValues = handValues; }
 }

@@ -2,7 +2,12 @@ package games.balatro;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.util.List;
+
+import javax.imageio.ImageIO;
+
+import games.balatro.BalatroGameService.Joker;
 import utils.GradientGenerator;
 import utils.ImageUtils;
 
@@ -46,17 +51,16 @@ public class BalatroImageGenerator {
 
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 22));
-        g.drawString("Balatro", MARGIN, 40);
 
         ImageUtils.drawUserAvatar(g, userName, 650, 10, 70, 70);
 
         g.setFont(new Font("Arial", Font.BOLD, 16));
-        g.drawString("Player: " + userName, MARGIN, 70);
-        g.drawString("Balance: " + playerBalance + "  Bet: " + betAmount, MARGIN, 95);
+        g.drawString("Player: " + userName, MARGIN + 90, 70);
+        g.drawString("Balance: " + playerBalance + "  Bet: " + betAmount, MARGIN + 90, 105);
         g.setFont(new Font("Arial", Font.BOLD, 16));
-        g.drawString(gameStatus, MARGIN, 125);
+        g.drawString(gameStatus, MARGIN, 170);
 
-        drawCards(g, playerHand, MARGIN, HAND_Y, "Hand:");
+        drawCards(g, playerHand, MARGIN, HAND_Y);
         int[] result = BalatroGameService.calculateResult(game);
         int chips = result[0];
         int mult = result[1];
@@ -92,6 +96,15 @@ public class BalatroImageGenerator {
                 break;
         }
 
+        Joker joker = BalatroGameService.getJokerById(game.getSelectedJokerId());
+        BufferedImage jokerImg = null;
+        try {
+            jokerImg = ImageIO.read(new File(BalatroGameService.JOCKERS_DIR, joker.getImagePath()));
+        } catch (Exception ignored) {}
+        if (jokerImg != null) {
+            g.drawImage(jokerImg, 25, 30, 90, 100, null);
+        }
+
         g.dispose();
         return image;
     }
@@ -116,10 +129,9 @@ public class BalatroImageGenerator {
         g.drawString(gameStatus, (width - statusWidth) / 2, 415);
     }
 
-    private static void drawCards(Graphics2D g, List<String> cards, int startX, int y, String label) {
+    private static void drawCards(Graphics2D g, List<String> cards, int startX, int y) {
         g.setColor(Color.WHITE);
         g.setFont(new Font("Arial", Font.BOLD, 16));
-        g.drawString(label, startX + 25, y - 15);
 
         int x = startX;
         for (String card : cards) {

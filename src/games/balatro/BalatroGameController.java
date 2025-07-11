@@ -66,7 +66,11 @@ public class BalatroGameController {
                     jokerId = currentGame.getAvailableJokerIds().get(jokerId-1);
 
                     BalatroGameService.playTurn(currentGame, "chooseJoker", jokerId);
+                    System.out.println("test");
+                    System.out.println(currentGame.getGameStatus());
+                    System.out.println("test");
                     BalatroGameRepository.updateGame(currentGame);
+                    System.out.println(currentGame.getGameStatus());
                 } catch (NumberFormatException e) {
                     e.printStackTrace();
                     MessageService.sendMessage(userName + ", invalid joker number. Choose: 1, 2 or 3");
@@ -105,6 +109,10 @@ public class BalatroGameController {
                     return;
                 }
                 currentGame.setGameStatus(BalatroGameService.STATUS_GAME_OVER);
+                List<String> playerHand = currentGame.getPlayerHand();
+                List<String> keptPile = currentGame.getKeptPile();
+                keptPile.addAll(playerHand);
+                currentGame.setKeptPile(keptPile);
                 BalatroGameRepository.updateGame(currentGame);
 
                 BalatroGameService.finalizeGame(userName, currentGame, context);

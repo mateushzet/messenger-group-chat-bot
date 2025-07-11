@@ -3,6 +3,9 @@ package games.balatro;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import javax.imageio.ImageIO;
 import model.CommandContext;
 import repository.GameHistoryRepository;
@@ -20,7 +23,7 @@ import java.nio.file.Paths;
 
 public class BalatroGameService {
 
-    private static final File JOCKERS_DIR = Paths.get("src", "resources", "balatro_jocker_images").toFile();
+    public static final File JOCKERS_DIR = Paths.get("src", "resources", "balatro_jocker_images").toFile();
 
     public static class Joker {
         private final int id;
@@ -42,14 +45,14 @@ public class BalatroGameService {
         new Joker(1, "Each pair in hand +3 mult", "Joker_Wilson.png"),
         new Joker(2, "Each face card discarded +20 chips", "Joker_Willow.png"),
         new Joker(3, "Each King in hand +25 chips", "Joker_Wolfgang.png"),
-        //new Joker(4, "Each discard that becomes the same suit +5 chips +2 mult", "Joker_Wendy.png"),
-        //new Joker(5, "Each heart kept once then discarded +2 mult", "Joker_WX-78.png"),
+        new Joker(4, "Each discard that becomes the same suit +5 chips +2 mult", "Joker_Wendy.png"),
+        new Joker(5, "Each heart kept once then discarded +2 mult", "Joker_WX-78.png"),
         new Joker(6, "Each Queen in hand +1 mult", "Joker_Wickerbottom.png"),
         new Joker(7, "Each card discarded +7 chips", "Joker_Woodie.png"),
-        //new Joker(8, "Hand is worse after discard +30 chips", "Joker_Wes.png"),
+        new Joker(8, "Hand is worse after discard +30 chips", "Joker_Wes.png"),
         new Joker(9, "Each heart discarded +1 mult", "Joker_Maxwell.png"),
         new Joker(10, "Each Spade in hand +25 chips", "Joker_Wigfrid.png"),
-        //new Joker(11, "Each Heart or Diamond replaced by a club or spade +2 mult", "Joker_Webber.png"),
+        new Joker(11, "Each Heart or Diamond replaced by a club or spade +2 mult", "Joker_Webber.png"),
         new Joker(12, "Hand contains a heart, a club, a diamond and a spade +4 mult", "Joker_Warly.png"),
         new Joker(13, "Each heart kept +1 mult", "Joker_Winona.png"),
         new Joker(14, "Each heart discarded +15 chips", "Joker_Wortox.png"),
@@ -82,6 +85,7 @@ public class BalatroGameService {
         List<String> deck = new ArrayList<>(DECK);
         Collections.shuffle(deck);
         List<String> playerHand = new ArrayList<>();
+        List<String> handValues = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
             playerHand.add(deck.remove(0));
         }
@@ -95,13 +99,19 @@ public class BalatroGameService {
             shuffledJokers.get(2).getId()
         );
 
+        int chips = calculateBaseChipsFromHand(playerHand);
+        int mult = HandEvaluator.calculateBaseMultiplier(playerHand);
+        int score = chips * mult;
+        handValues.add(Integer.toString(score));
+
         BalatroGame game = new BalatroGame(
             userName,
             betAmount,
             playerHand,
             new ArrayList<>(),
             true,
-            startingBalance - betAmount
+            startingBalance - betAmount,
+            handValues
         );
 
         game.setAvailableJokerIds(availableJokerIds);
@@ -120,11 +130,16 @@ public class BalatroGameService {
             case STATUS_NEW:
                 if ("chooseJoker".equalsIgnoreCase(action) && param instanceof Integer) {
                     int chosenJokerId = (Integer) param;
+                    System.out.println("test");
+                    System.out.println(game.getAvailableJokerIds().contains(chosenJokerId));
                     if (game.getAvailableJokerIds().contains(chosenJokerId)) {
+                        System.out.println("test333");
                         game.setSelectedJokerId(chosenJokerId);
                         game.setGameStatus(STATUS_JOKER_SELECTED);
                     }
                 }
+                System.out.println(game.getGameStatus());
+                
 
                 ImageUtils.setClipboardImage(generateHandImage(game));
                 MessageService.sendMessageFromClipboard(true);
@@ -137,8 +152,12 @@ public class BalatroGameService {
                 @SuppressWarnings("unchecked")
                 List<String> toDiscard = (List<String>) param;
                 List<String> playerHand = game.getPlayerHand();
+                List<String> originalHand = playerHand;
                 List<String> discardPile = game.getDiscardPile();
+                List<String> keptPile = game.getKeptPile();
+                List<String> drawPile = game.getDrawPile();
                 List<String> deck = game.getDeck();
+                List<String> handValues = game.getHandValues();
 
                 for (String card : toDiscard) {
                     int index = playerHand.indexOf(card);
@@ -149,11 +168,24 @@ public class BalatroGameService {
                         if (!deck.isEmpty()) {
                             String drawn = deck.remove(0);
                             playerHand.add(index, drawn);
+                            drawPile.add(drawn);
                         }
                     }
                 }
 
+                for (String card : originalHand) {
+                    if (!toDiscard.contains(card)) {
+                        keptPile.add(card);
+                    }
+                }
+
                 game.setDeck(deck);
+
+                int chips = calculateBaseChipsFromHand(playerHand);
+                int mult = HandEvaluator.calculateBaseMultiplier(playerHand);
+                int score = chips * mult;
+                handValues.add(Integer.toString(score));
+                game.setHandValues(handValues);
 
                 if (status == STATUS_JOKER_SELECTED) {
                     ImageUtils.setClipboardImage(generateHandImage(game));
@@ -177,30 +209,31 @@ public class BalatroGameService {
     public static int[] calculateResult(BalatroGame game) {
         List<String> hand = game.getPlayerHand();
         List<String> discardPile = game.getDiscardPile();
+        List<String> drawPile = game.getDrawPile();
         int jokerId = game.getSelectedJokerId();
 
         int chips = calculateBaseChipsFromHand(hand);
         int mult = HandEvaluator.calculateBaseMultiplier(hand);
 
         switch (jokerId) {
-            case 1: mult += countPairs(hand) * 3; break;
-            case 2: chips += countFaceCards(discardPile) * 20; break;
-            case 3: chips += countRanks(hand, "K") * 25; break;
-            case 4: mult += countSameSuit(discardPile) * 2; chips += countSameSuit(discardPile) * 5; break;
-            case 5: mult += countHeartsMovedToDiscard(hand, discardPile) * 2; break;
-            case 6: mult += countRanks(hand, "Q"); break;
-            case 7: chips += discardPile.size() * 7; break;
-            case 8: if (hand.size() < 5) chips += 30; break;
-            case 9: mult += countSuits(discardPile, '♥'); break;
+            case 1:  mult += countPairs(hand) * 3; break;
+            case 2:  chips += countFaceCards(discardPile) * 20; break;
+            case 3:  chips += countRanks(hand, "K") * 25; break;
+            case 4: int matched = countDiscardToSameSuit(discardPile, drawPile); mult += matched * 2; chips += matched * 5; break;
+            case 5:  mult += countHeartsKeptThenDiscarded(game.getKeptPile(), discardPile) * 2; break;
+            case 6:  mult += countRanks(hand, "Q"); break;
+            case 7:  chips += discardPile.size() * 7; break;
+            case 8:  chips += applyWorseHandBonus(game.getHandValues()); break;
+            case 9:  mult += countSuits(discardPile, '♥'); break;
             case 10: chips += countSuits(hand, '♠') * 25; break;
-            case 11: mult += countHeartDiamondToBlackConversion(hand, discardPile) * 2; break;
+            case 11: mult += countRedToBlackConversions(discardPile, drawPile) * 2; break;
             case 12: if (hasAllSuits(hand)) mult += 4; break;
             case 13: mult += countSuits(hand, '♥'); break;
             case 14: chips += countSuits(discardPile, '♥') * 15; break;
             case 15: int h = countSuits(hand, '♥'); chips -= h * 11; mult += h; break;
             case 16: chips += countSuits(hand, '♣') * 15; break;
             case 17: chips += countFaceCards(hand) * 10; break;
-            case 18: int uniqueSuits = (int) discardPile.stream().map(c -> c.charAt(c.length() - 1)).distinct().count(); chips += 80 + uniqueSuits * 15 - discardPile.size() * 15; break;
+            case 18: chips += 80 + countUniqueSuits(discardPile) * 15 - discardPile.size() * 15; break;
         }
 
         return new int[]{chips, mult, chips * mult};
@@ -263,31 +296,12 @@ public class BalatroGameService {
         return pairs;
     }
 
-    private static int countSameSuit(List<String> cards) {
-        java.util.Map<Character, Integer> suits = new java.util.HashMap<>();
-        for (String c : cards) {
-            char suit = c.charAt(c.length() - 1);
-            suits.put(suit, suits.getOrDefault(suit, 0) + 1);
-        }
-        return (int) suits.values().stream().filter(v -> v >= 2).count();
-    }
-
     private static boolean hasAllSuits(List<String> cards) {
         java.util.Set<Character> suits = new java.util.HashSet<>();
         for (String c : cards) {
             suits.add(c.charAt(c.length() - 1));
         }
         return suits.containsAll(List.of('♠', '♥', '♦', '♣'));
-    }
-
-    private static int countHeartsMovedToDiscard(List<String> originalHand, List<String> discardPile) {
-        return (int) discardPile.stream().filter(c -> c.charAt(c.length() - 1) == '♥').count();
-    }
-
-    private static int countHeartDiamondToBlackConversion(List<String> hand, List<String> discardPile) {
-        long redOut = discardPile.stream().filter(c -> c.endsWith("♥") || c.endsWith("♦")).count();
-        long blackIn = hand.stream().filter(c -> c.endsWith("♣") || c.endsWith("♠")).count();
-        return (int) Math.min(redOut, blackIn);
     }
 
     private static BufferedImage generateJokersSelectionImage(BalatroGame game) {
@@ -360,7 +374,7 @@ public class BalatroGameService {
         );
     }
 
-    private static Joker getJokerById(int id) {
+    public static Joker getJokerById(int id) {
         for (Joker joker : ALL_JOKERS) {
             if (joker.getId() == id) {
                 return joker;
@@ -416,5 +430,65 @@ public class BalatroGameService {
         BalatroGameRepository.deleteGame(userName);
     }
 
+    private static int countDiscardToSameSuit(List<String> discardPile, List<String> drawPile) {
+        int count = 0;
+        int minSize = Math.min(discardPile.size(), drawPile.size());
+
+    for (int i = 0; i < minSize; i++) {
+        String discarded = discardPile.get(i);
+        String drawn = drawPile.get(i);
+
+        if (discarded.length() > 0 && drawn.length() > 0 &&
+            discarded.charAt(discarded.length() - 1) == drawn.charAt(drawn.length() - 1)) {
+            count++;
+        }
+    }
+
+        return count;
+    }
+
+    private static int countHeartsKeptThenDiscarded(List<String> keptPile, List<String> discardPile) {
+        Set<String> keptHearts = keptPile.stream()
+            .filter(card -> card.endsWith("♥"))
+            .collect(Collectors.toSet());
+
+        int count = 0;
+        for (String card : discardPile) {
+            if (card.endsWith("♥") && keptHearts.contains(card)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static int applyWorseHandBonus(List<String> handValuesStr) {
+        if (handValuesStr.size() >= 2) {
+            int prev = Integer.parseInt(handValuesStr.get(handValuesStr.size() - 2));
+            int curr = Integer.parseInt(handValuesStr.get(handValuesStr.size() - 1));
+            if (curr < prev) return 30;
+        }
+        return 0;
+    }
+
+    private static int countRedToBlackConversions(List<String> discard, List<String> draw) {
+        int converted = 0;
+        int min = Math.min(discard.size(), draw.size());
+
+        for (int i = 0; i < min; i++) {
+            char dSuit = discard.get(i).charAt(discard.get(i).length() - 1);
+            char rSuit = draw.get(i).charAt(draw.get(i).length() - 1);
+            if ((dSuit == '♥' || dSuit == '♦') && (rSuit == '♠' || rSuit == '♣')) {
+                converted++;
+            }
+        }
+        return converted;
+    }
+
+    private static int countUniqueSuits(List<String> cards) {
+        return (int) cards.stream()
+            .map(c -> c.charAt(c.length() - 1))
+            .distinct()
+            .count();
+    }
     
 }

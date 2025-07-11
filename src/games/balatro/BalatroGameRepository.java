@@ -11,8 +11,8 @@ import utils.Logger;
 public class BalatroGameRepository {
 
     public static void saveGame(BalatroGame game) {
-        String query = "INSERT INTO balatro_game (user_name, bet_amount, player_hand, discard_pile, deck, game_in_progress, game_status, selected_joker_id, available_jokers) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String query = "INSERT INTO balatro_game (user_name, bet_amount, player_hand, discard_pile, deck, game_in_progress, game_status, selected_joker_id, available_jokers, draw_pile, kept_pile, hand_values) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection connection = DatabaseConnectionManager.getConnection();
             PreparedStatement statement = connection.prepareStatement(query)) {
@@ -21,11 +21,14 @@ public class BalatroGameRepository {
             statement.setInt(2, game.getBetAmount());
             statement.setString(3, convertListToString(game.getPlayerHand()));
             statement.setString(4, convertListToString(game.getDiscardPile()));
-            statement.setString(5, convertListToString(game.getDeck()));         // dodane
+            statement.setString(5, convertListToString(game.getDeck()));
             statement.setBoolean(6, game.isGameInProgress());
             statement.setInt(7, game.getGameStatus());
             statement.setInt(8, game.getSelectedJokerId());
             statement.setString(9, convertIntListToString(game.getAvailableJokers()));
+            statement.setString(10, convertListToString(game.getDrawPile()));
+            statement.setString(11, convertListToString(game.getKeptPile()));
+            statement.setString(12, convertListToString(game.getHandValues()));
 
             statement.executeUpdate();
         } catch (Exception e) {
@@ -47,6 +50,9 @@ public class BalatroGameRepository {
                 List<String> discardPile = convertStringToList(resultSet.getString("discard_pile"));
                 List<String> deck = convertStringToList(resultSet.getString("deck"));
                 List<Integer> availableJokers = convertStringToIntList(resultSet.getString("available_jokers"));
+                List<String> keptPile = convertStringToList(resultSet.getString("kept_pile"));
+                List<String> drawPile = convertStringToList(resultSet.getString("draw_pile"));
+                List<String> handValues = convertStringToList(resultSet.getString("hand_values"));
 
                 BalatroGame game = new BalatroGame(
                         resultSet.getString("user_name"),
@@ -54,7 +60,10 @@ public class BalatroGameRepository {
                         playerHand,
                         discardPile,
                         resultSet.getBoolean("game_in_progress"),
-                        resultSet.getInt("selected_joker_id")
+                        resultSet.getInt("selected_joker_id"),
+                        keptPile,
+                        drawPile,
+                        handValues
                 );
 
                 game.setGameStatus(resultSet.getInt("game_status"));
@@ -70,8 +79,8 @@ public class BalatroGameRepository {
     }
 
     public static void updateGame(BalatroGame game) {
-        String query = "UPDATE balatro_game SET bet_amount = ?, player_hand = ?, discard_pile = ?, game_in_progress = ?, game_status = ?, selected_joker_id = ?, available_jokers = ? , deck = ? " +
-                       "WHERE user_name = ? AND game_in_progress = 1";
+        String query = "UPDATE balatro_game SET bet_amount = ?, player_hand = ?, discard_pile = ?, game_in_progress = ?, game_status = ?, selected_joker_id = ?, available_jokers = ? , deck = ?, " +
+                       "draw_pile = ?, kept_pile = ?, hand_values = ? WHERE user_name = ? AND game_in_progress = 1";
 
         try (Connection connection = DatabaseConnectionManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
@@ -84,9 +93,13 @@ public class BalatroGameRepository {
             statement.setInt(6, game.getSelectedJokerId());
             statement.setString(7, convertIntListToString(game.getAvailableJokers()));
             statement.setString(8, convertListToString(game.getDeck()));
-            statement.setString(9, game.getUserName());
+            statement.setString(9, convertListToString(game.getDrawPile()));
+            statement.setString(10, convertListToString(game.getKeptPile()));
+            statement.setString(11, convertListToString(game.getHandValues()));
+            statement.setString(12, game.getUserName());
 
             statement.executeUpdate();
+
         } catch (SQLException e) {
             Logger.logError("Error while updating game", "BalatroGameRepository.updateGame()", e);
         }
