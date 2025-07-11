@@ -267,4 +267,20 @@ public class ConfigReader {
         return getProperty("admin_name", "missing");
     }
 
+    public static boolean isMathQuestionRandomPrizeEnabled() {
+        return Boolean.parseBoolean(getProperty("math_question_random_prize", "false"));
+    }
+
+    public static int getMathQuestionRandomPrizeMaxCap() {
+        return getPropertyInt("math_question_random_prize_max_cap", 100);
+    }
+
+    public static int getMathQuestionRandomPrizeMinCap() {
+        return getPropertyInt("math_question_random_prize_min_cap", 10);
+    }
+
+    public static boolean isLowerChanceForUpperHalfEnabled() {
+        return Boolean.parseBoolean(getProperty("math_question_random_prize_lower_chance_for_upper_half", "true"));
+    }
+
 }

@@ -130,15 +130,11 @@ public class BalatroGameService {
             case STATUS_NEW:
                 if ("chooseJoker".equalsIgnoreCase(action) && param instanceof Integer) {
                     int chosenJokerId = (Integer) param;
-                    System.out.println("test");
-                    System.out.println(game.getAvailableJokerIds().contains(chosenJokerId));
                     if (game.getAvailableJokerIds().contains(chosenJokerId)) {
-                        System.out.println("test333");
                         game.setSelectedJokerId(chosenJokerId);
                         game.setGameStatus(STATUS_JOKER_SELECTED);
                     }
                 }
-                System.out.println(game.getGameStatus());
                 
 
                 ImageUtils.setClipboardImage(generateHandImage(game));

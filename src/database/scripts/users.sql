@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
     daily_coins_claimed_at TEXT DEFAULT NULL,
     hourly_reward_claimed_at TEXT DEFAULT NULL,
     weekly_reward_claimed_at TEXT DEFAULT NULL,
+    gift_claimed_at TEXT DEFAULT NULL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
     avatar_url TEXT

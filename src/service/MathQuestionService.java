@@ -21,6 +21,11 @@ public class MathQuestionService {
     private static int mathQuestionRandomMinuteEnd = ConfigReader.getMathQuestionRandomEndMinute();
     private static int mathQuestionRandomMinute = setRandomMinute();
     private static int mathQuestionPrize = ConfigReader.getMathQuestionPrize();
+    private static boolean isRandomPrizeEnabled = ConfigReader.isMathQuestionRandomPrizeEnabled();
+    private static int randomPrizeMin = ConfigReader.getMathQuestionRandomPrizeMinCap();
+    private static int randomPrizeMax = ConfigReader.getMathQuestionRandomPrizeMaxCap();
+    private static boolean lowerChanceForUpperHalf = ConfigReader.isLowerChanceForUpperHalfEnabled();
+
 
     public static void handleMathAnswer(String answer, String userName) {
         if (!isQuestionSolved) {
@@ -71,11 +76,32 @@ public class MathQuestionService {
     }
 
     private static void rewardUser(String userName) {
+        int reward;
+
+        if (isRandomPrizeEnabled) {
+            if (lowerChanceForUpperHalf) {
+                double biased = Math.pow(Math.random(), 2);
+                reward = randomPrizeMin + (int) (biased * (randomPrizeMax - randomPrizeMin + 1));
+            } else {
+                reward = randomPrizeMin + (int) (Math.random() * (randomPrizeMax - randomPrizeMin + 1));
+            }
+
+        reward = Math.round(reward / 10.0f) * 10;
+
+        if (reward > randomPrizeMax) reward = randomPrizeMax - (randomPrizeMax % 10);
+        if (reward < randomPrizeMin) reward = randomPrizeMin + (10 - randomPrizeMin % 10) % 10;
+
+        } else {
+            reward = mathQuestionPrize;
+        }
+
         int userBalance = UserRepository.getCurrentUserBalance(userName, true);
-        UserRepository.updateUserBalance(userName, userBalance + mathQuestionPrize);
-        MessageService.sendMessage(userName + " correct answer! You earn " + mathQuestionPrize + " coins! Current balance: " +  (userBalance + mathQuestionPrize));
-        Logger.logInfo(userName + " solved math question and earned " + mathQuestionPrize + " coins, previous balance: " + userBalance, "MathQuestionService.rewardUser()");
-        RewardsHistoryRepository.addRewardHistory(userName, "Answer", mathQuestionPrize);
+        int newBalance = userBalance + reward;
+
+        UserRepository.updateUserBalance(userName, newBalance);
+        MessageService.sendMessage(userName + " correct answer! You earn " + reward + " coins! Current balance: " + newBalance);
+        Logger.logInfo(userName + " solved math question and earned " + reward + " coins, previous balance: " + userBalance, "MathQuestionService.rewardUser()");
+        RewardsHistoryRepository.addRewardHistory(userName, "Answer", reward);
     }
 
     private static void sendMathQuestion(){
