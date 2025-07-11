@@ -206,6 +206,7 @@ public class BalatroGameService {
         List<String> hand = game.getPlayerHand();
         List<String> discardPile = game.getDiscardPile();
         List<String> drawPile = game.getDrawPile();
+        List<String> keptPile = game.getKeptPile();
         int jokerId = game.getSelectedJokerId();
 
         int chips = calculateBaseChipsFromHand(hand);
@@ -224,11 +225,11 @@ public class BalatroGameService {
             case 10: chips += countSuits(hand, '♠') * 25; break;
             case 11: mult += countRedToBlackConversions(discardPile, drawPile) * 2; break;
             case 12: if (hasAllSuits(hand)) mult += 4; break;
-            case 13: mult += countSuits(hand, '♥'); break;
+            case 13: mult += countSuits(keptPile, '♥'); break;
             case 14: chips += countSuits(discardPile, '♥') * 15; break;
             case 15: int h = countSuits(hand, '♥'); chips -= h * 11; mult += h; break;
-            case 16: chips += countSuits(hand, '♣') * 15; break;
-            case 17: chips += countFaceCards(hand) * 10; break;
+            case 16: chips += countSuits(keptPile, '♣') * 15; break;
+            case 17: chips += countFaceCards(keptPile) * 10; break;
             case 18: chips += 80 + countUniqueSuits(discardPile) * 15 - discardPile.size() * 15; break;
         }
 
@@ -272,7 +273,7 @@ public class BalatroGameService {
     }
 
     private static int countFaceCards(List<String> cards) {
-        return (int) cards.stream().filter(c -> c.matches("[JQK].")).count();
+        return (int) cards.stream().filter(c -> c.matches("[JQKA].")).count();
     }
 
     private static int countSuits(List<String> cards, char suit) {
