@@ -5,6 +5,11 @@ import repository.RewardsHistoryRepository;
 import repository.RewardsRepository;
 import repository.UserAvatarRepository;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +20,7 @@ import utils.Logger;
 import utils.RankingImageGenerator;
 import app.App;
 import controller.CommandController;
+import database.DatabaseConnectionManager;
 import model.CommandContext;
 
 public class CommandService {
@@ -380,17 +386,16 @@ public class CommandService {
 
 
     public static void handleAdminCommand(CommandContext context) {
-
         String userName = context.getUserName();
         String adminName = ConfigReader.getAdminName();
         String command = context.getFirstArgument();
-        
+
         if (!userName.equals(adminName)) {
             MessageService.sendMessage(userName + ", you have no rights to use admin commands!");
             return;
         }
 
-        if (command.equals( "addmoney")) {
+        if (command.equals("addmoney")) {
             List<String> arguments = context.getArguments();
             if (arguments.size() < 3) {
                 MessageService.sendMessage("Usage: addMoney <amount> <user name>");
@@ -411,10 +416,50 @@ public class CommandService {
 
             UserService.updateAndRetriveUserBalance(receiverFullName, parsedAmount);
 
-            MessageService.sendMessage(receiverFullName + " balance succesfully increased");
+            MessageService.sendMessage(receiverFullName + " balance successfully increased");
+
+        } else if (command.equals("execsql")) {
+
+            List<String> arguments = context.getArguments();
+            if (arguments.size() < 2) {
+                MessageService.sendMessage("Usage: execsql <SQL statement>");
+                return;
+            }
+
+            String sql = String.join(" ", arguments.subList(1, arguments.size()));
+
+            try (Connection conn = DatabaseConnectionManager.getConnection();
+                Statement stmt = conn.createStatement()) {
+
+                boolean hasResultSet = stmt.execute(sql);
+
+                if (hasResultSet) {
+                    ResultSet rs = stmt.getResultSet();
+                    StringBuilder sb = new StringBuilder("Result:\n");
+
+                    ResultSetMetaData meta = rs.getMetaData();
+                    int columnCount = meta.getColumnCount();
+
+                    while (rs.next()) {
+                        for (int i = 1; i <= columnCount; i++) {
+                            sb.append(meta.getColumnName(i)).append(": ").append(rs.getString(i)).append(" | ");
+                        }
+                        sb.append("\n");
+                    }
+
+                    MessageService.sendMessage(sb.toString());
+
+                } else {
+                    int updateCount = stmt.getUpdateCount();
+                    MessageService.sendMessage("SQL executed. Rows affected: " + updateCount);
+                }
+
+            } catch (SQLException e) {
+                MessageService.sendMessage("SQL Error: " + e.getMessage());
+            }
+
         } else {
             MessageService.sendMessage("Invalid admin command!");
         }
     }
-
 }
