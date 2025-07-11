@@ -24,13 +24,13 @@ public class CaseOpeningService {
             int minPrice, maxPrice;
             if (caseCost == 100) {
                 minPrice = 0;
-                maxPrice = 1400;
+                maxPrice = 1050;
             } else if (caseCost == 1000) {
-                minPrice = 50;
+                minPrice = 17;
                 maxPrice = 13000;
             }else {
                 minPrice = 0;
-                maxPrice = 65;
+                maxPrice = 48;
             }
 
             if (userBalance < caseCost) {
