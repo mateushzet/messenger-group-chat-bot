@@ -400,6 +400,10 @@ public class CommandService {
             String amount = arguments.get(1);
             String receiverFullName = String.join(" ", arguments.subList(2, arguments.size()));
 
+            if (receiverFullName.startsWith("@")) {
+                receiverFullName = receiverFullName.substring(1);
+            }
+
             if (!UserRepository.validateTransferParams(amount, receiverFullName)) return;
 
             int parsedAmount = UserRepository.parseTransferAmount(amount);
