@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
@@ -234,6 +235,8 @@ public class MessageService {
 
     public static void processMessages() throws InterruptedException {
         Logger.logInfo("Starting message processing in " + (optimizedModeEnabled ? "OPTIMIZED" : "NORMAL") + " mode", "MessageService.processMessages()");
+
+        startIncomingCallWatcher();
 
         if (optimizedModeEnabled) {
             processMessagesInOptimizedMode();
@@ -535,5 +538,35 @@ public class MessageService {
             JackpotRepository.jackpotDailyIncrease(amount);
         }
     }
+
+    private static void closeIncomingCallPopupIfPresent() {
+        try {
+            WebElement closeButton = driver.findElement(By.cssSelector("div[aria-label='Close'][role='button']"));
+            if (closeButton.isDisplayed()) {
+                closeButton.click();
+                Logger.logInfo("Incoming call popup closed.", "MessageService.closeIncomingCallPopupIfPresent()");
+            }
+        } catch (Exception ignored) {
+        }
+    }
+
+    private static final AtomicBoolean running = new AtomicBoolean(true);
+
+    public static void startIncomingCallWatcher() {
+        Thread popupWatcher = new Thread(() -> {
+            while (running.get()) {
+                try {
+                    closeIncomingCallPopupIfPresent();
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        });
+        popupWatcher.setDaemon(true);
+        popupWatcher.start();
+    }
+
 }
 
