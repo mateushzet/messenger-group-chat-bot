@@ -64,7 +64,6 @@ public class BlackjackService {
             }
         
             userBalance = UserService.updateAndRetriveUserBalance(userName, -currentBet);
-        
             existingGame.setCurrentBet(currentBet * 2);
         
             existingGame.getPlayerHand().add(drawCard());
@@ -276,8 +275,14 @@ public class BlackjackService {
             UserService.updateAndRetriveUserBalance(userName, winnings);
             gameStatus = userName + " draw!";
             GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), betAmount, winnings, "Player hand: " + handToString(hand) + " Dealer hand: " + handToString(game.getDealerHand()));
-        } else if ((dealerScore > 21 || playerScore > dealerScore) && playerScore <= 21) {
+        } else if (game.isSplit() && playerScore == 21){
             int winnings = (int) (betAmount * 2.5);
+            UserService.updateAndRetriveUserBalance(userName, winnings);
+            UserAvatarRepository.assignAvatarToUser(userName, "blackjack");
+            gameStatus = userName + " Blackjack! You won " + winnings + "!";
+            GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), betAmount, winnings, "Player hand: " + handToString(hand) + " Dealer hand: " + handToString(game.getDealerHand()));
+        } else if ((dealerScore > 21 || playerScore > dealerScore) && playerScore <= 21) {
+            int winnings = (int) (betAmount * 2);
             UserService.updateAndRetriveUserBalance(userName, winnings);
             gameStatus = userName + " you won " + betAmount + "!";
             GameHistoryRepository.addGameHistory(userName, "Blackjack", context.getFullCommand(), betAmount, winnings, "Player hand: " + handToString(hand) + " Dealer hand: " + handToString(game.getDealerHand()));
