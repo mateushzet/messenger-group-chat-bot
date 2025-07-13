@@ -159,7 +159,7 @@ public class LottoService {
             case 2:
                 return -betAmount + ((int) calculateProportionalValueB(prizePool,betAmount/2, betAmount + betAmount/2));
             case 3:
-                return (int) (calculateProportionalValueB(prizePool,10,30) * betAmount);
+                return (int) (calculateProportionalValueB(prizePool,10,50) * betAmount);
             case 4:
                 UserAvatarRepository.assignAvatarToUser(playerName, "lotto 4");
                 return (int) (calculateProportionalValueB(prizePool,300,600) * betAmount);
