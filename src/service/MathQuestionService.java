@@ -86,11 +86,11 @@ public class MathQuestionService {
                 reward = randomPrizeMin + (int) (Math.random() * (randomPrizeMax - randomPrizeMin + 1));
             }
 
-        reward = Math.round(reward / 10.0f) * 10;
+            reward = (reward / 10) * 10;
 
-        if (reward > randomPrizeMax) reward = randomPrizeMax - (randomPrizeMax % 10);
-        if (reward < randomPrizeMin) reward = randomPrizeMin + (10 - randomPrizeMin % 10) % 10;
-
+            if (reward < randomPrizeMin) {
+                reward = randomPrizeMin + (10 - randomPrizeMin % 10) % 10;
+            }
         } else {
             reward = mathQuestionPrize;
         }
@@ -99,7 +99,7 @@ public class MathQuestionService {
         int newBalance = userBalance + reward;
 
         UserRepository.updateUserBalance(userName, newBalance);
-        MessageService.sendMessage(userName + " correct answer! You earn " + reward + " coins! Current balance: " + newBalance);
+        MessageService.sendMessage(userName + " correct answer! You earn *" + reward + "* coins! Current balance: " + newBalance);
         Logger.logInfo(userName + " solved math question and earned " + reward + " coins, previous balance: " + userBalance, "MathQuestionService.rewardUser()");
         RewardsHistoryRepository.addRewardHistory(userName, "Answer", reward);
     }
