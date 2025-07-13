@@ -85,6 +85,7 @@ public class ImageUtils {
     public static void setClipboardGif(byte[] gifBytes) {
 
         if(operatingSystem.equals("Linux")){
+            MessageService.closeIncomingCallPopupIfPresent();
             MessageService.simulateGifDrop(gifBytes);
         } else{
 
