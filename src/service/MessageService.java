@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
@@ -58,6 +57,9 @@ public class MessageService {
     private static LocalDate jackpotLastAdditionDate = JackpotRepository.getJackpotDailyIncraseDate();
 
     public static void sendMessage(String message) {
+
+        closeIncomingCallPopupIfPresent();
+
         String inputCss = ConfigReader.getMessageInputBoxCssSelector();
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         WebElement inputBox = wait.until(ExpectedConditions.visibilityOfElementLocated(By.cssSelector(inputCss)));
@@ -73,8 +75,8 @@ public class MessageService {
     }
 
     public static void sendMessageFromClipboard(boolean instant) {
+        closeIncomingCallPopupIfPresent();
         if(operatingSystem.equals("Linux")){
-            //sendMessageFromClipboardLinux(instant);
         } else {
             sendMessageFromClipboardWindows(instant);
         }
@@ -236,7 +238,7 @@ public class MessageService {
     public static void processMessages() throws InterruptedException {
         Logger.logInfo("Starting message processing in " + (optimizedModeEnabled ? "OPTIMIZED" : "NORMAL") + " mode", "MessageService.processMessages()");
 
-        startIncomingCallWatcher();
+        //startIncomingCallWatcher();
 
         if (optimizedModeEnabled) {
             processMessagesInOptimizedMode();
@@ -248,8 +250,10 @@ public class MessageService {
     private static void processMessagesInOptimizedMode() {
         while (true) {
             try {
+                closeIncomingCallPopupIfPresent();
                 processCommonTasks();
                 processAllValidMessages();
+                closeIncomingCallPopupIfPresent();
             } catch (StaleElementReferenceException ignored) {
             }
         }
@@ -312,6 +316,7 @@ public class MessageService {
                 if (sender == null || sender.isEmpty()) continue;
 
                 if (isValidMessage(text)) {
+                    closeIncomingCallPopupIfPresent();
                     addEmoji(messageElement);
                 }
 
@@ -319,6 +324,7 @@ public class MessageService {
                 int attempts = 0;
                 while (!success && attempts < 10) {
                     try {
+                        closeIncomingCallPopupIfPresent();
                         clickMoreButton(messageElement);
                         clickRemoveMessageOption();
                         confirmRemovalInModal(messageElement);
@@ -539,7 +545,7 @@ public class MessageService {
         }
     }
 
-    private static void closeIncomingCallPopupIfPresent() {
+    public static void closeIncomingCallPopupIfPresent() {
         try {
             WebElement closeButton = driver.findElement(By.cssSelector("div[aria-label='Close'][role='button']"));
             if (closeButton.isDisplayed()) {
@@ -548,24 +554,6 @@ public class MessageService {
             }
         } catch (Exception ignored) {
         }
-    }
-
-    private static final AtomicBoolean running = new AtomicBoolean(true);
-
-    public static void startIncomingCallWatcher() {
-        Thread popupWatcher = new Thread(() -> {
-            while (running.get()) {
-                try {
-                    closeIncomingCallPopupIfPresent();
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
-        });
-        popupWatcher.setDaemon(true);
-        popupWatcher.start();
     }
 
 }
