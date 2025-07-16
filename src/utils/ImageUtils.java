@@ -26,6 +26,7 @@ public class ImageUtils {
     public static void setClipboardImage(final BufferedImage image) {
 
         if(operatingSystem.equals("Linux")){
+            MessageService.closeIncomingCallPopupIfPresent();
             MessageService.simulateImageDrop(image);
             // try {
 
