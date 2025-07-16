@@ -250,10 +250,8 @@ public class MessageService {
     private static void processMessagesInOptimizedMode() {
         while (true) {
             try {
-                closeIncomingCallPopupIfPresent();
                 processCommonTasks();
                 processAllValidMessages();
-                closeIncomingCallPopupIfPresent();
             } catch (StaleElementReferenceException ignored) {
             }
         }
@@ -296,6 +294,7 @@ public class MessageService {
 
     private static void processCommonTasks() {
         if (JackpotService.hasTenMinutesPassedSinceOldestTimestamp()) {
+            closeIncomingCallPopupIfPresent();
             JackpotService.startJackpotGame();
         }
         MathQuestionService.checkAndSendMathQuestion();
