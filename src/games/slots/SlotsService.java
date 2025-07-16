@@ -16,7 +16,7 @@ public class SlotsService {
         String firstArgument = context.getFirstArgument();
         String betAmountMulti = context.getSecondArgument();
 
-        if(firstArgument.equals("multi")){
+        if(firstArgument.equals("multi") || firstArgument.equals("m")){
             context.setFirstArgument(betAmountMulti);
             firstArgument = context.getFirstArgument();
             int betAmountInt = UserService.validateAndParseBetAmount(playerName, betAmountMulti);
