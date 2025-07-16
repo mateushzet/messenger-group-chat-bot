@@ -16,12 +16,15 @@ import java.util.Map;
 import java.util.Random;
 
 import utils.ConfigReader;
+import utils.HelpDataProvider;
+import utils.HelpImageGenerator;
 import utils.Logger;
 import utils.RankingImageGenerator;
 import app.App;
 import controller.CommandController;
 import database.DatabaseConnectionManager;
 import model.CommandContext;
+import model.GameHelp;
 
 public class CommandService {
     
@@ -47,17 +50,41 @@ public class CommandService {
     }
 
     public static void handleKillCommand(CommandContext context) {
+        String userName = context.getUserName();
+        String adminName = ConfigReader.getAdminName();
+
+        if (!userName.equals(adminName)) {
+            MessageService.sendMessage(userName + ", you have no rights to use admin commands!");
+            return;
+        }
+
         MessageService.sendMessage("Shutting down the bot");
         Logger.logInfo("Shutting down the bot at the request of " + context.getUserName(), "CommandService.handleKillCommand()");
         System.exit(0);
     }
 
     public static void handleStopCommand(CommandContext context) {
+        String userName = context.getUserName();
+        String adminName = ConfigReader.getAdminName();
+
+        if (!userName.equals(adminName)) {
+            MessageService.sendMessage(userName + ", you have no rights to use admin commands!");
+            return;
+        }
+        
         MessageService.sendMessage("Status: stopped");
         App.running = 0;
     }
 
     public static void handleStartCommand(CommandContext context) {
+        String userName = context.getUserName();
+        String adminName = ConfigReader.getAdminName();
+
+        if (!userName.equals(adminName)) {
+            MessageService.sendMessage(userName + ", you have no rights to use admin commands!");
+            return;
+        }
+
         MessageService.sendMessage("Status: running");
         App.running = 1;
     }
@@ -146,26 +173,32 @@ public class CommandService {
     }
 
     public static void handleHelpCommand(CommandContext context) {
+        String userName = context.getUserName();
+        String categoryName = context.getFirstArgument();
 
-        String[] helpMessages = {
-            "Command list:",
-            "> money - Shows your current balance.",
-            "> roulette - /bot roulette <bet> <number or color (red, black, green)>",
-            "> say - /bot say <text>",
-            "> answer - /bot answer <number>",
-            "> transfer - /bot transfer <amount> <first name> <last name>",
-            "> rank - Shows the balance ranking",
-            "> stop - Stops the bot",
-            "> start - Starts the bot",
-            "> kill - Completely shuts down the bot",
-            "> help - Displays this list of available commands",
-            "> slots - /bot slots <bet> - Play the slot machine.",
-            "> slots jackpot - Check the current jackpot value.",
-            "> buy slots - Buy access to the slot machine."
-        };
+        GameHelp gameHelp = HelpDataProvider.getGameHelp(categoryName);
 
-        String helpMessageString = String.join("\n", helpMessages);
-        MessageService.sendMessage(helpMessageString);
+        if(gameHelp.getDescription().equals("Unknown game")){
+            if (categoryName.equalsIgnoreCase("games")) {
+                HelpImageGenerator.generateGameList(userName);
+                MessageService.sendMessageFromClipboard(true);
+            } else if (categoryName.equalsIgnoreCase("rewards")) {
+                HelpImageGenerator.generateRewardsList(userName);
+                MessageService.sendMessageFromClipboard(true);
+            } else if (categoryName.equalsIgnoreCase("settings")) {
+                //HelpImageGenerator.generateSettingsList(userName);
+                MessageService.sendMessage("settings help is not implemented yet");
+            } else if (categoryName.equals("")) {
+                HelpImageGenerator.generateMainMenu(userName);
+                MessageService.sendMessageFromClipboard(true);
+            } else {
+                MessageService.sendMessage("Invalid help command");
+            }
+
+        } else {
+            HelpImageGenerator.generateGameHelp(categoryName, userName);
+            MessageService.sendMessageFromClipboard(true);
+        }
     }
 
     public static void handleDailyCommand(CommandContext context) {
