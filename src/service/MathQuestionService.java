@@ -4,6 +4,7 @@ import repository.RewardsHistoryRepository;
 import repository.UserRepository;
 import utils.Logger;
 import utils.MathQuestionImageGenerator;
+import utils.RewardGifGenerator;
 
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -91,6 +92,7 @@ public class MathQuestionService {
             if (reward < randomPrizeMin) {
                 reward = randomPrizeMin + (10 - randomPrizeMin % 10) % 10;
             }
+            
         } else {
             reward = mathQuestionPrize;
         }
@@ -98,8 +100,14 @@ public class MathQuestionService {
         int userBalance = UserRepository.getCurrentUserBalance(userName, true);
         int newBalance = userBalance + reward;
 
+        if(isRandomPrizeEnabled){
+            RewardGifGenerator.generateGif(reward, userName, newBalance, randomPrizeMin, randomPrizeMax);
+            MessageService.sendMessageFromClipboardWindows(true);
+        } else {
+            MessageService.sendMessage(userName + " correct answer! You earn *" + reward + "* coins! Current balance: " + newBalance);
+        }
         UserRepository.updateUserBalance(userName, newBalance);
-        MessageService.sendMessage(userName + " correct answer! You earn *" + reward + "* coins! Current balance: " + newBalance);
+
         Logger.logInfo(userName + " solved math question and earned " + reward + " coins, previous balance: " + userBalance, "MathQuestionService.rewardUser()");
         RewardsHistoryRepository.addRewardHistory(userName, "Answer", reward);
     }
