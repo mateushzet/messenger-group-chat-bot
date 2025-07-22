@@ -40,7 +40,7 @@ public class CrashGifGenerator {
             frames.add(generateCrashFrame(i, displayMultiplier, username, betAmount, totalBalance, multipliers));
             if (multipliers[i] >= crashMultiplier || multipliers[i] >= playerCashout) {
                 boolean isCashout = displayMultiplier >= playerCashout;
-                boolean isCrash = displayMultiplier > crashMultiplier;
+                boolean isCrash = displayMultiplier >= crashMultiplier && !isCashout;
                 for (int j = 0; j < END_FRAME_DURATION; j++) {
                     frames.add(generateCrashFrame(i, displayMultiplier, username, betAmount, totalBalance, multipliers, isCrash, isCashout));
                 }
