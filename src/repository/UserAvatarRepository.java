@@ -10,7 +10,9 @@ import database.DatabaseConnectionManager;
 import utils.Logger;
 
 public class UserAvatarRepository {
-    public static boolean assignAvatarToUser(String username, String avatarId) {
+    public static boolean assignAvatarToUser(String username, String avatarName) {
+
+        String avatarId = avatarName.toLowerCase();
         String[] conditions = {"factory new", "minimal wear", "field-tested", "well-worn", "battle-scarred"};
         Map<String, Integer> conditionPriority = new HashMap<>();
         conditionPriority.put("factory new", 5);
@@ -76,7 +78,7 @@ public class UserAvatarRepository {
     }
     
     private static String getBaseName(String avatarId) {
-        return avatarId.replaceAll("(factory New|minimal wear|field-tested|well-worn|battle-scarred|stattrak)", "").trim();
+        return avatarId.replaceAll("(factory new|minimal wear|field-tested|well-worn|battle-scarred|stattrak)", "").trim();
     }
 
     private static String getCondition(String avatarId, String[] conditions) {
