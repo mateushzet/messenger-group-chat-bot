@@ -5,14 +5,10 @@ import repository.UserRepository;
 import repository.UserSkinRepository;
 import utils.GradientGenerator;
 import utils.ImageUtils;
-import utils.ImageUtils;
 
-import java.util.ArrayList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
@@ -34,7 +30,6 @@ public class SkinsService {
                 break;
 
             case "list":
-                handleListCommand(userName);
                 handleListCommand(userName);
                 break;
 
@@ -67,73 +62,10 @@ public class SkinsService {
     }
 
     private static void handleListCommand(String userName) {
-    private static void handleListCommand(String userName) {
         List<String> userSkins = UserSkinRepository.getAllSkinsForUser(userName);
         if (userSkins.isEmpty()) {
             MessageService.sendMessage("You don't own any skins.");
         } else {
-            BufferedImage previewImage = generateUserSkinsPreviewImage(userName, userSkins);
-            ImageUtils.setClipboardImage(previewImage);
-            MessageService.sendMessageFromClipboard(true);
-        }
-    }
-
-    private static BufferedImage generateUserSkinsPreviewImage(String userName, List<String> skinNames) {
-        final int boxSize = 150;
-        final int padding = 20;
-        final int textHeight = 40;
-
-        int total = skinNames.size();
-        int columns = (int) Math.ceil(Math.sqrt(total));
-        int rows = (int) Math.ceil((double) total / columns);
-
-        int width = columns * (boxSize + padding) + padding;
-        int height = rows * (boxSize + textHeight + padding) + padding;
-
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = image.createGraphics();
-
-        try {
-            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-
-            g.setColor(Color.DARK_GRAY);
-            g.fillRect(0, 0, width, height);
-
-            g.setFont(new Font("Arial", Font.BOLD, 14));
-            FontMetrics fm = g.getFontMetrics();
-
-            for (int i = 0; i < total; i++) {
-                String skinName = skinNames.get(i);
-                int col = i % columns;
-                int row = i / columns;
-
-                int x = padding + col * (boxSize + padding);
-                int y = padding + row * (boxSize + textHeight + padding);
-
-                Paint skinGradient = GradientGenerator.generateGradientFromSkinId(skinName, userName, boxSize, boxSize, x, y);
-                g.setPaint(skinGradient);
-                g.fillRoundRect(x, y, boxSize, boxSize, 15, 15);
-
-                g.setColor(new Color(0, 0, 0, 100));
-                g.fillRoundRect(x, y + boxSize, boxSize, textHeight, 15, 15);
-
-                List<String> lines = splitTextToFit(skinName, fm, boxSize - 10);
-
-                g.setColor(Color.WHITE);
-                int textY = y + boxSize + fm.getAscent() + 5;
-                for (String line : lines) {
-                    int textWidth = fm.stringWidth(line);
-                    int textX = x + (boxSize - textWidth) / 2;
-                    g.drawString(line, textX, textY);
-                    textY += fm.getHeight();
-                }
-            }
-        } finally {
-            g.dispose();
-        }
-
-        return image;
             BufferedImage previewImage = generateUserSkinsPreviewImage(userName, userSkins);
             ImageUtils.setClipboardImage(previewImage);
             MessageService.sendMessageFromClipboard(true);
@@ -284,5 +216,9 @@ public class SkinsService {
             text = text.substring(0, text.length() - 1);
         }
         return text + "...";
+    }
+
+    public static void main(String[] args) {
+        handleShopCommand(null);
     }
 }

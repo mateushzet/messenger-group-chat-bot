@@ -1,12 +1,13 @@
 package utils;
 
 import java.awt.Color;
-import java.awt.Font;
+import java.awt.*;
 import java.awt.GradientPaint;
 import java.awt.Graphics2D;
 import java.awt.LinearGradientPaint;
 import java.awt.Paint;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.TexturePaint;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
@@ -445,44 +446,64 @@ import service.MessageService;
 
     public static BufferedImage generateGradientImage(int width, int height) {
         int numGradients = skinIds.size();
-        int numRows = (int) Math.ceil((double) numGradients / NUM_COLUMNS);
-        int imageHeight = numRows * (height + 50);
-        int imageWidth = NUM_COLUMNS * (width + 20);
+        int boxSize = width;
+        int textHeight = 40;
+        int padding = 20;
+        int columns = NUM_COLUMNS;
+        int rows = (int) Math.ceil((double) numGradients / columns);
+
+        int imageWidth = columns * (boxSize + padding) + padding;
+        int imageHeight = rows * (boxSize + textHeight + padding) + padding;
 
         BufferedImage image = new BufferedImage(imageWidth, imageHeight, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g2d = image.createGraphics();
+        Graphics2D g = image.createGraphics();
 
-        g2d.setColor(Color.WHITE);
-        g2d.fillRect(0, 0, imageWidth, imageHeight);
+        try {
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        int xOffset = 0;
-        int yOffset = 0;
-        for (int i = 0; i < numGradients; i++) {
-            Map<String, Object> skin = skinIds.get(i);
-            String skinId = (String) skin.get("id");
-            int price = (int) skin.get("price");
+            g.setColor(Color.DARK_GRAY);
+            g.fillRect(0, 0, imageWidth, imageHeight);
 
-            int column = i % NUM_COLUMNS;
-            int row = i / NUM_COLUMNS;
+            g.setFont(new Font("Arial", Font.BOLD, 14));
+            FontMetrics fm = g.getFontMetrics();
 
-            xOffset = column * (width + 20);
-            yOffset = row * (height + 50);
+            for (int i = 0; i < numGradients; i++) {
+                Map<String, Object> skin = skinIds.get(i);
+                String skinId = (String) skin.get("id");
+                int price = (int) skin.get("price");
 
-            Paint gradient = getGradientForSkin(skinId, width, height, xOffset, yOffset);
+                int col = i % columns;
+                int row = i / columns;
 
-            g2d.setPaint(gradient);
-            g2d.fillRect(xOffset, yOffset, width, height);
+                int x = padding + col * (boxSize + padding);
+                int y = padding + row * (boxSize + textHeight + padding);
 
-            g2d.setColor(Color.BLACK);
-            g2d.setFont(new Font("Arial", Font.PLAIN, 18));
-            g2d.drawString(skinId, xOffset + 10, yOffset + height + 20);
+                Paint skinGradient = getGradientForSkin(skinId, boxSize, boxSize, x, y);
+                g.setPaint(skinGradient);
+                g.fillRoundRect(x, y, boxSize, boxSize, 15, 15);
 
-            g2d.setFont(new Font("Arial", Font.PLAIN, 16));
-            g2d.drawString("Price: $" + price, xOffset + 10, yOffset + height + 40);
+                g.setColor(new Color(0, 0, 0, 120));
+                g.fillRoundRect(x, y + boxSize, boxSize, textHeight, 15, 15);
 
+                g.setColor(Color.WHITE);
+                String priceText = "Price: $" + price;
+                String nameText = skinId;
+
+                int nameWidth = fm.stringWidth(nameText);
+                int priceWidth = fm.stringWidth(priceText);
+
+                int nameX = x + (boxSize - nameWidth) / 2;
+                int priceX = x + (boxSize - priceWidth) / 2;
+                int textY = y + boxSize + fm.getAscent() + 5;
+
+                g.drawString(nameText, nameX, textY);
+                g.drawString(priceText, priceX, textY + fm.getHeight());
+            }
+        } finally {
+            g.dispose();
         }
 
-        g2d.dispose();
         return image;
     }
 
