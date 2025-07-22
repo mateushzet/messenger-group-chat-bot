@@ -180,6 +180,7 @@ import service.MessageService;
     }  
 
     private static Paint getGradientForSkin(String skinId, int width, int height, int x, int y) {
+
         switch (skinId) {
             case "red_flame":
                 return new GradientPaint(x, y, new Color(255, 100, 100), x + width, y + height, new Color(255, 0, 0));
