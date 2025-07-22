@@ -90,7 +90,8 @@ public class CommandController {
         commands.put("jackpot", JackpotService::handleJackpotCommand);
         commands.put("tree", MoneyTreeService::handleTreeCommand);
         commands.put("ask", AskCommandService::handleAskCommand);
-        commands.put("weekly", CommandService::handleWeeklyCommand); 
+        commands.put("weekly", CommandService::handleWeeklyCommand);
+        commands.put("w", CommandService::handleWeeklyCommand); 
         commands.put("poker", PokerService::handlePokerCommand); 
         commands.put("pk", PokerService::handlePokerCommand); 
         commands.put("gift", CommandService::handleGiftCommand);
