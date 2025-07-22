@@ -71,6 +71,7 @@ public class CommandController {
         commands.put("mines", MinesService::handleMinesCommand);
         commands.put("m", MinesService::handleMinesCommand);
         commands.put("skins", SkinsService::handleSkinsCommand);
+        commands.put("skin", SkinsService::handleSkinsCommand);
         commands.put("lotto", LottoService::handleLottoCommand);
         commands.put("l", LottoService::handleLottoCommand);
         commands.put("race", HorseRaceBettingService::handleRaceCommand);

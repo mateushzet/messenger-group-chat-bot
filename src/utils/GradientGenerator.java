@@ -485,6 +485,28 @@ import service.MessageService;
         return image;
     }
 
+    public static Paint generateGradientFromSkinId(String skinId, String username, int width, int height, int x, int y) {
+        if (skinId == null || skinId.equals("default")) {
+
+            int hash = username.hashCode();
+            int red1 = (hash >>> 16) & 0xFF;
+            int green1 = (hash >>> 8) & 0xFF;
+            int blue1 = hash & 0xFF;
+    
+            int red2 = (red1 + 180) % 256;
+            int green2 = (green1 + 180) % 256;
+            int blue2 = (blue1 + 180) % 256;
+    
+            Color color1 = new Color(red1, green1, blue1);
+            Color color2 = new Color(red2, green2, blue2);
+    
+            return new GradientPaint(0, 0, color1, width, height, color2);
+            
+        }
+        Paint gradient = getGradientForSkin(skinId, width, height, x,y);
+        return gradient;
+    }
+
     public static void sendAvaiableSkinsImage(){
         try {
             BufferedImage image = generateGradientImage(150, 150);
