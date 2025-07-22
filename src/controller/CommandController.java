@@ -85,6 +85,7 @@ public class CommandController {
         commands.put("crash", CrashService::handleCrashCommand);
         commands.put("case", CaseOpeningService::handleCaseCommand);
         commands.put("avatar", AvatarsService::handleAvatarsCommand);
+        commands.put("avatars", AvatarsService::handleAvatarsCommand);
         commands.put("btc", BitcoinService::handleBitcoinCommand);
         commands.put("buy", UserService::handleBuyCommand);
         commands.put("jackpot", JackpotService::handleJackpotCommand);
