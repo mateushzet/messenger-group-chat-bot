@@ -77,7 +77,7 @@ public class CaseOpeningGifGenerator {
             throw new IOException("No suitable skin found for the given price range");
         }
 
-        if (skinInfo.price >= 50) {
+        if (skinInfo.price >= 150) {
             String avatarName = (skinName + " " + skinInfo.condition +
                     (skinInfo.stattrakStatus.equals("StatTrak") ? " ST" : "")).toLowerCase();
             UserAvatarRepository.assignAvatarToUser(playerName, avatarName);
