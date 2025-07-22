@@ -101,7 +101,7 @@ public class MathQuestionService {
         int newBalance = userBalance + reward;
 
         if(isRandomPrizeEnabled){
-            RewardGifGenerator.generateGif(reward, userName, newBalance, randomPrizeMin, randomPrizeMax);
+            RewardGifGenerator.generateGif(reward, userName, newBalance, randomPrizeMax);
             MessageService.sendMessageFromClipboardWindows(true);
         } else {
             MessageService.sendMessage(userName + " correct answer! You earn *" + reward + "* coins! Current balance: " + newBalance);

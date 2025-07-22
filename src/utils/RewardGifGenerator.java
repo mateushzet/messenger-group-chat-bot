@@ -25,7 +25,7 @@ public class RewardGifGenerator {
     private static final int SEGMENTS = 9;
 
     private static final int FRAME_DELAY = 50;
-    private static final int FINAL_FRAME_DELAY = 3000;
+    private static final int FINAL_FRAME_DURATION = 3000;
     private static final int MAX_FRAMES = 100;
 
     private static final Font HEADER_FONT = new Font("SansSerif", Font.BOLD, 11);
@@ -56,17 +56,16 @@ public class RewardGifGenerator {
         }
     }
 
-    public static void generateGif(int reward, String userName, int newBalance, int fakeRewardMin, int fakeRewardMax) {
+    public static void generateGif(int reward, String userName, int newBalance, int fakeRewardMax) {
         List<BufferedImage> frames = new ArrayList<>();
         List<Integer> delays = new ArrayList<>();
 
         Paint gradient = GRADIENT_CACHE.computeIfAbsent(userName,
                 name -> GradientGenerator.generateGradientFromUsername(name, false, WIDTH, HEIGHT));
 
-        String header = userName + " Correct answer!";
-        if (fakeRewardMax <= fakeRewardMin) fakeRewardMax = fakeRewardMin + 1;
+        String header = userName + " correct answer!";
 
-        double targetProgress = ((double) reward - fakeRewardMin) / (fakeRewardMax - fakeRewardMin);
+        double targetProgress = ((double) reward) / (fakeRewardMax);
         targetProgress = Math.min(Math.max(targetProgress, 0), 1);
 
         double progressStep = 0.02;
@@ -81,8 +80,12 @@ public class RewardGifGenerator {
         }
 
         BufferedImage lastFrame = createFrame(userName, reward, newBalance, true, gradient, header, targetProgress, animatedFrames);
-        frames.add(lastFrame);
-        delays.add(FINAL_FRAME_DELAY);
+        
+        int finalFramesCount = FINAL_FRAME_DURATION / FRAME_DELAY;
+        for (int i = 0; i < finalFramesCount; i++) {
+            frames.add(lastFrame);
+            delays.add(FRAME_DELAY);
+        }
 
         byte[] gifBytes = createGif(frames, delays);
         if (gifBytes != null) {
@@ -150,7 +153,6 @@ public class RewardGifGenerator {
         g.setColor(fillColor);
         g.fillRoundRect(BOX_X, BAR_Y, fillWidth, BAR_HEIGHT, 10, 10);
 
-        if (highlight) {
             int shineWidth = 30;
             int shineX = Math.max(fillWidth - 20, 10);
             GradientPaint shine = new GradientPaint(
@@ -158,8 +160,7 @@ public class RewardGifGenerator {
                     shineX + shineWidth, BAR_Y + BAR_HEIGHT, new Color(255, 223, 50, 0)
             );
             g.setPaint(shine);
-            g.fillRoundRect(shineX, BAR_Y, shineWidth, BAR_HEIGHT, 10, 10);
-        }
+            g.fillRoundRect(shineX, BAR_Y, Integer.min(shineWidth,fillWidth), BAR_HEIGHT, 10, 10);
     }
 
     private static void drawRangeLabels(Graphics2D g) {
