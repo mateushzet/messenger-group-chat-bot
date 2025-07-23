@@ -34,7 +34,7 @@ public class DailyRewardImageGenerator {
 
             String message = alreadyClaimed
                 ? "You've already claimed your reward. Come back tomorrow!"
-                : "You received $" + rewardAmounts[currentDay] + " today!" + "Balance: " + currentBalance;
+                : "You received $" + rewardAmounts[currentDay] + " today! Balance: " + currentBalance;
             g.setFont(new Font("Arial", Font.PLAIN, 20));
             int msgWidth = g.getFontMetrics().stringWidth(message);
             g.drawString(message, (width - msgWidth) / 2, 110);
