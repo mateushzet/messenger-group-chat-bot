@@ -220,23 +220,25 @@ public class CommandService {
             return;
         }
 
+        int currentBalance = UserRepository.getCurrentUserBalance(userName, true);
+
         try {
             if (RewardsRepository.hasReceivedDailyReward(userName)) {
-                BufferedImage img = DailyRewardImageGenerator.generateDailyRewardImage(userName, currentRewardLevel, rewardAmounts, true);
+                BufferedImage img = DailyRewardImageGenerator.generateDailyRewardImage(userName, currentRewardLevel, rewardAmounts, true, currentBalance);
                 ImageUtils.setClipboardImage(img);
                 MessageService.sendMessageFromClipboard(true);
                 Logger.logInfo("User " + userName + " tried to claim daily reward but already received it.", "CommandService.handleDailyCommand()");
                 return;
             }
 
-            int currentBalance = UserRepository.getCurrentUserBalance(userName, true);
+            
             int rewardPrize = rewardAmounts[currentRewardLevel];
             int newBalance = currentBalance + rewardPrize;
 
             UserRepository.updateUserBalance(userName, newBalance);
             RewardsRepository.updateDailyReward(userName);
 
-            BufferedImage img = DailyRewardImageGenerator.generateDailyRewardImage(userName, currentRewardLevel, rewardAmounts, false);
+            BufferedImage img = DailyRewardImageGenerator.generateDailyRewardImage(userName, currentRewardLevel, rewardAmounts, false, newBalance);
             ImageUtils.setClipboardImage(img);
             MessageService.sendMessageFromClipboard(true);
 

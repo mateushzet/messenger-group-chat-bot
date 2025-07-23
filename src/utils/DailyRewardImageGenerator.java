@@ -5,7 +5,7 @@ import java.awt.image.BufferedImage;
 
 public class DailyRewardImageGenerator {
 
-    public static BufferedImage generateDailyRewardImage(String username, int currentDay, int[] rewardAmounts, boolean alreadyClaimed) {
+    public static BufferedImage generateDailyRewardImage(String username, int currentDay, int[] rewardAmounts, boolean alreadyClaimed, int currentBalance) {
         final int width = 800;
         final int height = 300;
         final int boxWidth = 90, boxHeight = 100, boxSpacing = 20;
@@ -34,7 +34,7 @@ public class DailyRewardImageGenerator {
 
             String message = alreadyClaimed
                 ? "You've already claimed your reward. Come back tomorrow!"
-                : "You received $" + rewardAmounts[currentDay] + " today!";
+                : "You received $" + rewardAmounts[currentDay] + " today!" + "Balance: " + currentBalance;
             g.setFont(new Font("Arial", Font.PLAIN, 20));
             int msgWidth = g.getFontMetrics().stringWidth(message);
             g.drawString(message, (width - msgWidth) / 2, 110);
