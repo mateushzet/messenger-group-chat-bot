@@ -20,3 +20,5 @@ lib/CHANGELOG
 src/database/mydatabase.db
 src/database/mydatabase.db-shm
 src/database/mydatabase.db-wal
+
+MessengerGroupChatBot.jar
