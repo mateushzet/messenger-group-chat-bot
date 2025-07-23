@@ -23,6 +23,7 @@ import utils.HelpImageGenerator;
 import utils.ImageUtils;
 import utils.Logger;
 import utils.RankingImageGenerator;
+import utils.RewardGifGenerator;
 import app.App;
 import controller.CommandController;
 import database.DatabaseConnectionManager;
@@ -35,6 +36,9 @@ public class CommandService {
     private static int hourlyRewardPrize = ConfigReader.getHourlyRewardPrize();
     private static int coinFlipAmount = 0;
     private static String coinFlipCurrentPlayer = "";
+
+    private static int randomPrizeMin = ConfigReader.getMathQuestionRandomPrizeMinCap();
+    private static int randomPrizeMax = ConfigReader.getMathQuestionRandomPrizeMaxCap();
 
     public static void handleMoneyCommand(CommandContext context) {
         String userName = context.getUserName();
@@ -293,11 +297,18 @@ public class CommandService {
 
         try {
             int currentBalance = UserRepository.getCurrentUserBalance(userName, true);
-            int newBalance = currentBalance + hourlyRewardPrize;
+
+            double biased = Math.pow(Math.random(), 3);
+            int reward = randomPrizeMin + (int) (biased * (randomPrizeMax - randomPrizeMin + 1));
+            int newBalance = currentBalance + reward;
+
+            reward = (reward / 10) * 10;
+
+            RewardGifGenerator.generateGif(reward, userName, newBalance, randomPrizeMax, "reward collected!");
+            MessageService.sendMessageFromClipboardWindows(true);
 
             UserRepository.updateUserBalance(userName, newBalance);
 
-            MessageService.sendMessage(userName + " has claimed the hourly reward " + hourlyRewardPrize + " coins. Current balance: " + newBalance);
             Logger.logInfo("User " + userName + " claimed hourly reward. New balance: " + newBalance,"CommandService.handleHourlyCommand()");
             RewardsHistoryRepository.addRewardHistory(userName, "Hourly", hourlyRewardPrize);
         } catch (Exception e) {

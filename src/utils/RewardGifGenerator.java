@@ -56,14 +56,14 @@ public class RewardGifGenerator {
         }
     }
 
-    public static void generateGif(int reward, String userName, int newBalance, int fakeRewardMax) {
+    public static void generateGif(int reward, String userName, int newBalance, int fakeRewardMax, String headerText) {
         List<BufferedImage> frames = new ArrayList<>();
         List<Integer> delays = new ArrayList<>();
 
         Paint gradient = GRADIENT_CACHE.computeIfAbsent(userName,
                 name -> GradientGenerator.generateGradientFromUsername(name, false, WIDTH, HEIGHT));
 
-        String header = userName + " correct answer!";
+        String header = userName + " " + headerText;
 
         double targetProgress = ((double) reward) / (fakeRewardMax);
         targetProgress = Math.min(Math.max(targetProgress, 0), 1);
