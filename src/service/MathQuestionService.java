@@ -81,7 +81,7 @@ public class MathQuestionService {
 
         if (isRandomPrizeEnabled) {
             if (lowerChanceForUpperHalf) {
-                double biased = Math.pow(Math.random(), 2);
+                double biased = Math.pow(Math.random(), 3);
                 reward = randomPrizeMin + (int) (biased * (randomPrizeMax - randomPrizeMin + 1));
             } else {
                 reward = randomPrizeMin + (int) (Math.random() * (randomPrizeMax - randomPrizeMin + 1));
