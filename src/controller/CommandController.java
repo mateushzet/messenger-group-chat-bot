@@ -47,6 +47,7 @@ public class CommandController {
     static {
         commands.put("time", CommandService::handleTimeCommand);
         commands.put("money", CommandService::handleMoneyCommand);
+        commands.put("balance", CommandService::handleMoneyCommand);
         commands.put("roulette", RouletteService::handleRouletteCommand);
         commands.put("r", RouletteService::handleRouletteCommand);
         commands.put("kill", CommandService::handleKillCommand);

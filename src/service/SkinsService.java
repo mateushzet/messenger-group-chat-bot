@@ -217,8 +217,4 @@ public class SkinsService {
         }
         return text + "...";
     }
-
-    public static void main(String[] args) {
-        handleShopCommand(null);
-    }
 }

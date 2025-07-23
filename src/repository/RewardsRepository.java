@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.WeekFields;
@@ -19,6 +20,9 @@ public class RewardsRepository {
     private static final String DATE_FORMAT = "yyyy-MM-dd";
 
     public static boolean hasReceivedDailyReward(String userName) {
+
+        resetCurrentRewardLevelIfMissed(userName);
+
         String query = "SELECT daily_coins_claimed_at FROM users WHERE username = ?";
 
         try (Connection connection = DatabaseConnectionManager.getConnection();
@@ -219,6 +223,79 @@ public class RewardsRepository {
         } catch (SQLException e) {
             Logger.logError("Error while checking gift info for user:  " + userName, "RewardsRepository.hasSentDailyGift()", e);
             return false;
+        }
+    }
+
+        public static int getCurrentRewardLevel(String userName) {
+        String query = "SELECT current_reward_level FROM users WHERE username = ?";
+
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            
+            statement.setString(1, userName);
+            ResultSet resultSet = statement.executeQuery();
+            
+            if (!resultSet.next()) {
+                return -1;
+            }
+
+            int current_reward_level = resultSet.getInt("current_reward_level");
+
+            return current_reward_level;
+
+        } catch (SQLException e) {
+            Logger.logError("Error while checking current_reward_level info for user:  " + userName, "RewardsRepository.getCurrentRewardLevel()", e);
+            return -1;
+        }
+    }
+
+    public static void setCurrentRewardLevel(String userName, int level) {
+        String query = "UPDATE users SET current_reward_level = ? WHERE username = ?";
+
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+            PreparedStatement statement = connection.prepareStatement(query)) {
+            
+            statement.setInt(1, level);
+            statement.setString(2, userName);
+            statement.executeUpdate();
+
+        } catch (SQLException e) {
+            Logger.logError("Error while setting current_reward_level for user: " + userName,
+                            "RewardsRepository.setCurrentRewardLevel()", e);
+        }
+    }
+
+    public static String getDailyRewardClaimDate(String userName) {
+        String query = "SELECT daily_coins_claimed_at FROM users WHERE username = ?";
+
+        try (Connection connection = DatabaseConnectionManager.getConnection();
+            PreparedStatement statement = connection.prepareStatement(query)) {
+            
+            statement.setString(1, userName);
+            ResultSet resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                return resultSet.getString("daily_coins_claimed_at");
+            }
+
+        } catch (SQLException e) {
+            Logger.logError("Error while getting daily_coins_claimed_at for user: " + userName,
+                            "RewardsRepository.getDailyRewardClaimDate()", e);
+        }
+
+        return null;
+    }
+
+    public static void resetCurrentRewardLevelIfMissed(String userName) {
+        String lastClaimed = getDailyRewardClaimDate(userName);
+        String today = getCurrentDate();
+        if (lastClaimed == null || lastClaimed.isEmpty()) return;
+
+        LocalDate lastDate = LocalDate.parse(lastClaimed);
+        LocalDate currentDate = LocalDate.parse(today);
+
+        if (!lastDate.plusDays(1).equals(currentDate) && !lastDate.equals(currentDate)) {
+            setCurrentRewardLevel(userName, 0);
         }
     }
 

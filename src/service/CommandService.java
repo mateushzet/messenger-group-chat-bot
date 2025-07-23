@@ -5,6 +5,7 @@ import repository.RewardsHistoryRepository;
 import repository.RewardsRepository;
 import repository.UserAvatarRepository;
 
+import java.awt.image.BufferedImage;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -16,8 +17,10 @@ import java.util.Map;
 import java.util.Random;
 
 import utils.ConfigReader;
+import utils.DailyRewardImageGenerator;
 import utils.HelpDataProvider;
 import utils.HelpImageGenerator;
+import utils.ImageUtils;
 import utils.Logger;
 import utils.RankingImageGenerator;
 import app.App;
@@ -203,23 +206,45 @@ public class CommandService {
 
     public static void handleDailyCommand(CommandContext context) {
         String userName = context.getUserName();
-        
+
+        int[] rewardAmounts = {10, 20, 30, 40, 50, 75, 100};
+        int currentRewardLevel = RewardsRepository.getCurrentRewardLevel(userName);
+
+        if (currentRewardLevel == -1) {
+            Logger.logWarning("Error processing daily reward for user " + userName, "CommandService.handleDailyCommand()");
+            MessageService.sendMessage("An error occurred while claiming your daily reward. Please try again later.");
+            return;
+        }
+
         try {
             if (RewardsRepository.hasReceivedDailyReward(userName)) {
-                MessageService.sendMessage("You have already claimed your daily reward.");
-                Logger.logInfo("User " + userName + " tried to claim daily reward but already received it.","CommandService.handleDailyCommand()");
+                BufferedImage img = DailyRewardImageGenerator.generateDailyRewardImage(userName, currentRewardLevel, rewardAmounts, true);
+                ImageUtils.setClipboardImage(img);
+                MessageService.sendMessageFromClipboard(true);
+                Logger.logInfo("User " + userName + " tried to claim daily reward but already received it.", "CommandService.handleDailyCommand()");
                 return;
             }
-            
+
             int currentBalance = UserRepository.getCurrentUserBalance(userName, true);
-            int newBalance = currentBalance + dailyRewardPrize;
-    
+            int rewardPrize = rewardAmounts[currentRewardLevel];
+            int newBalance = currentBalance + rewardPrize;
+
             UserRepository.updateUserBalance(userName, newBalance);
             RewardsRepository.updateDailyReward(userName);
-    
-            MessageService.sendMessage(userName + " has claimed the daily reward. Current balance: " + newBalance);
+
+            BufferedImage img = DailyRewardImageGenerator.generateDailyRewardImage(userName, currentRewardLevel, rewardAmounts, false);
+            ImageUtils.setClipboardImage(img);
+            MessageService.sendMessageFromClipboard(true);
+
+            int newRewardLevel = currentRewardLevel + 1;
+            if (newRewardLevel >= rewardAmounts.length) {
+                newRewardLevel = rewardAmounts.length - 1;
+            }
+            RewardsRepository.setCurrentRewardLevel(userName, newRewardLevel);
+
             Logger.logInfo("User " + userName + " claimed daily reward. New balance: " + newBalance, "CommandService.handleDailyCommand()");
-            RewardsHistoryRepository.addRewardHistory(userName, "Daily", dailyRewardPrize);
+            RewardsHistoryRepository.addRewardHistory(userName, "Daily", rewardPrize);
+
         } catch (Exception e) {
             Logger.logError("Error processing daily reward for user " + userName, "CommandService.handleDailyCommand()", e);
             MessageService.sendMessage("An error occurred while claiming your daily reward. Please try again later.");

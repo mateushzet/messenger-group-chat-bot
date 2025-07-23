@@ -9,5 +9,6 @@ CREATE TABLE IF NOT EXISTS users (
     gift_claimed_at TEXT DEFAULT NULL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    avatar_url TEXT
+    avatar_url TEXT,
+    current_reward_level INTEGER DEFAULT 0
 );
