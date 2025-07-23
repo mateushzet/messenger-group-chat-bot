@@ -3,6 +3,7 @@ package games.jackpot;
 import com.madgag.gif.fmsware.AnimatedGifEncoder;
 import repository.UserRepository;
 import utils.GradientGenerator;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -47,7 +48,15 @@ public class JackpotGifGenerator {
         gradient = GradientGenerator.generateGradientFromUsername(participants.get(0), true, WIDTH, HEIGHT);
         Map<String, BufferedImage> avatars = loadAvatarsFromUrls(avatarUrls);
 
-        List<BufferedImage> frames = generateJackpotFrames(weightedParticipants, avatars, winnerName, totalPot, bets);
+        int winnerNewBalance;
+
+        if(participants.get(participants.size()-1).equals("Bot")){
+            winnerNewBalance = UserRepository.getCurrentUserBalance(participants.get(0), false) + totalPot;
+        } else {
+            winnerNewBalance = UserRepository.getCurrentUserBalance(winnerName, false) + totalPot;
+        }
+
+        List<BufferedImage> frames = generateJackpotFrames(weightedParticipants, avatars, winnerName, totalPot, bets, winnerNewBalance);
         byte[] gifBytes = createGif(frames);
 
         return new JackpotResult(winnerName, totalPot, gifBytes);
@@ -90,26 +99,26 @@ public class JackpotGifGenerator {
         return avatarCache;
     }
 
-    private static List<BufferedImage> generateJackpotFrames(List<String> participants, Map<String, BufferedImage> avatars, String winnerName, int totalPot, Map<String, Integer> bets) {
+    private static List<BufferedImage> generateJackpotFrames(List<String> participants, Map<String, BufferedImage> avatars, String winnerName, int totalPot, Map<String, Integer> bets, int winnerNewBalance) {
         List<BufferedImage> frames = new ArrayList<>();
 
         double speed = 8000;
         double deceleration = 0.97;
-        int randomStopOffset = new Random().nextInt(120) - 60;
+        int randomStopOffset = new Random().nextInt(60) - 30;
         int endSpeed = new Random().nextInt(301);
 
         BufferedImage finalFrame = null;
 
         for (int i = 0; i < FRAME_COUNT; i++) {
             boolean finalFrames = i >= FRAME_COUNT - 1;
-            BufferedImage frame = generateFrame(participants, avatars, (int) speed, randomStopOffset, winnerName, totalPot, finalFrames, bets);
+            BufferedImage frame = generateFrame(participants, avatars, (int) speed, randomStopOffset, winnerName, totalPot, finalFrames, bets, winnerNewBalance);
             frames.add(frame);
             speed *= deceleration;
             if (speed <= endSpeed) speed = endSpeed;
             if (finalFrames && finalFrame == null) finalFrame = frame;
         }
 
-        for (int i = 0; i < 30; i++) frames.add(finalFrame);
+        for (int i = 0; i < 100; i++) frames.add(finalFrame);
         return frames;
     }
 
@@ -125,7 +134,7 @@ public class JackpotGifGenerator {
         return frames;
     }
 
-    private static BufferedImage generateFrame(List<String> participants, Map<String, BufferedImage> avatars, int speed, int offset, String winnerName, int totalPot, boolean finalFrame, Map<String, Integer> bets) {
+    private static BufferedImage generateFrame(List<String> participants, Map<String, BufferedImage> avatars, int speed, int offset, String winnerName, int totalPot, boolean finalFrame, Map<String, Integer> bets, int winnerNewBalance) {
         BufferedImage img = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = img.createGraphics();
         g.setPaint(gradient);
@@ -158,6 +167,12 @@ public class JackpotGifGenerator {
             g.setFont(new Font("Arial", Font.BOLD, 24));
             g.drawString("Winner: " + winnerName, 150, 150);
             g.drawString("Prize: $" + totalPot, 150, 180);
+            if(winnerName.equals("Bot")){
+                g.drawString("Your balance: $" + winnerNewBalance, 150, 210);
+            } else {
+                g.drawString("Balance: $" + winnerNewBalance, 150, 210);
+            }
+            
         }
 
         g.dispose();
