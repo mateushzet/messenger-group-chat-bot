@@ -24,7 +24,13 @@ public class HelpDataProvider {
                         "• Available colors: red, black, green",
                         "• Available numbers: 0-12",
                         "• You can use /r instead of /roulette",
-                        "• Multipliers: red x2, black x2, green x12, number x12"
+                        "• Multipliers: red x2, black x2, green x12, number x12",
+                        "",
+                        "",
+                        "",
+                        "",
+                        "",
+                        ""
                     ),
                     name);
 
@@ -70,14 +76,16 @@ public class HelpDataProvider {
                         "  - [minesCount]: optional number of hidden mines (between 1 and 24, default is 3)",
                         "",
                         "• /mines cashout",
-                        "  - Cash out your current winnings before hitting a mine to secure your prize.",
+                        "  - Cash out your current winnings before hitting",
+                        "    a mine to secure your prize.",
                         "",
                         "• /mines <field numbers>",
                         "  - Choose one or multiple fields to reveal by listing numbers",
-                        "    separated by commas (no spaces), e.g., 1,2,3,4,5.",
+                        "     separated by commas (no spaces), e.g., 1,2,3,4,5.",
                         "",
                         "• Try to reveal safe spots without hitting a mine.",
-                        "• Each safe spot you uncover increases your multiplier and potential winnings.",
+                        "• Each safe spot you uncover increases your multiplier",
+                        "   and potential winnings.",
                         "• Hitting a mine ends the game and you lose your bet."
                     ),
                     name
@@ -135,7 +143,9 @@ public class HelpDataProvider {
                             "• /coinflip bet <amount>: Start a new coinflip game with the specified bet.",
                             "• /coinflip games: View currently open coinflip games.",
                             "• /coinflip accept <id>: Accept an existing game by ID and flip the coin.",
-                            "• /coinflip cancel <id>: Cancel your own active coinflip game."
+                            "• /coinflip cancel <id>: Cancel your own active coinflip game.",
+                            "",
+                            ""
                         ),
                         name
                     );
@@ -209,6 +219,10 @@ public class HelpDataProvider {
                             "   • 100-coin case: item values from 0 to 1050 coins.",
                             "   • 1000-coin case: item values from 17 to 13000 coins.",
                             "",
+                            "",
+                            "",
+                            "",
+                            "",
                             ""
                         ),
                         name
@@ -231,7 +245,8 @@ public class HelpDataProvider {
                             "- Black: 2x your bet.",
                             "- Red: 3x your bet.",
                             "- Blue: 5x your bet.",
-                            "- Gold: 50x your bet (rare and high reward)."
+                            "- Gold: 50x your bet (rare and high reward).",
+                            ""
                         ),
                         name
                     );
@@ -295,7 +310,9 @@ public class HelpDataProvider {
                             "",
                             "/race horses — display all horses with their numbers and images",
                             "",
-                            "/race bet <amount> <horseNumber> — place a bet of <amount> coins on horse number <horseNumber>",
+                            "/race bet <amount> <horseNumber> —",
+                            "   place a bet of <amount> coins",
+                            "   on horse number <horseNumber>",
                             "",
                             "",
                             "",
@@ -380,10 +397,10 @@ public class HelpDataProvider {
                             " - Phase 4: 125% of your investment",
                             " - Phase 5: 150% of your investment",
                             "",
-                            "/tree plant <amount>  - Plant a tree by investing coins.",
-                            "/tree water           - Check the current status and growth phase of your tree.",
-                            "/tree cut             - Cut down the tree to collect your coins and profit.",
-                            "/tree help            - Show this help message."
+                            "/tree plant <amount> - Plant a tree by investing coins.",
+                            "/tree water - Check the current status and growth phase of your tree.",
+                            "/tree cut - Cut down the tree to collect your coins and profit.",
+                            "/tree help - Show this help message."
                         ),
                         name
                     );
