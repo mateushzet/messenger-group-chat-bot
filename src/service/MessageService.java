@@ -67,7 +67,7 @@ public class MessageService {
         inputBox.click();
         Actions actions = new Actions(driver);
         for (char c : message.toCharArray()) {
-            actions.sendKeys(Character.toString(c)).pause(Duration.ofMillis(20));
+            actions.sendKeys(Character.toString(c)).pause(Duration.ofMillis(10));
         }
         actions.sendKeys(Keys.RETURN).perform();
 
@@ -317,11 +317,12 @@ public class MessageService {
                 if (isValidMessage(text)) {
                     closeIncomingCallPopupIfPresent();
                     addEmoji(messageElement);
+                    updateUserAvatar(row);
                 }
 
                 boolean success = false;
                 int attempts = 0;
-                while (!success && attempts < 10) {
+                while (!success && attempts < 5) {
                     try {
                         closeIncomingCallPopupIfPresent();
                         clickMoreButton(messageElement);
@@ -335,13 +336,14 @@ public class MessageService {
 
                 if (isValidMessage(text) && success) {
                     processUserCommand(sender, text);
+                    
                 }
 
-                ((JavascriptExecutor) driver).executeScript("window.scrollTo(0, document.body.scrollHeight);");
-                Logger.logInfo("Scrolled to bottom after processing.", "MessageService.processAllValidMessages()");
             } catch (Exception ignored) {
             }
         }
+        ((JavascriptExecutor) driver).executeScript("window.scrollTo(0, document.body.scrollHeight);");
+        Logger.logInfo("Scrolled to bottom after processing.", "MessageService.processAllValidMessages()");
     }
 
     private static void handleClipboardTimeout(LocalTime currentTime) {
@@ -400,21 +402,25 @@ public class MessageService {
 
     private static String findSenderName(WebElement messageRow) {
         String name = null;
-        String avatarUrl = null;
         try {
             WebElement avatarElement = messageRow.findElement(By.cssSelector("img.x1rg5ohu"));
             name = avatarElement.getAttribute("alt");
-            avatarUrl = avatarElement.getAttribute("src");
-
-            if (name != null && !name.trim().isEmpty() && avatarUrl != null && !avatarUrl.trim().isEmpty()) {
-                UserRepository.saveAvatarToDatabase(name.toLowerCase(), avatarUrl);
-            } else {
-                Logger.logWarning("Name or avatar URL is null or empty", "MessageService.getSenderName()");
-            }
         } catch (Exception ignored) {
             //Logger.logError("Failed to get sender name or avatar URL", "MessageService.getSenderName()", e);
         }
         return name;
+    }
+
+    private static void updateUserAvatar(WebElement messageRow) {
+        String name = null;
+        String avatarUrl = null;
+        try {
+            WebElement avatarElement = messageRow.findElement(By.cssSelector("img.x1rg5ohu"));
+            avatarUrl = avatarElement.getAttribute("src");
+                UserRepository.saveAvatarToDatabase(name.toLowerCase(), avatarUrl);
+        } catch (Exception ignored) {
+            //Logger.logError("Failed to get sender name or avatar URL", "MessageService.getSenderName()", e);
+        }
     }
 
     public static void clickMoreButton(WebElement messageDiv) throws Exception {
