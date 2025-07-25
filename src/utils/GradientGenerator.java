@@ -533,7 +533,7 @@ import service.MessageService;
         try {
             BufferedImage image = generateGradientImage(150, 150);
             ImageUtils.setClipboardImage(image);
-            MessageService.sendMessageFromClipboard(false);
+            MessageService.sendMessageFromClipboard(true);
         } catch (Exception e) {
             e.printStackTrace();
         }

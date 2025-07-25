@@ -169,7 +169,7 @@ public class BalatroGameController {
                 """;
 
                 ImageUtils.setClipboardImage(BalatroImageGenerator.createHelpImage(helpMessage));
-                MessageService.sendMessageFromClipboard(false);
+                MessageService.sendMessageFromClipboard(true);
                 return;
 
             default:

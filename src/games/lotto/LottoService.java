@@ -80,7 +80,7 @@ public class LottoService {
         }
 
         LottoImageGenerator.drawLottoResults(winningNumbers, playerNumbers, winnings, betAmount, newBalance, playerName, prizePool);
-        MessageService.sendMessageFromClipboard(false);
+        MessageService.sendMessageFromClipboard(true);
         GameHistoryRepository.addGameHistory(playerName, "Lotto", arrayToString(playerNumbers), betAmount, winnings, "Winning Numbers: " + arrayToString(winningNumbers) + "Matches: " + matches);
     }
 
@@ -97,7 +97,7 @@ public class LottoService {
         int newBalance = currentBalance + winnings;
         UserRepository.updateUserBalance(playerName, newBalance);
         LottoImageGenerator.drawLottoMultiResults(winningNumbers, playerNumbers, winnings, 5*betAmount, newBalance, playerName, prizePool);
-        MessageService.sendMessageFromClipboard(false);
+        MessageService.sendMessageFromClipboard(true);
         GameHistoryRepository.addGameHistory(playerName, "Lotto", arrayToString(playerNumbers), betAmount, winnings 
         ,"Winning Numbers 1: " + arrayToString(winningNumbers[0]) + "Matches: " + matches[0]
         + " Winning Numbers 2: " + arrayToString(winningNumbers[1]) + "Matches: " + matches[1]

@@ -123,7 +123,7 @@ public class SlotsService {
         int jackpotAmount = JackpotRepository.getJackpot();
 
         SlotsImageGenerator.generateSlotsResultImage(result, playerName, winnings, newBalance, betAmount, jackpotAmount);
-        MessageService.sendMessageFromClipboard(false);
+        MessageService.sendMessageFromClipboard(true);
     }
 
     private static void playSlotsMulti(String playerName, int betAmount, int currentBalance, CommandContext context) {
@@ -158,7 +158,7 @@ public class SlotsService {
         int jackpotAmount = JackpotRepository.getJackpot();
 
         SlotsImageGenerator.generateSlotsResultImageMulti(result, playerName, winnings - totalBetAmount, newBalance, betAmount * 5, jackpotAmount);
-        MessageService.sendMessageFromClipboard(false);
+        MessageService.sendMessageFromClipboard(true);
     }
 
     private static double getJackpotProportionalAmount(int betAmount) { 
