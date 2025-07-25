@@ -48,8 +48,12 @@ public class CrashService {
 
     private static double calculateCrashMultiplier() {
         Random random = new Random();
+        if (random.nextDouble() < 0.01) {
+            return 0.0;
+        }
         double fairMultiplier = 1.0 / (random.nextDouble() * (1 - HOUSE_EDGE) + HOUSE_EDGE);
-        return Math.min(fairMultiplier, MAX_MULTIPLIER);
+        double crashMultiplier = Math.min(fairMultiplier, MAX_MULTIPLIER);
+        return crashMultiplier;
     }
 
     private static int parseBetAmount(String betAmountStr) {
