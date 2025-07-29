@@ -312,7 +312,7 @@ public class CommandService {
             UserRepository.updateUserBalance(userName, newBalance);
 
             Logger.logInfo("User " + userName + " claimed hourly reward. New balance: " + newBalance,"CommandService.handleHourlyCommand()");
-            RewardsHistoryRepository.addRewardHistory(userName, "Hourly", hourlyRewardPrize);
+            RewardsHistoryRepository.addRewardHistory(userName, "Hourly", reward);
         } catch (Exception e) {
             Logger.logError("Error processing hourly reward for user " + userName, "CommandService.handleHourlyCommand()", e);
             MessageService.sendMessage("An error occurred while claiming your hourly reward. Please try again later.");

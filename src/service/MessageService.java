@@ -1,6 +1,7 @@
 package service;
 
 import controller.CommandController;
+import database.DatabaseConnectionManager;
 import factory.WebDriverFactory;
 import games.jackpot.JackpotService;
 import games.slots.JackpotRepository;
@@ -13,6 +14,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -250,9 +255,13 @@ public class MessageService {
     private static void processMessagesInOptimizedMode() {
         while (true) {
             try {
+                System.out.println("processCommonTasks()");
                 processCommonTasks();
-                processAllValidMessages();
+                //processAllValidMessages();
+                processAllValidMessagesFromDB();
+                System.out.println("processAllValidMessagesFromDB()");
             } catch (StaleElementReferenceException ignored) {
+                System.out.println("IGNORDER" + ignored);
             }
         }
     }
@@ -301,6 +310,52 @@ public class MessageService {
 
         addToJackpotPoolOncePerDay(50);
     }
+
+
+
+    private static void processAllValidMessagesFromDB() {
+        try (Connection conn = DatabaseConnectionManager.getConnection()) {
+
+            // Pobierz jedną wiadomość o najniższym ID
+            try (PreparedStatement selectStmt = conn.prepareStatement(
+                    "SELECT id, sender, message FROM commands WHERE status = 'pending' ORDER BY id ASC LIMIT 1")) {
+
+                ResultSet rs = selectStmt.executeQuery();
+                if (rs.next()) {
+                    int id = rs.getInt("id");
+                    String sender = rs.getString("sender");
+                    String message = rs.getString("message");
+
+                    // Oznacz jako "processing"
+                    try (PreparedStatement updateToProcessing = conn.prepareStatement(
+                            "UPDATE commands SET status = 'processing' WHERE id = ?")) {
+                        updateToProcessing.setInt(1, id);
+                        updateToProcessing.executeUpdate();
+                    }
+
+
+                    // Przetwórz komendę
+                    Logger.logInfo("Przetwarzanie komendy: " + message, "MessageService");
+                    processUserCommand(sender, message);
+
+                    // Ustaw jako "processed"
+                    try (PreparedStatement updateToProcessed = conn.prepareStatement(
+                            "UPDATE commands SET status = 'processed' WHERE id = ?")) {
+                        updateToProcessed.setInt(1, id);
+                        updateToProcessed.executeUpdate();
+                    }
+
+                }
+
+            } catch (SQLException e) {
+                Logger.logWarning("Błąd podczas przetwarzania komendy: " + e.getMessage(), "MessageService");
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     private static void processAllValidMessages() {
         List<WebElement> messageRows = driver.findElements(By.cssSelector("div[role='row']"));

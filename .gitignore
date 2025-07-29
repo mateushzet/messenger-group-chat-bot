@@ -22,3 +22,8 @@ src/database/mydatabase.db-shm
 src/database/mydatabase.db-wal
 
 MessengerGroupChatBot.jar
+chromedriver.exe
+
+config.ini
+cookies.json
+__pycache__
