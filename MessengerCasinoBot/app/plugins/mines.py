@@ -367,7 +367,7 @@ class MinesPlugin(BaseGamePlugin):
                     messages.append(f"BOOM! You hit a mine on tile {t}.")
                     self.active_games.pop(user_id, None)
                     
-                    newLevel, newLevelProgress = self.cache.add_experience(user_id, -bet)
+                    newLevel, newLevelProgress = self.cache.add_experience(user_id, -bet, sender, file_queue)
                     user["level"] = newLevel
                     user["level_progress"] = newLevelProgress
 

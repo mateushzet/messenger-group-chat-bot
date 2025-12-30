@@ -49,7 +49,7 @@ class AnimationGenerator:
         bar_x0 = 3
         bar_y0 = self.avatar_size - bar_height_px - 3
         bar_width_full = self.avatar_size - 6
-        progress = user_info.get("level_progress", 0)
+        progress = user_info.get("level_progress", 0.1)
         bar_x1 = int(bar_width_full * progress)
         bar_y1 = bar_y0 + bar_height_px
         draw.rectangle((bar_x0, bar_y0, bar_x1, bar_y1), fill=(0, 120, 255, 255))
@@ -123,7 +123,7 @@ class AnimationGenerator:
         )
         return final_path
 
-    def generate(self, anim_path, avatar_path, bg_path, user_info_before, user_info_after, output_path="output.webp"):
+    def generate(self, anim_path, avatar_path, bg_path, user_info_before, user_info_after, output_path="output.webp", game_type=None):
         img = Image.open(anim_path)
         n_frames = getattr(img, "n_frames", 1)
         is_animated = n_frames > 1
@@ -131,8 +131,8 @@ class AnimationGenerator:
         first_frame = img.convert("RGBA")
 
         background_base = self._load_and_preprocess_image(bg_path, resize=first_frame.size)
-        bet_icon = self._load_and_preprocess_image(self.BET_ICON_PATH, resize=(20, 20))
-        balance_icon = self._load_and_preprocess_image(self.BALANCE_ICON_PATH, resize=(20, 20))
+        bet_icon = self._load_and_preprocess_image(self.BET_ICON_PATH, resize=(25, 25))
+        balance_icon = self._load_and_preprocess_image(self.BALANCE_ICON_PATH, resize=(25, 25))
         avatar = self._load_and_preprocess_image(avatar_path, resize=(self.avatar_size, self.avatar_size))
 
         try:
@@ -209,7 +209,7 @@ class AnimationGenerator:
                 combined.paste(b, (x, y), b)
                 x += b.width + 10
 
-            if i >= n_frames - self.overlay_frames or not is_animated:
+            if (i >= n_frames - self.overlay_frames or not is_animated) and game_type != "case" and game_type != "hourly" and game_type != "math":
                 draw_center = ImageDraw.Draw(combined)
                 draw_center.text(
                     (x_center, y_center),
@@ -221,9 +221,31 @@ class AnimationGenerator:
                 )
 
             frames.append(combined)
-            durations.append(img.info.get("duration", 100) * 1.4 if is_animated else 100)
+            
+            if is_animated:
+                base_duration = img.info.get("duration", 100)
+                
+                is_last_frame = (i == last_frame_index)
+                
+                if is_last_frame and game_type == "plinko":
+                    duration = base_duration * 20.0
+                elif is_last_frame:
+                    duration = base_duration * 1.4
+                else:
+                    duration = base_duration * 1.4
+            else:
+                duration = 100
+            
+            durations.append(duration)
 
         if is_animated and len(frames) > 1:
+            if game_type == "plinko":
+                last_frame = frames[-1]
+                
+                for _ in range(2):
+                    frames.append(last_frame)
+                    durations.append(300)
+            
             frames[0].save(
                 output_path,
                 save_all=True,
@@ -245,12 +267,12 @@ class AnimationGenerator:
         base_img = Image.open(image_path).convert("RGBA")
         
         background_base = self._load_and_preprocess_image(bg_path, resize=base_img.size)
-        bet_icon = self._load_and_preprocess_image(self.BET_ICON_PATH, resize=(20, 20))
-        balance_icon = self._load_and_preprocess_image(self.BALANCE_ICON_PATH, resize=(20, 20))
+        bet_icon = self._load_and_preprocess_image(self.BET_ICON_PATH, resize=(25, 25))
+        balance_icon = self._load_and_preprocess_image(self.BALANCE_ICON_PATH, resize=(25, 25))
         avatar = self._load_and_preprocess_image(avatar_path, resize=(self.avatar_size, self.avatar_size))
 
         try:
-            font_small = ImageFont.truetype("DejaVuSans-Bold.ttf", base_img.size[0] // 26)
+            font_small = ImageFont.truetype("DejaVuSans-Bold.ttf", base_img.size[0] // 32)
         except:
             font_small = ImageFont.load_default()
 
@@ -262,10 +284,20 @@ class AnimationGenerator:
         avatar_bar = self._create_avatar_bar(avatar, avatar_mask, user_info, font_small)
 
         new_height = base_img.height + self.extra_bottom
+        
+        background_base_extended = Image.new("RGBA", (base_img.width, new_height))
+        background_base_extended.paste(background_base, (0, 0))
+        draw_bg = ImageDraw.Draw(background_base_extended)
+        
+        draw_bg.rectangle(
+            [0, base_img.height, base_img.width, new_height], 
+            fill=(30, 30, 30, 255)
+        )
+        
         final_img = Image.new("RGBA", (base_img.width, new_height))
-        final_img.paste(background_base, (0, 0))
+        final_img.paste(background_base_extended, (0, 0))
         final_img.paste(base_img, (0, 0), base_img)
-
+        
         avatar_x = base_img.width - avatar_bar.width - 15
         avatar_y = new_height - avatar_bar.height - 5
         final_img.paste(avatar_bar, (avatar_x, avatar_y), avatar_bar)
@@ -289,8 +321,8 @@ class AnimationGenerator:
 
         background_base = self._load_and_preprocess_image(bg_path, resize=base_frame.size)
 
-        bet_icon = self._load_and_preprocess_image(self.BET_ICON_PATH, resize=(20, 20))
-        balance_icon = self._load_and_preprocess_image(self.BALANCE_ICON_PATH, resize=(20, 20))
+        bet_icon = self._load_and_preprocess_image(self.BET_ICON_PATH, resize=(25, 25))
+        balance_icon = self._load_and_preprocess_image(self.BALANCE_ICON_PATH, resize=(25, 25))
 
         avatar = self._load_and_preprocess_image(avatar_path, resize=(self.avatar_size, self.avatar_size))
 

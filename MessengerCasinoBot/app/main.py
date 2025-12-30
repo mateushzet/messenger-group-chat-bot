@@ -1,9 +1,25 @@
-from threading import Thread
 from queue import Queue
+from threading import Thread
 from app_cache import AppCache
 from command_worker import command_worker
 from file_worker import file_worker
-from message_handlers import start_monitoring_messegases
+from message_handlers import start_monitoring_messages
+import time
+
+def initialize_math_scheduler(cache, file_queue):
+    from plugins.math_challenge import MathChallengePlugin
+    
+    plugin = MathChallengePlugin()
+    plugin.cache = cache
+    
+    success = plugin.start_scheduler(file_queue)
+    
+    if success:
+        print(f"[MATH] Scheduler started. First challenge will be sent at random time.")
+    else:
+        print(f"[MATH] Failed to start scheduler")
+    
+    return plugin
 
 def main():
     cache = AppCache(autosave_interval=60)
@@ -15,11 +31,17 @@ def main():
 
     cmd_thread.start()
     file_thread.start()
+    
+    print("[MATH] Initializing challenge scheduler...")
+    math_plugin = initialize_math_scheduler(cache, file_queue)
+    print("[MATH] Bot started. Waiting for first random math challenge...")
 
     try:
-        start_monitoring_messegases(command_queue)
+        start_monitoring_messages(command_queue)
     except KeyboardInterrupt:
         print("Stopping...")
+        if hasattr(math_plugin, 'stop_scheduler'):
+            math_plugin.stop_scheduler = True
     except Exception as e:
         print(f"Unexpected error: {e}")
     finally:

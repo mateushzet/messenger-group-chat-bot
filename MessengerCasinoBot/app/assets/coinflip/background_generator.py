@@ -134,11 +134,11 @@ def draw_elements(draw, img, width, height, left_avatar_path, right_avatar_path,
     
     if os.path.exists(balance_icon_path):
         balance_icon = Image.open(balance_icon_path).convert("RGBA")
-        balance_icon = balance_icon.resize((14, 14), Image.LANCZOS)
+        balance_icon = balance_icon.resize((20, 20), Image.LANCZOS)
     
     if os.path.exists(bet_icon_path):
         bet_icon = Image.open(bet_icon_path).convert("RGBA")
-        bet_icon = bet_icon.resize((14, 14), Image.LANCZOS)
+        bet_icon = bet_icon.resize((20, 20), Image.LANCZOS)
     
     try:
         font_large = ImageFont.truetype("arial.ttf", 18)

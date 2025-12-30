@@ -136,14 +136,14 @@ class PlinkoPlugin(BaseGamePlugin):
         self.update_user_balance(user_id, new_balance)
 
         user_info_before = self.create_user_info(sender, bet_amount, 0, balance_before, user.copy())
-        newLevel, newLevelProgress = self.cache.add_experience(user_id, -bet_amount + win_amount)
+        newLevel, newLevelProgress = self.cache.add_experience(user_id, -bet_amount + win_amount, sender, file_queue)
         
         user["level"] = newLevel
         user["level_progress"] = newLevelProgress
         user_info_after = self.create_user_info(sender, bet_amount, net_win, new_balance, user)
         
         result_path, error = self.generate_animation(
-            animation_path, user_id, user, user_info_before, user_info_after, animated=animated
+            animation_path, user_id, user, user_info_before, user_info_after, animated=animated, game_type="plinko"
         )
         
         if error:

@@ -131,8 +131,9 @@ class LottoPlugin(BaseGamePlugin):
         self.update_user_balance(user_id, new_balance)
 
         user_info_before = self.create_user_info(sender, bet_amount, 0, balance_before, user.copy())
-        newLevel, newLevelProgress = self.cache.add_experience(user_id, -bet_amount + win_amount)
-
+        print("add exp")
+        newLevel, newLevelProgress = self.cache.add_experience(user_id, -bet_amount + win_amount, sender, file_queue)
+        print("post add exp")
         user["level"] = newLevel
         user["level_progress"] = newLevelProgress
         user_info_after = self.create_user_info(sender, bet_amount, net_win, new_balance, user)

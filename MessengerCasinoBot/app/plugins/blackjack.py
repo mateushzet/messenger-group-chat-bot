@@ -578,7 +578,7 @@ class BlackjackPlugin(BaseGamePlugin):
                     self.update_user_balance(user_id, new_balance)
                     logger.info(f"{sender} won {win_amount} from blackjack")
                 else:
-                    newLevel, newLevelProgress = self.cache.add_experience(user_id, win_amount)
+                    newLevel, newLevelProgress = self.cache.add_experience(user_id, win_amount, sender, file_queue)
                     user["level"] = newLevel
                     user["level_progress"] = newLevelProgress
                 self.active_games.pop(user_id, None)

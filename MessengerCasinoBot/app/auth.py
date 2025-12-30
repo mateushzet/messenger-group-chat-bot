@@ -1,7 +1,9 @@
 import json
 import os
-from playwright.sync_api import Page, TimeoutError as PlaywrightTimeoutError
+from playwright.sync_api import Page, sync_playwright, TimeoutError as PlaywrightTimeoutError
 import configparser
+import time
+from datetime import datetime
 
 BASE_DIR = os.path.dirname(__file__)
 CONFIG_DIR = os.path.join(BASE_DIR, "config")
@@ -9,14 +11,23 @@ os.makedirs(CONFIG_DIR, exist_ok=True)
 
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.ini")
 COOKIES_FILE = os.path.join(CONFIG_DIR, "cookies.json")
-STORAGE_FILE = os.path.join(CONFIG_DIR, "auth_state.json")
+SCREENSHOTS_DIR = os.path.join(BASE_DIR, "screenshots")
+os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
 
 class MessengerAuth:
     def __init__(self, config_path: str = CONFIG_FILE):
         self.config_path = config_path
         self.cookies_file = COOKIES_FILE
-        self.storage_file = STORAGE_FILE
         self._load_config(self.config_path)
+    
+    def _take_screenshot(self, page: Page, name: str):
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        screenshot_path = os.path.join(SCREENSHOTS_DIR, f"{name}_{timestamp}.png")
+        try:
+            page.screenshot(path=screenshot_path, full_page=True)
+            print(f"Screenshot saved: {screenshot_path}")
+        except Exception as e:
+            print(f"Failed to take screenshot {name}: {e}")
     
     def _load_config(self, config_path: str):
         if not os.path.exists(config_path):
@@ -26,61 +37,349 @@ class MessengerAuth:
         config.read(config_path)
         
         try:
-            self.username = config["credentials"]["username"]
-            self.password = config["credentials"]["password"]
             self.threadid = config["messenger"]["threadid"]
+            self.pin = config["credentials"]["pin"]
         except KeyError as e:
             raise KeyError(f"Missing key in config.ini: {e}")
 
     def load_cookies(self, context):
         try:
             if not os.path.exists(self.cookies_file):
+                print("No cookies file found")
                 return False
                 
             with open(self.cookies_file, 'r', encoding="utf-8") as f:
-                cookies = json.load(f)
-                if not cookies:
+                cookies_raw = json.load(f)
+                if not cookies_raw:
+                    print("Cookies file is empty")
                     return False
-                    
-                context.add_cookies(cookies)
+
+                def _clean_cookie_object(cookie_obj):
+                    sameSite_raw = cookie_obj.get('sameSite', '').lower()
+                    sameSite_map = {
+                        'no_restriction': 'None',
+                        'unspecified': 'Lax',
+                        'lax': 'Lax',
+                        'strict': 'Strict',
+                        'none': 'None'
+                    }
+                    cookie_obj['sameSite'] = sameSite_map.get(sameSite_raw, 'Lax')
+
+                    if 'expirationDate' in cookie_obj:
+                        cookie_obj['expires'] = int(cookie_obj['expirationDate'])
+                        del cookie_obj['expirationDate']
+
+                    domain = cookie_obj.get('domain', '')
+                    if domain == '.facebook.com' or not domain.endswith('messenger.com'):
+                        cookie_obj['domain'] = '.messenger.com'
+
+                    fields_to_remove = ['hostOnly', 'session', 'storeId', 'id']
+                    for field in fields_to_remove:
+                        cookie_obj.pop(field, None)
+
+                    if cookie_obj.get('name') == 'locale':
+                        print(f"Changing locale cookie from {cookie_obj.get('value')} to en_US")
+                        cookie_obj['value'] = 'en_US'
+
+                    return cookie_obj
+
+                cleaned_cookies = []
+                for cookie in cookies_raw:
+                    try:
+                        cleaned_cookie = _clean_cookie_object(cookie)
+                        cleaned_cookies.append(cleaned_cookie)
+                    except Exception as e:
+                        print(f"Warning: Could not clean cookie: {e}")
+                        continue
+
+                print(f"Loaded {len(cleaned_cookies)} cookies")
+                context.add_cookies(cleaned_cookies)
                 return True
                 
+        except json.JSONDecodeError as e:
+            print(f"Cookie loading error: Invalid JSON: {str(e)}")
+            return False
         except Exception as e:
             print(f"Cookie loading error: {str(e)}")
             return False
 
-    def save_cookies(self, context):
+    def check_pin_dialog(self, page: Page) -> bool:
         try:
-            cookies = context.cookies()
-            with open(self.cookies_file, 'w', encoding="utf-8") as f:
-                json.dump(cookies, f, indent=2)
-        except Exception as e:
-            print(f"Cookie save error: {str(e)}")
-
-    def is_logged_in(self, page: Page, timeout: float = 10.0):
-        try:
-            return True
-        except PlaywrightTimeoutError:
+            pin_selectors = [
+                "h2:has-text('PIN')",
+                "input[aria-label='PIN']",
+                "input[maxlength='6']",
+                "//div[contains(text(), 'Enter your PIN')]",
+                "//span[contains(text(), 'Enter your PIN')]",
+            ]
+            
+            for selector in pin_selectors:
+                try:
+                    if selector.startswith("//"):
+                        element = page.locator(f"xpath={selector}")
+                    else:
+                        element = page.locator(selector)
+                    
+                    if element.count() > 0 and element.first.is_visible(timeout=1000):
+                        print("PIN dialog detected")
+                        return True
+                except:
+                    continue
+            
+            return False
+        except:
             return False
 
-    def login_with_credentials(self, page: Page):
+    def handle_pin_dialog(self, page: Page) -> bool:
         try:
-            page.fill("input[name='email']", self.username)
-            page.fill("input[name='pass']", self.password)
-            login_button = page.locator("button[name='login']").first
-            login_button.click()
+            print("Handling PIN dialog")
             
-            page.wait_for_selector("div[aria-label='Thread list']", timeout=15000)
-            return True
+            try:
+                page.wait_for_selector("input[maxlength='6']", timeout=5000)
+            except:
+                print("PIN input not found")
+                self._take_screenshot(page, "pin_input_not_found")
+                return False
             
+            pin_input = None
+            selectors = [
+                "input[maxlength='6']",
+                "input[aria-label='PIN']",
+                "#mw-numeric-code-input-prevent-composer-focus-steal"
+            ]
+            
+            for selector in selectors:
+                try:
+                    pin_input = page.locator(selector)
+                    if pin_input.count() > 0 and pin_input.first.is_visible(timeout=1000):
+                        pin_input = pin_input.first
+                        break
+                except:
+                    continue
+            
+            if not pin_input:
+                self._take_screenshot(page, "pin_input_not_found")
+                return False
+            
+            print(f"Entering PIN: {self.pin}")
+            self._take_screenshot(page, "before_pin_enter")
+            
+            pin_input.click()
+            page.wait_for_timeout(500)
+            pin_input.fill("")
+            page.wait_for_timeout(500)
+            
+            for char in self.pin:
+                pin_input.press(char)
+                page.wait_for_timeout(100)
+            
+            page.wait_for_timeout(1000)
+            
+            entered_value = pin_input.input_value()
+            if entered_value == self.pin:
+                print("PIN entered correctly")
+            else:
+                print(f"PIN mismatch: expected {self.pin}, got {entered_value}")
+                pin_input.fill(self.pin)
+            
+            self._take_screenshot(page, "after_pin_enter")
+            
+            pin_input.press("Enter")
+            page.wait_for_timeout(3000)
+            
+            try:
+                page.wait_for_selector("input[maxlength='6']", state="hidden", timeout=5000)
+                print("PIN dialog closed")
+                self._take_screenshot(page, "pin_dialog_closed")
+                return True
+            except:
+                if page.locator("text=Incorrect").count() > 0 or page.locator("text=Wrong").count() > 0:
+                    print("Incorrect PIN")
+                    return False
+                
+                print("PIN dialog may still be visible, but continuing")
+                return True
+                
         except Exception as e:
-            print(f"Login failed: {str(e)}")
+            print(f"Error in handle_pin_dialog: {e}")
+            self._take_screenshot(page, "pin_error")
             return False
 
-    @staticmethod
-    def accept_all_cookies(page):
+
+    def log_in_to_messenger(self):
+        p = sync_playwright().start()
+        
+        browser = p.chromium.launch(
+            headless=True,
+            args=['--disable-blink-features=AutomationControlled']
+        )
+        context = browser.new_context(
+            viewport={"width": 1200, "height": 800},
+            locale="en-US",
+            extra_http_headers={"Accept-Language": "en-US,en;q=0.9"}
+        )
+        page = context.new_page()
+
+        self.load_cookies(context)
+
         try:
-            page.wait_for_selector("#allow_button", timeout=5000)
-            page.click("#allow_button")
-        except Exception:
-            print("Cookie accept button not found")
+            page.goto(
+                f"https://www.messenger.com/t/{self.threadid}",
+                wait_until="domcontentloaded",
+                timeout=30000
+            )
+        except Exception as e:
+            print(f"Loading error: {e}")
+            browser.close()
+            p.stop()
+            return None, None
+
+        self.check_and_handle_browser_notice(page)
+        time.sleep(5)
+
+        if self.check_pin_dialog(page):
+            if not self.handle_pin_dialog(page):
+                print("Failed to handle PIN dialog")
+                browser.close()
+                p.stop()
+                return None, None, None
+        
+        time.sleep(10)
+
+        self._take_screenshot(page, "after log_in_to_messenger")
+
+        return page, browser, p
+    
+    def check_and_handle_browser_notice(self, page: Page) -> bool:
+        try:
+            time.sleep(5)
+            
+            print("Looking for Close button with tabindex='0'...")
+            
+            close_buttons = page.locator("button[tabindex='0']")
+            
+            if close_buttons.count() > 0:
+                print(f"Found {close_buttons.count()} button(s) with tabindex='0'")
+                
+                for i in range(close_buttons.count()):
+                    try:
+                        btn = close_buttons.nth(i)
+                        if btn.is_visible(timeout=1000):
+                            btn_text = btn.inner_text().strip()
+                            print(f"Button {i}: text='{btn_text}', visible={btn.is_visible()}")
+                            
+                            if btn_text.lower() in ["close", "zamknij", "x"]:
+                                print(f"Clicking Close button (text='{btn_text}')...")
+                                btn.click(force=True)
+                                time.sleep(1)
+                                return True
+                    except Exception as e:
+                        print(f"Error checking button {i}: {e}")
+                        continue
+            
+            print("Trying generic Close button search...")
+            
+            close_selectors = [
+                "button:has-text('Close')",
+                "button >> text=/^close$/i"
+            ]
+            
+            for selector in close_selectors:
+                try:
+                    close_btn = page.locator(selector).first
+                    if close_btn.count() > 0 and close_btn.is_visible(timeout=1000):
+                        print(f"Found Close button with selector: {selector}")
+                        close_btn.click(force=True)
+                        page.wait_for_timeout(1000)
+                        return True
+                except Exception:
+                    continue
+            
+            all_buttons = page.locator("button")
+            if all_buttons.count() > 0:
+                print(f"Total buttons on page: {all_buttons.count()}")
+                
+                self._take_screenshot(page, "button_debug")
+                
+                for i in range(min(all_buttons.count(), 10)):
+                    try:
+                        btn = all_buttons.nth(i)
+                        if btn.is_visible(timeout=500):
+                            btn_text = btn.inner_text().strip()
+                            if btn_text and btn_text.lower() in ["close", "zamknij"]:
+                                print(f"Found '{btn_text}' button at index {i}")
+                                btn.click(force=True)
+                                page.wait_for_timeout(1000)
+                                return True
+                    except:
+                        continue
+            
+            print("No Close button found - either not present or already closed")
+            return True
+                
+        except Exception as e:
+            print(f"Error handling browser notice: {e}")
+            self._take_screenshot(page, "browser_notice_error")
+            return False
+
+    def remove_unwanted_aria_labels(self, page: Page):
+        aria_labels_to_remove = [
+            "Inbox switcher",
+            "Chats",
+            "Marketplace",
+            "Requests",
+            "Archive",
+            "Settings, help and more",
+            "Expand inbox sidebar",
+            "New message",
+            "Close",
+            "Fix now",
+            "Start a voice call",
+            "Start a video call",
+            "Conversation information",
+            "Details and actions",
+            "Send a voice clip",
+            "Choose a sticker",
+            "Choose a GIF",
+            "Choose an emoji",
+            "Send a like",
+            "Profile",
+            "Unmute notifications",
+            "Search",
+            "Chat info",
+            "Customize chat",
+            "Media & files",
+            "Thread composer"
+        ]
+
+        classes_to_remove = [
+            "some-class-to-remove",
+            "x1ey2m1c",
+        ]
+
+        js_labels = ','.join([f'"{label}"' for label in aria_labels_to_remove])
+        js_classes = ','.join([f'"{cls}"' for cls in classes_to_remove])
+
+        page.evaluate(f"""
+            (() => {{
+                const labels = [{js_labels}];
+                const classes = [{js_classes}];
+
+                const elements = document.querySelectorAll('[aria-label]');
+                elements.forEach(el => {{
+                    const label = el.getAttribute('aria-label');
+                    if (!label) return;
+
+                    for (const target of labels) {{
+                        if (label === target || label.startsWith(target)) {{
+                            el.remove();
+                            break;
+                        }}
+                    }}
+                }});
+
+                classes.forEach(cls => {{
+                    document.querySelectorAll(`div.${{cls}}`).forEach(el => el.remove());
+                }});
+            }})();
+        """)

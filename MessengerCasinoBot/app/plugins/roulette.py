@@ -69,7 +69,7 @@ class RoulettePlugin(BaseGamePlugin):
         self.update_user_balance(user_id, new_balance)
 
         user_info_before = self.create_user_info(sender, amount, 0, balance_before, user.copy())
-        newLevel, newLevelProgress = self.cache.add_experience(user_id, win - amount)
+        newLevel, newLevelProgress = self.cache.add_experience(user_id, -amount, sender, file_queue)
 
         base_animation_path = self.get_base_animation_path(result_number)
         

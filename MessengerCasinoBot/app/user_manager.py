@@ -55,11 +55,15 @@ class UserManager:
             return None, None
         
         avatar_filename = self._extract_filename_from_url(avatar_url)
+        print(f"Looking for user: {name}, avatar: {avatar_filename}")
         
         for user_id, user_data in self.cache.users.items():
-            if user_data.get("name") == name and user_data.get("avatar") == avatar_filename:
+            print(f"Checking user {user_id}: name={user_data.get('name')}, avatar={user_data.get('avatar_url')}")
+            if user_data.get("name") == name and user_data.get("avatar_url") == avatar_filename:
+                print(f"Found match: {user_id}")
                 return user_id, user_data
         
+        print(f"No user found with name {name} and avatar {avatar_filename}")
         return None, None
     
     def find_users_by_name(self, name, exclude_avatar_filename=None):
@@ -71,11 +75,12 @@ class UserManager:
         for user_id, user_data in self.cache.users.items():
             if user_data.get("name") == name:
                 if exclude_avatar_filename:
-                    if user_data.get("avatar") != exclude_avatar_filename:
+                    if user_data.get("avatar_url") != exclude_avatar_filename:
                         users_with_same_name.append((user_id, user_data))
                 else:
                     users_with_same_name.append((user_id, user_data))
         
+        print(f"Found {len(users_with_same_name)} users with name {name}")
         return users_with_same_name
 
     def _create_new_user(self, name, avatar_url, is_admin=False):
@@ -93,6 +98,8 @@ class UserManager:
             level=1, 
             level_progress=0.1,
             avatar=avatar_filename,
+            avatar_url=avatar_filename,
+            avatars=[avatar_filename],
             background="default-bg.png",
             is_admin=is_admin
         )
@@ -114,13 +121,17 @@ class UserManager:
             
             existing_users_with_same_name = self.find_users_by_name(name, avatar_filename)
             
-            if existing_users_with_same_name:
+            if existing_users_with_same_name and len(existing_users_with_same_name) > 0:
                 users_info = []
                 for user_id, user_data in existing_users_with_same_name:
-                    users_info.append(f"- ID: {user_id} (avatar: {user_data.get('avatar', 'unknown')}, balance: {user_data.get('balance', 0)})")
+                    avatar = user_data.get('avatar', 'unknown') if user_data else 'unknown'
+                    balance = user_data.get('balance', 0) if user_data else 0
+                    avatar_url_existing = user_data.get('avatar_url', 'unknown') if user_data else 'unknown'
+                    
+                    users_info.append(f"- ID: {user_id} (avatar: {avatar}, balance: {balance})")
                 
                 users_list = "\n".join(users_info)
-                previous_avatar = existing_users_with_same_name[0][1].get("avatar", "unknown")
+                previous_avatar = existing_users_with_same_name[0][1].get("avatar_url", "unknown") if existing_users_with_same_name[0][1] else "unknown"
                 
                 return False, f"Different avatar detected for user '{name}'. Existing users with same name: {users_list}"
             else:
@@ -128,6 +139,8 @@ class UserManager:
                 
         except Exception as e:
             print(f"Error creating user {name}: {e}")
+            import traceback
+            traceback.print_exc()
             return False, f"Error: {str(e)}"
 
     def get_user_avatar_path(self, user_id):
@@ -142,7 +155,7 @@ class UserManager:
         user_data = None
         
         for uid, data in self.cache.users.items():
-            if data.get("name") == name and data.get("avatar") == old_avatar_filename:
+            if data.get("name") == name and data.get("avatar_url") == old_avatar_filename:
                 user_id, user_data = uid, data
                 break
         

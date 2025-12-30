@@ -2,7 +2,9 @@ import json
 import threading
 import time
 import os
+from plugins.avatar import AvatarPlugin
 from datetime import datetime, timedelta
+from collections import deque
 
 class AppCache:
     def __init__(self, backup_file="cache_backup.json", autosave_interval=900):
@@ -15,6 +17,10 @@ class AppCache:
         self.users = {}
         self.games = {}
         self.settings = {}
+        
+        self.market_items = deque(maxlen=9)
+        
+        self.active_math_challenge = None
 
         os.makedirs(self.backup_dir, exist_ok=True)
 
@@ -28,6 +34,7 @@ class AppCache:
         try:
             with open(self.backup_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
+                
                 self.users = data.get("users", {})
                 
                 for user_id, user_data in self.users.items():
@@ -49,6 +56,37 @@ class AppCache:
                 
                 self.games = data.get("games", {})
                 self.settings = data.get("settings", {})
+                
+                market_data = data.get("market_items", [])
+                
+                converted_items = []
+                for item in market_data:
+                    if isinstance(item, dict):
+                        if "file" in item and "type" not in item:
+                            converted_items.append({
+                                "type": "background",
+                                "file": item.get("file", "")
+                            })
+                        elif "type" in item and "file" in item:
+                            converted_items.append(item)
+                    elif isinstance(item, str):
+                        converted_items.append({
+                            "type": "background",
+                            "file": item
+                        })
+                
+                self.market_items = deque(converted_items, maxlen=9)
+                
+                if "ranking_leader_record" not in self.settings:
+                    old_money_record = self.settings.get("money_leader_record")
+                    if old_money_record and "user_id" in old_money_record:
+                        self.settings["ranking_leader_record"] = old_money_record
+                
+                self.active_math_challenge = data.get("active_math_challenge")
+                
+                if self.active_math_challenge is None:
+                    self.active_math_challenge = None
+                
         except Exception as e:
             print(f"Cache load error: {e}")
 
@@ -77,7 +115,8 @@ class AppCache:
                 data = {
                     "users": self.users,
                     "games": self.games,
-                    "settings": self.settings
+                    "settings": self.settings,
+                    "market_items": list(self.market_items)
                 }
                 
                 with open(backup_path, "w", encoding="utf-8") as f:
@@ -110,16 +149,47 @@ class AppCache:
                 data = {
                     "users": self.users,
                     "games": self.games,
-                    "settings": self.settings
+                    "settings": self.settings,
+                    "market_items": list(self.market_items),
+                    "active_math_challenge": self.active_math_challenge
                 }
                 with open(self.backup_file, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
             except Exception as e:
                 print(f"Cache save error: {e}")
 
-    def get_user(self, user_id):
+    def add_market_item(self, item_type, filename):
         with self.lock:
-            return self.users.get(str(user_id))
+            item = {
+                "type": item_type,
+                "file": filename
+            }
+            self.market_items.appendleft(item)
+            return item
+
+    def remove_market_item(self, filename):
+        with self.lock:
+            for item in list(self.market_items):
+                if item.get("file") == filename:
+                    self.market_items.remove(item)
+                    return True
+            return False
+
+    def get_market_items(self):
+        return list(self.market_items)
+
+    def get_market_backgrounds(self):
+        return [item for item in self.market_items if item.get("type") == "background"]
+
+    def get_market_avatars(self):
+        return [item for item in self.market_items if item.get("type") == "avatar"]
+
+    def clear_market(self):
+        with self.lock:
+            self.market_items.clear()
+
+    def get_user(self, user_id):
+        return self.users.get(str(user_id))
 
     def set_user(self, user_id, name, balance=0, level=1, level_progress=0.0,
                  avatar="default-avatar.png", background="default-bg.png", 
@@ -145,11 +215,13 @@ class AppCache:
                     "name": f"User {uid}", 
                     "balance": 0, 
                     "level": 1, 
-                    "level_progress": 0.0,
+                    "level_progress": 0.1,
                     "avatar": "default-avatar.png", 
                     "background": "default-bg.png",
                     "avatar_url": None,
-                    "is_admin": False
+                    "is_admin": False,
+                    "backgrounds": ["default-bg.png"],
+                    "avatars": ["default-avatar.png"]
                 }
             self.users[uid].update(fields)
             return self.users[uid]
@@ -162,11 +234,13 @@ class AppCache:
                     "name": f"User {uid}", 
                     "balance": 0, 
                     "level": 1, 
-                    "level_progress": 0.0,
+                    "level_progress": 0.1,
                     "avatar": "default-avatar.png", 
                     "background": "default-bg.png",
                     "avatar_url": None,
-                    "is_admin": False
+                    "is_admin": False,
+                    "backgrounds": ["default-bg.png"],
+                    "avatars": ["default-avatar.png"]
                 }
             self.users[uid]["balance"] += delta
             return self.users[uid]["balance"]
@@ -209,7 +283,7 @@ class AppCache:
             backup_path = os.path.join(current_dir, os.path.join("assets", "backgrounds", "default-bg.png"))
             return backup_path
         
-    def add_experience(self, user_id, win_amount):
+    def add_experience(self, user_id, win_amount, sender, file_queue):
         with self.lock:
             uid = str(user_id)
             
@@ -218,11 +292,13 @@ class AppCache:
                     "name": f"User {uid}", 
                     "balance": 0, 
                     "level": 1, 
-                    "level_progress": 0.0,
+                    "level_progress": 0.1,
                     "avatar": "default-avatar.png", 
                     "background": "default-bg.png",
                     "avatar_url": None,
-                    "is_admin": False
+                    "is_admin": False,
+                    "avatars": ["default-avatar.png"],
+                    "backgrounds": ["default-bg.png"]
                 }
             
             user = self.users[uid]
@@ -238,13 +314,64 @@ class AppCache:
             
             progress_to_add = progress_increase / 100.0
             new_progress = user["level_progress"] + progress_to_add
-            level_gained = 0
             
-            if new_progress >= 1.0:
-                level_gained = 1
-                user["level"] += 1
-                user["level_progress"] = new_progress = 0.1
-            else:
-                user["level_progress"] = new_progress
+            level_changed = False
+            new_level = user["level"]
             
-            return user["level"], user["level_progress"]
+            while new_progress >= 1.0:
+                new_level += 1
+                new_progress -= 1.0
+                level_changed = True
+            
+            user["level"] = new_level
+            user["level_progress"] = new_progress
+            
+            if level_changed:
+                print(f"[EXP] !!! LEVEL UP DETECTED !!! User {user['name']} reached level {new_level}")
+                print(f"[EXP] Calling AvatarPlugin.on_level_up...")
+                
+                try:
+                    from plugins.avatar import AvatarPlugin
+                    print(f"[EXP] Import successful")
+                    
+                    plugin = AvatarPlugin()
+                    print(f"[EXP] Plugin instance created")
+                    
+                    plugin.cache = self
+                    
+                    import threading
+                    def run_level_up():
+                        try:
+                            result = plugin.on_level_up(user_id, sender, file_queue)
+                            print(f"[EXP] on_level_up completed: {result}")
+                        except Exception as e:
+                            print(f"[EXP] ERROR in level up thread: {e}")
+                            import traceback
+                            traceback.print_exc()
+                    
+                    thread = threading.Thread(target=run_level_up)
+                    thread.daemon = True
+                    thread.start()
+                    
+                    print(f"[EXP] Level up process started in background")
+                    
+                except Exception as e:
+                    print(f"[EXP] ERROR calling avatar system: {e}")
+                    import traceback
+                    traceback.print_exc()
+            
+            return new_level, new_progress
+        
+    def set_active_math_challenge(self, challenge_data):
+        with self.lock:
+            self.active_math_challenge = challenge_data
+
+    def get_active_math_challenge(self):
+        with self.lock:
+            return self.active_math_challenge
+
+    def clear_active_math_challenge(self):
+        with self.lock:
+            challenge = self.active_math_challenge
+            self.active_math_challenge = None
+            return challenge
