@@ -230,6 +230,10 @@ class HourlyPlugin(BaseGamePlugin):
         
         can_claim, message = self._can_claim_hourly(user_id)
 
+        if not can_claim:
+            self._send_error_image("hourly_not_available", nickname, file_queue, message)
+            return ""
+
         balance_before = user.get("balance", 0)
         logger.info(f"Balance before for {nickname}: {balance_before}")
         

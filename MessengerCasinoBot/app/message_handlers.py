@@ -116,7 +116,8 @@ def extract_messages_fix_unknown_sender(page, command_queue):
 
                 if message_text == "":
                     img_el = row.query_selector('img[alt="Open photo"]')
-                    if img_el:
+                    gif_el = row.query_selector('img[alt="GIF Image"]')
+                    if img_el or gif_el:
                         message_text = "photo"
 
                 if message_text == "Enter":

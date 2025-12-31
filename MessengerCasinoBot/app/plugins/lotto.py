@@ -139,7 +139,7 @@ class LottoPlugin(BaseGamePlugin):
         user_info_after = self.create_user_info(sender, bet_amount, net_win, new_balance, user)
         
         result_path, error = self.generate_animation(
-            animation_path, user_id, user, user_info_before, user_info_after, animated=animated
+            animation_path, user_id, user, user_info_before, user_info_after, game_type="lotto", animated=animated
         )
         
         if error:

@@ -561,8 +561,16 @@ class QuestionGenerator:
         return self.generate_4number_question()
 
 
+_math_plugin_instance = None
+
+def get_math_plugin_instance():
+    global _math_plugin_instance
+    if _math_plugin_instance is None:
+        _math_plugin_instance = MathChallengePlugin()
+    return _math_plugin_instance
+
 def register():
-    plugin = MathChallengePlugin()
+    plugin = get_math_plugin_instance()
     return {
         "name": "math",
         "aliases": ["/answer", "/a"],

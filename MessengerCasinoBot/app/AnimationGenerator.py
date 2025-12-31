@@ -229,6 +229,8 @@ class AnimationGenerator:
                 
                 if is_last_frame and game_type == "plinko":
                     duration = base_duration * 20.0
+                elif is_last_frame and game_type == "lotto":
+                    duration = base_duration * 20.0
                 elif is_last_frame:
                     duration = base_duration * 1.4
                 else:
@@ -239,10 +241,12 @@ class AnimationGenerator:
             durations.append(duration)
 
         if is_animated and len(frames) > 1:
-            if game_type == "plinko":
+            if game_type == "plinko" or game_type == "lotto":
                 last_frame = frames[-1]
                 
-                for _ in range(2):
+                extra_frames_count = 2 if game_type == "plinko" else 3
+                
+                for _ in range(extra_frames_count):
                     frames.append(last_frame)
                     durations.append(300)
             
@@ -262,7 +266,7 @@ class AnimationGenerator:
             frames[0].save(output_path, format="WEBP", quality=60, method=5)
 
         return output_path
-    
+
     def generate_static(self, image_path, avatar_path, bg_path, user_info, output_path="output.webp"):
         base_img = Image.open(image_path).convert("RGBA")
         
