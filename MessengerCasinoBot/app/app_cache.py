@@ -137,7 +137,7 @@ class AppCache:
         except Exception as e:
             logger.critical(f"[AppCache] Daily backup error: {e}")
 
-    def _cleanup_old_backups(self, keep_days=7):
+    def _cleanup_old_backups(self, keep_days=3):
         try:
             now = datetime.now()
             for filename in os.listdir(self.backup_dir):

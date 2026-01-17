@@ -1,11 +1,15 @@
+import os
+import time
 from datetime import datetime as dt
 from utils import take_error_screenshot
 from utils import take_info_screenshot
-import time
 from auth import MessengerAuth
 from logger import logger
 
 last_message_time = None
+
+BASE_DIR = os.path.dirname(__file__)
+TEMP_DIR = os.path.join(BASE_DIR, "temp")
 
 def update_last_message_time():
     global last_message_time
@@ -52,7 +56,7 @@ def close_message_remove_popup(page):
         if close_btn:
             close_btn.click(force=True)
     except Exception as e:
-        logger.warning(f"[MesseageHandler] Error closing popup: {e}")
+        logger.warning(f"[MessageHandler] Error closing popup: {e}")
 
 def click_menu_option(page, row, label):
     try:
@@ -60,26 +64,26 @@ def click_menu_option(page, row, label):
         more_btn = row.wait_for_selector("div[aria-label='More']", timeout=1000)
         if more_btn:
             more_btn.click(force=True)
-            menu_btn = page.wait_for_selector(f"div[aria-label='{label}'][role='menuitem']", timeout=1000)
+            menu_btn = page.wait_for_selector(f"div[aria-label='{label}'][role='menuitem']", timeout=3000)
             if menu_btn:
                 menu_btn.click(force=True)
                 return True
     except Exception as e:
-        logger.info(f"[MesseageHandler] Error clicking menu option '{label}'")
+        logger.info(f"[MessageHandler] Error clicking menu option '{label}'")
     return False
 
 def add_reaction_to_message(page, row):
     try:
         row.hover(position={"x": 0, "y": 0})
-        react_btn = row.wait_for_selector("div[aria-label='React']", timeout=1000)
+        react_btn = row.wait_for_selector("div[aria-label='React']", timeout=3000)
         if react_btn:
             react_btn.click(force=True)
-            heart = page.wait_for_selector("img[alt='❤']", timeout=2000)
+            heart = page.wait_for_selector("img[alt='❤']", timeout=3000)
             if heart:
                 heart.click(force=True)
                 return True
     except Exception as e:
-        logger.info(f"[MesseageHandler] Error adding reaction")
+        logger.info(f"[MessageHandler] Error adding reaction")
         take_error_screenshot(page,"adding_reaction")
         close_message_remove_popup(page)
     return False
@@ -87,12 +91,12 @@ def add_reaction_to_message(page, row):
 def remove_message(page, row, sender_name):
     try:
         if click_menu_option(page, row, "Remove message"):
-            confirm = page.wait_for_selector("div[aria-label='Remove']", timeout=1000)
+            confirm = page.wait_for_selector("div[aria-label='Remove']", timeout=3000)
             if confirm:
                 confirm.click(force=True)
                 return True
     except Exception as e:
-        logger.warning(f"[MesseageHandler] Error removing message from '{sender_name}': {e}")
+        logger.warning(f"[MessageHandler] Error removing message from '{sender_name}': {e}")
         take_error_screenshot(page,"removing_message")
         close_message_remove_popup(page)
     return False
@@ -100,17 +104,17 @@ def remove_message(page, row, sender_name):
 def unsend_message(page, row, sender_name):
     try:
         if click_menu_option(page, row, "Unsend message"):
-            radio = page.wait_for_selector("input[type='radio'][value='1']", timeout=1000)
+            radio = page.wait_for_selector("input[type='radio'][value='1']", timeout=3000)
             if radio:
                 radio.click(force=True)
                 remove_button = page.wait_for_selector(
-                    'xpath=//div[@aria-label="Remove" and @role="button"]', timeout=1000
+                    'xpath=//div[@aria-label="Remove" and @role="button"]', timeout=3000
                 )
                 if remove_button:
                     remove_button.click(force=True)
                     return True
     except Exception as e:
-        logger.warning(f"[MesseageHandler] Error unsending message from '{sender_name}': {e}")
+        logger.warning(f"[MessageHandler] Error unsending message from '{sender_name}': {e}")
         take_error_screenshot(page,"unsending_message")
         close_message_remove_popup(page)
     return False
@@ -170,7 +174,7 @@ def extract_messages_fix_unknown_sender(page, command_queue):
                     "avatar_url": avatar_url
                 })
             except Exception as e:
-                logger.warning(f"[MesseageHandler] Error during message extraction: {e}")
+                logger.warning(f"[MessageHandler] Error during message extraction: {e}")
                 take_error_screenshot(page, "message_extraction")
         fill_unknown_senders(messages_local)
         return messages_local
@@ -196,7 +200,7 @@ def extract_messages_fix_unknown_sender(page, command_queue):
                                 if remove_message(page, m["row"], m["sender"]):
                                     command_queue.put(m)
                                     update_last_message_time()
-                                    logger.info(f"[MesseageHandler] Message queued: '{sender_name}' - '{message_text}'")
+                                    logger.info(f"[MessageHandler] Message queued: '{sender_name}' - '{message_text}'")
                         break
             else:
                 remove_message(page, row, sender_name)
@@ -211,13 +215,14 @@ def extract_messages_fix_unknown_sender(page, command_queue):
                 if remove_message(page, row, sender_name):
                     command_queue.put(message)
                     update_last_message_time()
-                    logger.info(f"[MesseageHandler] Message queued: '{sender_name}' - '{message_text}'")
+                    logger.info(f"[MessageHandler] Message queued: '{sender_name}' - '{message_text}'")
 
         else:
             remove_message(page, row, sender_name)
 
 
 def start_monitoring_messages(command_queue):
+    last_cleanup_time = None
     while True:
         try:
             auth = MessengerAuth()
@@ -227,33 +232,39 @@ def start_monitoring_messages(command_queue):
             time.sleep(5)
 
             if not page:
-                logger.error("[MesseageHandler] Failed to log in for monitoring")
+                logger.error("[MessageHandler] Failed to log in for monitoring")
                 time.sleep(10)
                 continue
-            logger.info("[MesseageHandler] Starting message monitoring")
+            logger.info("[MessageHandler] Starting message monitoring")
             try:
                 take_info_screenshot(page, "monitoring_ready")
             except Exception as e:
-                logger.error(f"[MesseageHandler] Failed to take initial screenshot: {e}")
-
-            last_message_time = dt.now()
+                logger.error(f"[MessageHandler] Failed to take initial screenshot: {e}")
 
             while True:
                 try:
                     extract_messages_fix_unknown_sender(page, command_queue)
                     
                     sleep_time = get_sleep_time()
+                    
                     if sleep_time != 0:
+                        current_time = time.time()
+                        if (sleep_time == 3 and 
+                            (last_cleanup_time is None or 
+                            current_time - last_cleanup_time >= 300)):
+                            cleanup_temp_folder()
+                            last_cleanup_time = current_time
+                        
                         time.sleep(sleep_time)
 
                 except Exception as e:
-                    logger.error(f"[MesseageHandler] Error in message extraction: {e}")
+                    logger.error(f"[MessageHandler] Error in message extraction: {e}")
                     try:
                         take_error_screenshot(page, "extraction_error")
                     except:
                         pass
                     break
-            logger.critical("[MesseageHandler] Closing browser, will reconnect...")
+            logger.critical("[MessageHandler] Closing browser, will reconnect...")
             try:
                 browser.close()
             except:
@@ -264,10 +275,10 @@ def start_monitoring_messages(command_queue):
                 pass
             time.sleep(5)
         except KeyboardInterrupt:
-            logger.info("[MesseageHandler] Monitoring stopped by user")
+            logger.info("[MessageHandler] Monitoring stopped by user")
             break
         except Exception as e:
-            logger.critical(f"[MesseageHandler] Unexpected error in monitoring: {e}")
+            logger.critical(f"[MessageHandler] Unexpected error in monitoring: {e}")
             time.sleep(10)
 
 def get_last_message_time():
@@ -277,3 +288,43 @@ def get_last_message_time():
         update_last_message_time()
 
     return last_message_time
+
+def cleanup_temp_folder():
+    try:
+        if not os.path.exists(TEMP_DIR):
+            os.makedirs(TEMP_DIR, exist_ok=True)
+            return 0
+        
+        deleted_count = 0
+        
+        all_files = []
+        for root, dirs, files in os.walk(TEMP_DIR):
+            for file in files:
+                file_path = os.path.join(root, file)
+                all_files.append(file_path)
+        
+        for file_path in all_files:
+            try:
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+                    deleted_count += 1
+            except Exception as e:
+                logger.debug(f"[Cleanup] Could not delete {file_path}: {e}")
+        
+        for root, dirs, files in os.walk(TEMP_DIR, topdown=False):
+            for dir_name in dirs:
+                dir_path = os.path.join(root, dir_name)
+                try:
+                    if not os.listdir(dir_path):
+                        os.rmdir(dir_path)
+                except:
+                    pass
+        
+        if deleted_count > 0:
+            logger.info(f"[Cleanup] Cleaned {deleted_count} temp files")
+            
+        return deleted_count
+        
+    except Exception as e:
+        logger.error(f"[Cleanup] Error cleaning temp: {e}")
+        return 0

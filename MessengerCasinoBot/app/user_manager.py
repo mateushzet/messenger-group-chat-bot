@@ -7,6 +7,8 @@ BASE_DIR = os.path.dirname(__file__)
 ASSETS_DIR = os.path.join(BASE_DIR, "assets")
 AVATARS_FOLDER = os.path.join(ASSETS_DIR, "avatars")
 
+os.makedirs(AVATARS_FOLDER, exist_ok=True)
+
 class UserManager:
     def __init__(self, cache):
         self.cache = cache

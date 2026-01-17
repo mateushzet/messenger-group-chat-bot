@@ -218,7 +218,7 @@ class MessengerAuth:
             logger.critical(f"[AUTH] Loading error: {e}")
             browser.close()
             p.stop()
-            return None, None
+            return None, None, None
 
         self.check_and_handle_browser_notice(page)
         time.sleep(5)

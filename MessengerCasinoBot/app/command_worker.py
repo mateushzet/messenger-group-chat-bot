@@ -85,6 +85,5 @@ def command_worker(command_queue: Queue, file_queue: Queue, cache):
             logger.critical(f"[CommandWorker] Command worker error: {e}", exc_info=True)
         finally:
             command_queue.task_done()
-            time.sleep(0.1)
 
     logger.critical("[CommandWorker] Command worker stopped.")

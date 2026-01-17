@@ -5,7 +5,7 @@ from logger import logger
 from auth import MessengerAuth
 from utils import take_info_screenshot
 from utils import take_error_screenshot
-
+import time
 def file_worker(file_queue: Queue):
     while True:
         time.sleep(20)
@@ -37,7 +37,7 @@ def file_worker(file_queue: Queue):
                         continue
 
                     logger.info(f"[FileWorker] Sending file: {file_path}")
-
+   
                     file_input_found = False
                     file_selectors = [
                         "input.x1s85apg",
@@ -47,7 +47,7 @@ def file_worker(file_queue: Queue):
 
                     for selector in file_selectors:
                         try:
-                            page.wait_for_selector(selector, state="attached", timeout=5000)
+                            page.wait_for_selector(selector, state="attached", timeout=10000)
                             page.set_input_files(selector, file_path)
                             file_input_found = True
                             break
@@ -60,7 +60,7 @@ def file_worker(file_queue: Queue):
 
                     page.wait_for_selector(
                         "div[aria-label='Remove attachment']",
-                        timeout=20000
+                        timeout=10000
                     )
 
                     page.wait_for_selector(

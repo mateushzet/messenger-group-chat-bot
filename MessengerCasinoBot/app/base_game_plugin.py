@@ -123,7 +123,7 @@ class BaseGamePlugin:
         return self.get_app_path("assets", asset_type, *subpaths)
     
     def generate_static(self, image_path, avatar_path, bg_path, user_info, output_path=None):
-        from MessengerCasinoBot.app.animation_generator import AnimationGenerator
+        from animation_generator import AnimationGenerator
         
         try:
             if output_path is None:
