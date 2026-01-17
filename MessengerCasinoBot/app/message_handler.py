@@ -1,5 +1,6 @@
 from datetime import datetime as dt
 from utils import take_error_screenshot
+from utils import take_info_screenshot
 import time
 from auth import MessengerAuth
 from logger import logger
@@ -64,7 +65,7 @@ def click_menu_option(page, row, label):
                 menu_btn.click(force=True)
                 return True
     except Exception as e:
-        logger.warning(f"[MesseageHandler] Error clicking menu option '{label}': {e}")
+        logger.info(f"[MesseageHandler] Error clicking menu option '{label}'")
     return False
 
 def add_reaction_to_message(page, row):
@@ -78,7 +79,7 @@ def add_reaction_to_message(page, row):
                 heart.click(force=True)
                 return True
     except Exception as e:
-        logger.warning(f"[MesseageHandler] Error adding reaction: {e}")
+        logger.info(f"[MesseageHandler] Error adding reaction")
         take_error_screenshot(page,"adding_reaction")
         close_message_remove_popup(page)
     return False
@@ -231,7 +232,7 @@ def start_monitoring_messages(command_queue):
                 continue
             logger.info("[MesseageHandler] Starting message monitoring")
             try:
-                auth._take_screenshot(page, "monitoring_ready")
+                take_info_screenshot(page, "monitoring_ready")
             except Exception as e:
                 logger.error(f"[MesseageHandler] Failed to take initial screenshot: {e}")
 
@@ -248,7 +249,7 @@ def start_monitoring_messages(command_queue):
                 except Exception as e:
                     logger.error(f"[MesseageHandler] Error in message extraction: {e}")
                     try:
-                        auth._take_screenshot(page, "extraction_error")
+                        take_error_screenshot(page, "extraction_error")
                     except:
                         pass
                     break

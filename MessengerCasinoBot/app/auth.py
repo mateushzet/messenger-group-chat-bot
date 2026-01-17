@@ -84,7 +84,7 @@ class MessengerAuth:
                         logger.critical(f"[AUTH] Could not clean cookie: {e}", exc_info=True)
                         continue
                 
-                logger.info(f"Loaded {len(cleaned_cookies)} cookies")
+                logger.info(f"[AUTH] Loaded {len(cleaned_cookies)} cookies")
                 context.add_cookies(cleaned_cookies)
                 return True
                 
