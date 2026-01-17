@@ -1,5 +1,5 @@
 import os
-from MessengerCasinoBot.app.animation_generator import AnimationGenerator
+from animation_generator import AnimationGenerator
 from utils import _get_unique_id
 from user_manager import UserManager
 from logger import logger
