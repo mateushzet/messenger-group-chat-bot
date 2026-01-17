@@ -1,6 +1,5 @@
-from PIL import Image, ImageDraw, ImageFont
 import os
-from datetime import datetime as dt
+from PIL import Image, ImageDraw, ImageFont
 
 class AnimationGenerator:
     BASE_DIR = os.path.dirname(__file__)

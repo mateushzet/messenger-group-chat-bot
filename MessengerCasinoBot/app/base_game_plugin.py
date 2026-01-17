@@ -1,6 +1,5 @@
 import os
-from datetime import datetime as dt
-from AnimationGenerator import AnimationGenerator
+from MessengerCasinoBot.app.animation_generator import AnimationGenerator
 from utils import _get_unique_id
 from user_manager import UserManager
 from logger import logger
@@ -19,24 +18,38 @@ class BaseGamePlugin:
         user_id, user = user_manager.find_user_by_name_avatar(sender, avatar_url)
         
         if not user:
+            logger.warning(f"[BaseGamePlugin] Invalid user {sender}: {avatar_url}")
             return None, None, "Invalid user"
         
         balance_before = user["balance"]
         
         if amount > balance_before:
+            logger.info(f"[BaseGamePlugin] Insufficient balance, user: {sender}, amount: {amount}, balance: {balance_before}")
             return None, None, "Insufficient balance"
+        
+        return user_id, user, None
+    
+    def validate_user(self, cache, sender, avatar_url):
+        user_manager = UserManager(cache)
+        user_id, user = user_manager.find_user_by_name_avatar(sender, avatar_url)
+        if not user:
+            logger.warning(f"[BaseGamePlugin] Invalid user - {sender} - {avatar_url}")
+            return None, None, "Invalid user"
         
         return user_id, user, None
 
     def validate_bet(self, bet_type, amount):
         if self.valid_bets and bet_type not in self.valid_bets:
+            logger.info(f"[BaseGamePlugin] Invalid bet type: {bet_type}")
             return f"Invalid bet type: {bet_type}"
         
         try:
             amount = int(amount)
             if amount <= 0:
+                logger.info("[BaseGamePlugin] Invalid bet amount <= 0")
                 return "Amount must be positive"
         except ValueError:
+            logger.info("[BaseGamePlugin] Invalid bet amount format")
             return "Invalid amount"
         
         return None
@@ -75,6 +88,7 @@ class BaseGamePlugin:
             return result_path, None
 
         except Exception as e:
+            logger.critical(f"[BaseGamePlugin] Animation generation error: {e}", exc_info=True)
             return None, f"Animation generation error: {e}"
 
     def update_user_balance(self, user_id, new_balance):
@@ -91,6 +105,7 @@ class BaseGamePlugin:
         }
 
     def execute_game(self, command_name, args, file_queue, cache=None, sender=None, avatar_url=None):
+        logger.critical(f"[BaseGamePlugin] Subclasses must implement execute_game")
         raise NotImplementedError("Subclasses must implement execute_game")
     
     def get_app_path(self, *relative_paths):
@@ -108,7 +123,7 @@ class BaseGamePlugin:
         return self.get_app_path("assets", asset_type, *subpaths)
     
     def generate_static(self, image_path, avatar_path, bg_path, user_info, output_path=None):
-        from AnimationGenerator import AnimationGenerator
+        from MessengerCasinoBot.app.animation_generator import AnimationGenerator
         
         try:
             if output_path is None:
@@ -156,6 +171,7 @@ class BaseGamePlugin:
             return final_path, None
             
         except Exception as e:
+            logger.critical(f"[BaseGamePlugin] Error generating static overlay: {e}", exc_info=True)
             return None, f"Error generating static overlay: {e}"
         
     def _add_nickname_to_image(self, img, nickname):
@@ -178,28 +194,153 @@ class BaseGamePlugin:
             
             return img
         except Exception as e:
-            logger.error(f"Error adding nickname to image: {e}")
+            logger.error(f"Error adding nickname to image: {e}", exc_info=True)
             return img
 
-    def _send_error_image(self, error_type, nickname, file_queue, additional_info=""):
+    def send_message_image(self, nickname, file_queue, message="", title="", cache=None, user_id=None):
+
         try:
-            error_file = f"{error_type}.png"
-            error_path = os.path.join(self.error_folder, error_file)
+            background_path = cache.get_background_path(user_id)
             
-            if os.path.exists(error_path):
-                error_img = Image.open(error_path).convert('RGBA')
-                
-                error_img = self._add_nickname_to_image(error_img, nickname)
-                
-                temp_path = os.path.join(self.results_folder, f"error_{_get_unique_id()}.png")
-                error_img.save(temp_path, format='PNG')
-                
-                file_queue.put(temp_path)
-                
-                return True
-            else:
-                logger.error(f"Error image not found: {error_path}")
+            if not background_path or not os.path.exists(background_path):
+                logger.error(f"User background not found for user_id: {user_id}")
                 return False
+            
+            output_folder = self.get_app_path("temp", "message_images")
+            os.makedirs(output_folder, exist_ok=True)
+            
+            image_path = self._generate_dynamic_message_image(
+                username=nickname,
+                error_title=title,
+                error_message=message,
+                background_path=background_path,
+                output_folder=output_folder
+            )
+            
+            if not image_path:
+                logger.error("Failed to generate dynamic message image")
+                return False
+            
+            file_queue.put(image_path)
+            
+            return True
+            
         except Exception as e:
-            logger.error(f"Error sending error image: {e}")
+            logger.error(f"Error in send_message_image: {e}", exc_info=True)
             return False
+
+    def _generate_dynamic_message_image(self, username, error_title, error_message, background_path, output_folder):
+        try:
+            temp_img = Image.new('RGB', (1, 1))
+            temp_draw = ImageDraw.Draw(temp_img)
+            
+            title_font = ImageFont.truetype("DejaVuSans.ttf", 32)
+            message_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 16)
+            
+            title_bbox = temp_draw.textbbox((0, 0), error_title, font=title_font)
+            title_height = title_bbox[3] - title_bbox[1]
+            title_y = 15
+            
+            max_line_width = 520
+            lines = []
+            
+            paragraphs = error_message.split('\n')
+            
+            for paragraph in paragraphs:
+                if not paragraph.strip():
+                    lines.append("")
+                    continue
+                    
+                words = paragraph.split()
+                current_line = ""
+                
+                for word in words:
+                    test_line = f"{current_line} {word}".strip() if current_line else word
+                    bbox = temp_draw.textbbox((0, 0), test_line, font=message_font)
+                    line_width = bbox[2] - bbox[0]
+                    
+                    if line_width <= max_line_width:
+                        current_line = test_line
+                    else:
+                        lines.append(current_line)
+                        current_line = word
+                
+                if current_line:
+                    lines.append(current_line)
+            
+            line_height = 28
+            text_height = len(lines) * line_height
+            
+            box_padding = 15
+            box_height = text_height + (box_padding * 2)
+            
+            box_width = 560
+            box_x = 20
+            box_y = title_y + title_height + 15
+            
+            separator_y = box_y + box_height + 15
+            
+            nick_bbox = temp_draw.textbbox((0, 0), username, font=message_font)
+            nick_height = nick_bbox[3] - nick_bbox[1]
+            nick_y = separator_y + 15
+            
+            image_height = nick_y + nick_height + 15
+            image_width = 600
+            
+            original_bg = Image.open(background_path).convert("RGB")
+            original_bg = original_bg.resize((image_width, image_height))
+            draw = ImageDraw.Draw(original_bg)
+
+            title_x = (image_width - (title_bbox[2] - title_bbox[0])) // 2
+
+            for dx in [-2, -1, 1, 2]:
+                for dy in [-2, -1, 1, 2]:
+                    draw.text((title_x + dx, title_y + dy), error_title,
+                            font=title_font, fill=(0, 0, 0))
+
+            draw.text((title_x, title_y), error_title,
+                    font=title_font, fill=(255, 255, 255))
+
+            dark_color = (30, 30, 40)
+            draw.rectangle(
+                [box_x, box_y, box_x + box_width, box_y + box_height],
+                fill=dark_color
+            )
+
+            text_start_y = box_y + box_padding
+            for i, line in enumerate(lines):
+                if line:
+                    bbox = draw.textbbox((0, 0), line, font=message_font)
+                    line_x = box_x + (box_width - (bbox[2] - bbox[0])) // 2
+                    line_y = text_start_y + i * line_height
+                    
+                    draw.text((line_x, line_y), line,
+                            font=message_font, fill=(255, 255, 255))
+
+            draw.line([(0, separator_y), (image_width, separator_y)],
+                    fill=dark_color, width=2)
+
+            nick_x = (image_width - (nick_bbox[2] - nick_bbox[0])) // 2
+
+            for dx in [-1, 0, 1]:
+                for dy in [-1, 0, 1]:
+                    if dx or dy:
+                        draw.text((nick_x + dx, nick_y + dy), username,
+                                font=message_font, fill=(0, 0, 0))
+
+            draw.text((nick_x, nick_y), username,
+                    font=message_font, fill=(255, 255, 255))
+
+            timestamp = _get_unique_id()
+            output_path = os.path.join(
+                output_folder,
+                f"message_{username}_{timestamp}.png"
+            )
+
+            original_bg.save(output_path, "PNG", quality=95)
+
+            return output_path
+
+        except Exception as e:
+            logger.error(f"Error generating dynamic image: {e}", exc_info=True)
+            return None

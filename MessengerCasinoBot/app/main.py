@@ -3,23 +3,9 @@ from threading import Thread
 from app_cache import AppCache
 from command_worker import command_worker
 from file_worker import file_worker
-from message_handlers import start_monitoring_messages
-import time
-
-def initialize_math_scheduler(cache, file_queue):
-    from plugins.math_challenge import MathChallengePlugin
-    
-    plugin = MathChallengePlugin()
-    plugin.cache = cache
-    
-    success = plugin.start_scheduler(file_queue)
-    
-    if success:
-        print(f"[MATH] Scheduler started. First challenge will be sent at random time.")
-    else:
-        print(f"[MATH] Failed to start scheduler")
-    
-    return plugin
+from logger import logger
+from message_handler import start_monitoring_messages
+from plugins.math_challenge import get_math_plugin_instance
 
 def main():
     cache = AppCache(autosave_interval=60)
@@ -32,19 +18,20 @@ def main():
     cmd_thread.start()
     file_thread.start()
     
-    print("[MATH] Initializing challenge scheduler...")
-    math_plugin = initialize_math_scheduler(cache, file_queue)
-    print("[MATH] Bot started. Waiting for first random math challenge...")
+    math_plugin = get_math_plugin_instance().initialize_math_scheduler(cache, file_queue)
 
     try:
         start_monitoring_messages(command_queue)
     except KeyboardInterrupt:
-        print("Stopping...")
+        logger.critical("[MAIN] KeyboardInterrupt")
         if hasattr(math_plugin, 'stop_scheduler'):
-            math_plugin.stop_scheduler = True
+            math_plugin.stop_scheduler()
     except Exception as e:
-        print(f"Unexpected error: {e}")
+        logger.critical(f"[MAIN] Unexpected error: {e}", exc_info=True)
     finally:
+        if hasattr(math_plugin, 'stop_scheduler'):
+            math_plugin.stop_scheduler()
+        
         command_queue.put(None)
         file_queue.put(None)
         command_queue.join()
@@ -52,7 +39,7 @@ def main():
         cmd_thread.join()
         file_thread.join()
         cache.save_to_disk()
-        print("All workers stopped.")
+        logger.critical("[MAIN] All workers stopped.")
 
 if __name__ == "__main__":
     main()

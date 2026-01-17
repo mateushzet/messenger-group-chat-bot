@@ -1,74 +1,103 @@
 from datetime import datetime as dt
 from utils import take_error_screenshot
 import time
-from playwright.sync_api import sync_playwright
 from auth import MessengerAuth
+from logger import logger
 
-def log(msg):
-    print(f"[{dt.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}")
+last_message_time = None
+
+def update_last_message_time():
+    global last_message_time
+    last_message_time = dt.now()
+
+def get_sleep_time():
+    global last_message_time
+    
+    if last_message_time is None:
+        update_last_message_time()
+        return 3
+    
+    now = dt.now()
+    minutes_since_last = (now - last_message_time).total_seconds() / 60
+    
+    if minutes_since_last < 2:
+        return 0
+    if minutes_since_last < 5:
+        return 1
+    elif minutes_since_last < 30:
+        return 3
+    elif minutes_since_last < 60:
+        return 5
+    elif minutes_since_last < 120:
+        return 10
+    elif minutes_since_last < 180:
+        return 15
+    elif minutes_since_last < 240:
+        return 20
+    elif minutes_since_last < 360:
+        return 25
+    elif minutes_since_last < 480:
+        return 30
+    elif minutes_since_last < 720:
+        return 60
+    elif minutes_since_last < 1200:
+        return 180
+    else:
+        return 200
 
 def close_message_remove_popup(page):
     try:
         close_btn = page.query_selector("div[aria-label='Close']")
         if close_btn:
-            log("Closing remove popup")
             close_btn.click(force=True)
     except Exception as e:
-        log(f"Error closing popup: {e}")
+        logger.warning(f"[MesseageHandler] Error closing popup: {e}")
 
 def click_menu_option(page, row, label):
     try:
         row.hover(position={"x": 0, "y": 0})
-        log(f"Hovering over row to click menu option '{label}'")
         more_btn = row.wait_for_selector("div[aria-label='More']", timeout=1000)
         if more_btn:
-            log("Clicking 'More' button")
             more_btn.click(force=True)
             menu_btn = page.wait_for_selector(f"div[aria-label='{label}'][role='menuitem']", timeout=1000)
             if menu_btn:
-                log(f"Clicking menu item '{label}'")
                 menu_btn.click(force=True)
                 return True
     except Exception as e:
-        log(f"Error clicking menu option '{label}': {e}")
+        logger.warning(f"[MesseageHandler] Error clicking menu option '{label}': {e}")
     return False
 
 def add_reaction_to_message(page, row):
     try:
         row.hover(position={"x": 0, "y": 0})
-        log("Hovering to add reaction")
         react_btn = row.wait_for_selector("div[aria-label='React']", timeout=1000)
         if react_btn:
             react_btn.click(force=True)
             heart = page.wait_for_selector("img[alt='❤']", timeout=2000)
             if heart:
                 heart.click(force=True)
-                log("Added reaction ❤")
                 return True
     except Exception as e:
-        log(f"Error adding reaction: {e}")
-        take_error_screenshot(page)
+        logger.warning(f"[MesseageHandler] Error adding reaction: {e}")
+        take_error_screenshot(page,"adding_reaction")
         close_message_remove_popup(page)
     return False
 
 def remove_message(page, row, sender_name):
     try:
-        log(f"Attempting to remove message from '{sender_name}'")
         if click_menu_option(page, row, "Remove message"):
             confirm = page.wait_for_selector("div[aria-label='Remove']", timeout=1000)
             if confirm:
                 confirm.click(force=True)
-                log(f"Removed message from '{sender_name}'")
                 return True
     except Exception as e:
-        log(f"Error removing message from '{sender_name}': {e}")
-        take_error_screenshot(page)
+        logger.warning(f"[MesseageHandler] Error removing message from '{sender_name}': {e}")
+        take_error_screenshot(page,"removing_message")
         close_message_remove_popup(page)
     return False
 
 def unsend_message(page, row, sender_name):
     try:
-        log(f"Attempting to unsend message from '{sender_name}'")
         if click_menu_option(page, row, "Unsend message"):
             radio = page.wait_for_selector("input[type='radio'][value='1']", timeout=1000)
             if radio:
@@ -78,11 +107,10 @@ def unsend_message(page, row, sender_name):
                 )
                 if remove_button:
                     remove_button.click(force=True)
-                    log(f"Unsent message from '{sender_name}'")
                     return True
     except Exception as e:
-        log(f"Error unsending message from '{sender_name}': {e}")
-        take_error_screenshot(page)
+        logger.warning(f"[MesseageHandler] Error unsending message from '{sender_name}': {e}")
+        take_error_screenshot(page,"unsending_message")
         close_message_remove_popup(page)
     return False
 
@@ -141,8 +169,8 @@ def extract_messages_fix_unknown_sender(page, command_queue):
                     "avatar_url": avatar_url
                 })
             except Exception as e:
-                log(f"Error during message extraction: {e}")
-                take_error_screenshot(page)
+                logger.warning(f"[MesseageHandler] Error during message extraction: {e}")
+                take_error_screenshot(page, "message_extraction")
         fill_unknown_senders(messages_local)
         return messages_local
 
@@ -155,7 +183,6 @@ def extract_messages_fix_unknown_sender(page, command_queue):
         page.mouse.move(0, 0)
 
         if sender_name == "Open photo":
-            log("Unsend Open photo message")
             unsend_message(page, row, sender_name)
 
         elif sender_name == "Unknown":
@@ -164,13 +191,13 @@ def extract_messages_fix_unknown_sender(page, command_queue):
                 for m in retry_messages:
                     if m["message"] == message_text:
                         if m["sender"] != "Unknown":
-                            log(f"Adding reaction and removing unknown sender command message '{message_text}'")
                             if add_reaction_to_message(page, m["row"]):
                                 if remove_message(page, m["row"], m["sender"]):
                                     command_queue.put(m)
+                                    update_last_message_time()
+                                    logger.info(f"[MesseageHandler] Message queued: '{sender_name}' - '{message_text}'")
                         break
             else:
-                log(f"Removing message from unknown sender: '{message_text}'")
                 remove_message(page, row, sender_name)
 
         elif sender_name == "You":
@@ -182,6 +209,8 @@ def extract_messages_fix_unknown_sender(page, command_queue):
             if add_reaction_to_message(page, row):
                 if remove_message(page, row, sender_name):
                     command_queue.put(message)
+                    update_last_message_time()
+                    logger.info(f"[MesseageHandler] Message queued: '{sender_name}' - '{message_text}'")
 
         else:
             remove_message(page, row, sender_name)
@@ -197,26 +226,33 @@ def start_monitoring_messages(command_queue):
             time.sleep(5)
 
             if not page:
-                log("Failed to log in for monitoring")
+                logger.error("[MesseageHandler] Failed to log in for monitoring")
                 time.sleep(10)
                 continue
-            log("Starting message monitoring")
+            logger.info("[MesseageHandler] Starting message monitoring")
             try:
                 auth._take_screenshot(page, "monitoring_ready")
             except Exception as e:
-                log(f"Failed to take initial screenshot: {e}")
+                logger.error(f"[MesseageHandler] Failed to take initial screenshot: {e}")
+
+            last_message_time = dt.now()
+
             while True:
                 try:
                     extract_messages_fix_unknown_sender(page, command_queue)
-                    time.sleep(2)
+                    
+                    sleep_time = get_sleep_time()
+                    if sleep_time != 0:
+                        time.sleep(sleep_time)
+
                 except Exception as e:
-                    log(f"Error in message extraction: {e}")
+                    logger.error(f"[MesseageHandler] Error in message extraction: {e}")
                     try:
                         auth._take_screenshot(page, "extraction_error")
                     except:
                         pass
                     break
-            log("Closing browser, will reconnect...")
+            logger.critical("[MesseageHandler] Closing browser, will reconnect...")
             try:
                 browser.close()
             except:
@@ -227,8 +263,16 @@ def start_monitoring_messages(command_queue):
                 pass
             time.sleep(5)
         except KeyboardInterrupt:
-            log("Monitoring stopped by user")
+            logger.info("[MesseageHandler] Monitoring stopped by user")
             break
         except Exception as e:
-            log(f"Unexpected error in monitoring: {e}")
+            logger.critical(f"[MesseageHandler] Unexpected error in monitoring: {e}")
             time.sleep(10)
+
+def get_last_message_time():
+    global last_message_time
+    
+    if last_message_time is None:
+        update_last_message_time()
+
+    return last_message_time

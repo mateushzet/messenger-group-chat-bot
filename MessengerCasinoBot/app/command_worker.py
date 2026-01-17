@@ -3,6 +3,7 @@ import os
 import time
 from queue import Queue
 from user_manager import UserManager
+from logger import logger
 
 PLUGINS = {}
 
@@ -17,15 +18,15 @@ def load_plugins():
                 
                 command_name = f"/{info['name']}"
                 PLUGINS[command_name] = info
-                print(f"Loaded: {command_name}")
+                logger.info(f"[CommandWorker] Loaded: {command_name}")
                 
                 if "aliases" in info:
                     for alias in info["aliases"]:
                         PLUGINS[alias] = info
-                        print(f"  Alias: {alias}")
+                        logger.info(f"[CommandWorker] Alias: {alias}")
                         
             except Exception as e:
-                print(f"Error loading {filename}: {e}")
+                logger.critical(f"[CommandWorker] Error loading {filename}: {e}", exc_info=True)
 
 def execute_command(command_data, file_queue, cache):
     message_text = command_data.get("message").lower()
@@ -36,11 +37,11 @@ def execute_command(command_data, file_queue, cache):
     success, message = user_manager.create_user(sender_name, avatar_url)
 
     if not success:
-        print(f"Security: {message}")
+        logger.warning(f"[CommandWorker] Security: {message}")
         return
 
     if not message_text:
-        print("No 'message' field in command")
+        logger.info("[CommandWorker] No 'message' field in command")
         return
 
     parts = message_text.strip().split()
@@ -62,13 +63,13 @@ def execute_command(command_data, file_queue, cache):
                 avatar_url=avatar_url
             )
         except Exception as e:
-            print(f"Error in plugin {plugin['name']}: {e}")
+            logger.critical(f"Error in plugin {plugin['name']}: {e}", exc_info=True)
     else:
-        print(f"Unknown command: {command_name}")
+        logger.info(f"[CommandWorker] Unknown command: {command_name}")
 
 
 def command_worker(command_queue: Queue, file_queue: Queue, cache):
-    print("Command worker starting...")
+    logger.info("[CommandWorker] Command worker starting")
     load_plugins()
 
     while True:
@@ -79,11 +80,11 @@ def command_worker(command_queue: Queue, file_queue: Queue, cache):
             if command_data.get("message"):
                 execute_command(command_data, file_queue, cache)
             else:
-                print("No 'message' field in command object")
+                logger.warning(f"[CommandWorker] No 'message' field in command object")
         except Exception as e:
-            print(f"Command worker error: {e}")
+            logger.critical(f"[CommandWorker] Command worker error: {e}", exc_info=True)
         finally:
             command_queue.task_done()
             time.sleep(0.1)
 
-    print("Command worker stopped.")
+    logger.critical("[CommandWorker] Command worker stopped.")

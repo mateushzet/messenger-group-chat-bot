@@ -1,12 +1,15 @@
 import time
-from playwright.sync_api import Page
 import uuid
-import os
 import datetime
 
-def take_error_screenshot(page):
+def take_error_screenshot(page, name):
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"error_{timestamp}.png"
+    filename = f"error_{name}_{timestamp}.png"
+    page.screenshot(path=filename)
+
+def take_info_screenshot(page, name):
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"info_{name}_{timestamp}.png"
     page.screenshot(path=filename)
 
 def _get_unique_id():

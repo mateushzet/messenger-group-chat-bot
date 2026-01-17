@@ -2,12 +2,13 @@ import json
 import threading
 import time
 import os
-from plugins.avatar import AvatarPlugin
 from datetime import datetime, timedelta
 from collections import deque
+from logger import logger
+from message_handler import get_last_message_time
 
 class AppCache:
-    def __init__(self, backup_file="cache_backup.json", autosave_interval=900):
+    def __init__(self, backup_file="cache_backup.json", autosave_interval=60):
         self.backup_file = backup_file
         self.backup_dir = "backups"
         self.lock = threading.Lock()
@@ -87,14 +88,21 @@ class AppCache:
                 if self.active_math_challenge is None:
                     self.active_math_challenge = None
                 
+            logger.info(f"[AppCache] Cache loaded successfully")
+
         except Exception as e:
-            print(f"Cache load error: {e}")
+            logger.critical(f"[AppCache] Cache load error: {e}", exc_info=True)
 
     def _autosave_loop(self):
         while True:
             time.sleep(self.autosave_interval)
-            self.save_to_disk()
-            self._check_daily_backup()
+            last_msg_time = get_last_message_time()
+            time_diff = (datetime.now() - last_msg_time).total_seconds()   
+            if time_diff > (self.autosave_interval * 1.5):
+                continue
+            else:
+                self.save_to_disk()
+                self._check_daily_backup()
 
     def _check_daily_backup(self):
         now = datetime.now()
@@ -122,10 +130,12 @@ class AppCache:
                 with open(backup_path, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
                 
+                logger.info(f"[AppCache] Daily save completed")
+
                 self._cleanup_old_backups()
                 
         except Exception as e:
-            print(f"Daily backup error: {e}")
+            logger.critical(f"[AppCache] Daily backup error: {e}")
 
     def _cleanup_old_backups(self, keep_days=7):
         try:
@@ -140,8 +150,9 @@ class AppCache:
                             os.remove(file_path)
                     except ValueError:
                         continue
+            logger.info(f"[AppCache] Backup cleanup completed")
         except Exception as e:
-            print(f"Backup cleanup error: {e}")
+            logger.error(f"[AppCache] Backup cleanup error: {e}", exc_info=True)
 
     def save_to_disk(self):
         with self.lock:
@@ -155,8 +166,10 @@ class AppCache:
                 }
                 with open(self.backup_file, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
+
+                logger.info(f"[AppCache] Autosave completed")
             except Exception as e:
-                print(f"Cache save error: {e}")
+                logger.critical(f"Cache save error: {e}",exc_info=True)
 
     def add_market_item(self, item_type, filename):
         with self.lock:
@@ -177,16 +190,6 @@ class AppCache:
 
     def get_market_items(self):
         return list(self.market_items)
-
-    def get_market_backgrounds(self):
-        return [item for item in self.market_items if item.get("type") == "background"]
-
-    def get_market_avatars(self):
-        return [item for item in self.market_items if item.get("type") == "avatar"]
-
-    def clear_market(self):
-        with self.lock:
-            self.market_items.clear()
 
     def get_user(self, user_id):
         return self.users.get(str(user_id))
@@ -213,7 +216,7 @@ class AppCache:
             if uid not in self.users:
                 self.users[uid] = {
                     "name": f"User {uid}", 
-                    "balance": 0, 
+                    "balance": 50, 
                     "level": 1, 
                     "level_progress": 0.1,
                     "avatar": "default-avatar.png", 
@@ -232,7 +235,7 @@ class AppCache:
             if uid not in self.users:
                 self.users[uid] = {
                     "name": f"User {uid}", 
-                    "balance": 0, 
+                    "balance": 50, 
                     "level": 1, 
                     "level_progress": 0.1,
                     "avatar": "default-avatar.png", 
@@ -257,13 +260,6 @@ class AppCache:
             return self._resolve_relative_path(os.path.join("assets", "backgrounds", user["background"]))
         return self._resolve_relative_path(os.path.join("assets", "backgrounds", "default-bg.png"))
 
-    def get_game_state(self, game_id):
-        with self.lock:
-            return self.games.get(str(game_id))
-
-    def set_game_state(self, game_id, state):
-        with self.lock:
-            self.games[str(game_id)] = state
 
     def get_setting(self, key, default=None):
         with self.lock:
@@ -284,13 +280,16 @@ class AppCache:
             return backup_path
         
     def add_experience(self, user_id, win_amount, sender, file_queue):
+        logger.info(f"[AppCache] add_experience called with user_id={user_id}, win_amount={win_amount}")
+
         with self.lock:
             uid = str(user_id)
-            
+
             if uid not in self.users:
+                logger.info(f"[AppCache] User {uid} not found, creating new user")
                 self.users[uid] = {
                     "name": f"User {uid}", 
-                    "balance": 0, 
+                    "balance": 50, 
                     "level": 1, 
                     "level_progress": 0.1,
                     "avatar": "default-avatar.png", 
@@ -300,66 +299,65 @@ class AppCache:
                     "avatars": ["default-avatar.png"],
                     "backgrounds": ["default-bg.png"]
                 }
-            
+
             user = self.users[uid]
-            
+
             if win_amount >= 0:
+                logger.info(f"[AppCache] win_amount >= 0, no XP change. {user['level']}, progress {user['level_progress']}")
                 return user["level"], user["level_progress"]
-            
+
             loose_amount = abs(win_amount)
-            progress_increase = int(loose_amount / user["level"] / 2)
-            
+            level = user["level"]
+            multiplier = 2 + 2 * (level // 20)
+            progress_increase = round(loose_amount / (multiplier * level), 2)
+
             if progress_increase == 0:
+                logger.info(f"[AppCache] progress_increase is 0, no XP change. {user['level']}, progress {user['level_progress']}")
                 return user["level"], user["level_progress"]
-            
+
             progress_to_add = progress_increase / 100.0
+
             new_progress = user["level_progress"] + progress_to_add
-            
+
             level_changed = False
             new_level = user["level"]
-            
+
             while new_progress >= 1.0:
                 new_level += 1
                 new_progress -= 1.0
+                if new_progress < 0.1:
+                    new_progress = 0.1
                 level_changed = True
-            
+                logger.info(f"[AppCache] Level up! New level: {new_level}, new_progress: {new_progress}")
+
             user["level"] = new_level
             user["level_progress"] = new_progress
-            
+
+            logger.info(f"[AppCache] Expirence succsessfully added. {user['level']}, progress {user['level_progress']}")
+
             if level_changed:
-                print(f"[EXP] !!! LEVEL UP DETECTED !!! User {user['name']} reached level {new_level}")
-                print(f"[EXP] Calling AvatarPlugin.on_level_up...")
-                
+
                 try:
                     from plugins.avatar import AvatarPlugin
-                    print(f"[EXP] Import successful")
-                    
+
                     plugin = AvatarPlugin()
-                    print(f"[EXP] Plugin instance created")
-                    
                     plugin.cache = self
-                    
+
                     import threading
                     def run_level_up():
                         try:
                             result = plugin.on_level_up(user_id, sender, file_queue)
-                            print(f"[EXP] on_level_up completed: {result}")
                         except Exception as e:
-                            print(f"[EXP] ERROR in level up thread: {e}")
-                            import traceback
-                            traceback.print_exc()
-                    
+                            logger.critical(f"[AppCache] ERROR in level up thread: {e}", exc_info=True)
+
                     thread = threading.Thread(target=run_level_up)
                     thread.daemon = True
                     thread.start()
-                    
-                    print(f"[EXP] Level up process started in background")
-                    
+                    logger.info(f"[AppCache] Avatar roll started in background")
+
                 except Exception as e:
-                    print(f"[EXP] ERROR calling avatar system: {e}")
-                    import traceback
-                    traceback.print_exc()
-            
+                    logger.critical(f"[EXP] ERROR calling Avatar roll: {e}", exc_info=True)
+
             return new_level, new_progress
         
     def set_active_math_challenge(self, challenge_data):

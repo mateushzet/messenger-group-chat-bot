@@ -1,16 +1,10 @@
 import time
 import os
-import random
 from queue import Queue
-from datetime import datetime
-from playwright.sync_api import sync_playwright, Page
+from logger import logger
 from auth import MessengerAuth
-
-BASE_DIR = os.path.dirname(__file__)
-CONFIG_DIR = os.path.join(BASE_DIR, "config")
-SCREENSHOTS_DIR = os.path.join(BASE_DIR, "screenshots")
-os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
-
+from utils import take_info_screenshot
+from utils import take_error_screenshot
 
 def file_worker(file_queue: Queue):
     while True:
@@ -20,30 +14,29 @@ def file_worker(file_queue: Queue):
             page, browser, playwright = auth.log_in_to_messenger()
     
             if not page:
-                print("Failed to log in")
+                logger.critical("[FileWorker] Failed to log in")
                 continue
 
-            print("Ready to send files")
+            logger.info("[FileWorker] Ready to send files")
 
             try:
-                auth._take_screenshot(page, "ready_to_send_files")
+                take_info_screenshot(page, "ready_to_send_files")
             except Exception as e:
-                print(f"Failed to take screenshot: {e}")
+                logger.error(f"[FileWorker] Failed to take screenshot: {e}")
 
             while True:
                 file_path = file_queue.get()
 
                 if file_path is None:
-                    print("Received shutdown signal")
+                    logger.critical("[FileWorker] Received shutdown signal")
                     break
 
                 try:
                     if not os.path.exists(file_path):
-                        print(f"File does not exist: {file_path}")
+                        logger.error(f"[FileWorker] File does not exist: {file_path}")
                         continue
 
-                    print(f"Sending file: {file_path}")
-                    auth._take_screenshot(page, "before_sending_file")
+                    logger.info(f"[FileWorker] Sending file: {file_path}")
 
                     file_input_found = False
                     file_selectors = [
@@ -62,7 +55,7 @@ def file_worker(file_queue: Queue):
                             continue
 
                     if not file_input_found:
-                        print("Could not find file input")
+                        logger.critical("[FileWorker] Could not find file input")
                         continue
 
                     page.wait_for_selector(
@@ -70,29 +63,24 @@ def file_worker(file_queue: Queue):
                         timeout=20000
                     )
 
-                    time.sleep(1)
-
-                    auth._take_screenshot(page, "file_sent_check_previous")
-
                     page.wait_for_selector(
                         "div[aria-label='Press enter to send']",
                         timeout=10000
                     )
                     page.click("div[aria-label='Press enter to send']")
 
-                    auth._take_screenshot(page, "file_sent_check_after")
-                    print(f"File sent: {os.path.basename(file_path)}")
+                    logger.info(f"[FileWorker] File sent: {os.path.basename(file_path)}")
 
                 except Exception as e:
-                    print(f"Send error: {e}")
+                    logger.critical(f"[FileWorker] Send error: {e}",exc_info=True)
 
                     if browser.is_connected():
                         try:
-                            auth._take_screenshot(page, "send_error")
+                            take_error_screenshot(page, "file_send")
                         except:
                             pass
                     else:
-                        print("Browser disconnected, will reconnect...")
+                        logger.critical("[FileWorker] Browser disconnected, will reconnect")
                         break
 
                 finally:
@@ -112,10 +100,10 @@ def file_worker(file_queue: Queue):
                 break
 
         except KeyboardInterrupt:
-            print("File worker interrupted")
+            logger.critical("[FileWorker] File worker interrupted")
             break
         except Exception as e:
-            print(f"File worker error: {e}")
+            logger.critical(f"[FileWorker] File worker error: {e}", exc_info=True)
             time.sleep(10)
 
-    print("File worker stopped")
+    logger.critical("[FileWorker] File worker stopped")

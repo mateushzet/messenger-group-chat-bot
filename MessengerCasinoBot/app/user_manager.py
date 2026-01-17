@@ -1,5 +1,6 @@
 import requests
 import os
+from logger import logger
 from urllib.parse import urlparse
 
 BASE_DIR = os.path.dirname(__file__)
@@ -47,7 +48,7 @@ class UserManager:
             return filename
             
         except Exception as e:
-            print(f"Error downloading avatar from {avatar_url}: {e}")
+            logger.error(f"[UserManager] Error downloading avatar from {avatar_url}: {e}", exc_info=True)
             return None
 
     def find_user_by_name_avatar(self, name, avatar_url):
@@ -55,15 +56,12 @@ class UserManager:
             return None, None
         
         avatar_filename = self._extract_filename_from_url(avatar_url)
-        print(f"Looking for user: {name}, avatar: {avatar_filename}")
         
         for user_id, user_data in self.cache.users.items():
-            print(f"Checking user {user_id}: name={user_data.get('name')}, avatar={user_data.get('avatar_url')}")
             if user_data.get("name") == name and user_data.get("avatar_url") == avatar_filename:
-                print(f"Found match: {user_id}")
                 return user_id, user_data
         
-        print(f"No user found with name {name} and avatar {avatar_filename}")
+        logger.warning(f"[UserManager] No user found with name {name} and avatar {avatar_filename}")
         return None, None
     
     def find_users_by_name(self, name, exclude_avatar_filename=None):
@@ -80,7 +78,6 @@ class UserManager:
                 else:
                     users_with_same_name.append((user_id, user_data))
         
-        print(f"Found {len(users_with_same_name)} users with name {name}")
         return users_with_same_name
 
     def _create_new_user(self, name, avatar_url, is_admin=False):
@@ -94,7 +91,7 @@ class UserManager:
         self.cache.set_user(
             user_id,
             name=name,
-            balance=0, 
+            balance=50,
             level=1, 
             level_progress=0.1,
             avatar=avatar_filename,
@@ -106,10 +103,12 @@ class UserManager:
         
         self.next_user_id += 1
         
+        logger.info(f"[UserManager] User created successfully")
         return True, "User created successfully"
 
     def create_user(self, name, avatar_url, is_admin=False):
         if not self.cache or not name or not avatar_url:
+            logger.warning(f"[UserManager] Create User: Missing required data ")
             return False, "Missing required data"
         
         avatar_filename = self._extract_filename_from_url(avatar_url)
@@ -126,21 +125,18 @@ class UserManager:
                 for user_id, user_data in existing_users_with_same_name:
                     avatar = user_data.get('avatar', 'unknown') if user_data else 'unknown'
                     balance = user_data.get('balance', 0) if user_data else 0
-                    avatar_url_existing = user_data.get('avatar_url', 'unknown') if user_data else 'unknown'
                     
                     users_info.append(f"- ID: {user_id} (avatar: {avatar}, balance: {balance})")
                 
                 users_list = "\n".join(users_info)
-                previous_avatar = existing_users_with_same_name[0][1].get("avatar_url", "unknown") if existing_users_with_same_name[0][1] else "unknown"
-                
+
+                logger.warning(f"[UserManager] Different avatar detected for user '{name}'. Existing users with same name: {users_list}")
                 return False, f"Different avatar detected for user '{name}'. Existing users with same name: {users_list}"
             else:
                 return self._create_new_user(name, avatar_url, is_admin)
                 
         except Exception as e:
-            print(f"Error creating user {name}: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"[UserManager] Error creating user {name}: {e}", exc_info=True)
             return False, f"Error: {str(e)}"
 
     def get_user_avatar_path(self, user_id):
@@ -160,6 +156,7 @@ class UserManager:
                 break
         
         if not user_data:
+            logger.warning(f"[UserManager] No user found with name: {name} and avatar: {old_avatar_filename}")
             return False, f"No user found with name: {name} and avatar: {old_avatar_filename}"
         
         new_avatar_filename = self.download_avatar(new_avatar_url)
@@ -180,7 +177,7 @@ class UserManager:
         try:
             return self._create_new_user(name, avatar_url, is_admin)
         except Exception as e:
-            print(f"Error creating user {name}: {e}")
+            logger.error(f"[UserManager] Error creating user {name}: {e}",exc_info=True)
             return False, f"Error: {str(e)}"
         
     def set_user_admin(self, name, avatar_url, is_admin=True):

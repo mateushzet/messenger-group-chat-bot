@@ -1,9 +1,10 @@
 import json
 import os
-from playwright.sync_api import Page, sync_playwright, TimeoutError as PlaywrightTimeoutError
+from playwright.sync_api import Page, sync_playwright
 import configparser
 import time
-from datetime import datetime
+from logger import logger
+from utils import take_error_screenshot, take_info_screenshot
 
 BASE_DIR = os.path.dirname(__file__)
 CONFIG_DIR = os.path.join(BASE_DIR, "config")
@@ -11,8 +12,6 @@ os.makedirs(CONFIG_DIR, exist_ok=True)
 
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.ini")
 COOKIES_FILE = os.path.join(CONFIG_DIR, "cookies.json")
-SCREENSHOTS_DIR = os.path.join(BASE_DIR, "screenshots")
-os.makedirs(SCREENSHOTS_DIR, exist_ok=True)
 
 class MessengerAuth:
     def __init__(self, config_path: str = CONFIG_FILE):
@@ -20,17 +19,9 @@ class MessengerAuth:
         self.cookies_file = COOKIES_FILE
         self._load_config(self.config_path)
     
-    def _take_screenshot(self, page: Page, name: str):
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        screenshot_path = os.path.join(SCREENSHOTS_DIR, f"{name}_{timestamp}.png")
-        try:
-            page.screenshot(path=screenshot_path, full_page=True)
-            print(f"Screenshot saved: {screenshot_path}")
-        except Exception as e:
-            print(f"Failed to take screenshot {name}: {e}")
-    
     def _load_config(self, config_path: str):
         if not os.path.exists(config_path):
+            logger.critical(f"[AUTH] Config file not found: {config_path}")
             raise FileNotFoundError(f"Config file not found: {config_path}")
         
         config = configparser.ConfigParser()
@@ -40,18 +31,19 @@ class MessengerAuth:
             self.threadid = config["messenger"]["threadid"]
             self.pin = config["credentials"]["pin"]
         except KeyError as e:
+            logger.critical(f"[AUTH] Missing key in config.ini: {e}")
             raise KeyError(f"Missing key in config.ini: {e}")
 
     def load_cookies(self, context):
         try:
             if not os.path.exists(self.cookies_file):
-                print("No cookies file found")
+                logger.critical("[AUTH] No cookies file found")
                 return False
                 
             with open(self.cookies_file, 'r', encoding="utf-8") as f:
                 cookies_raw = json.load(f)
                 if not cookies_raw:
-                    print("Cookies file is empty")
+                    logger.critical("[AUTH] Cookies file is empty")
                     return False
 
                 def _clean_cookie_object(cookie_obj):
@@ -78,7 +70,7 @@ class MessengerAuth:
                         cookie_obj.pop(field, None)
 
                     if cookie_obj.get('name') == 'locale':
-                        print(f"Changing locale cookie from {cookie_obj.get('value')} to en_US")
+                        logger.info(f"[AUTH] Changing locale cookie from {cookie_obj.get('value')} to en_US")
                         cookie_obj['value'] = 'en_US'
 
                     return cookie_obj
@@ -89,18 +81,18 @@ class MessengerAuth:
                         cleaned_cookie = _clean_cookie_object(cookie)
                         cleaned_cookies.append(cleaned_cookie)
                     except Exception as e:
-                        print(f"Warning: Could not clean cookie: {e}")
+                        logger.critical(f"[AUTH] Could not clean cookie: {e}", exc_info=True)
                         continue
-
-                print(f"Loaded {len(cleaned_cookies)} cookies")
+                
+                logger.info(f"Loaded {len(cleaned_cookies)} cookies")
                 context.add_cookies(cleaned_cookies)
                 return True
                 
         except json.JSONDecodeError as e:
-            print(f"Cookie loading error: Invalid JSON: {str(e)}")
+            logger.critical(f"[AUTH] Cookie loading error: Invalid JSON: {str(e)}")
             return False
         except Exception as e:
-            print(f"Cookie loading error: {str(e)}")
+            logger.critical(f"[AUTH] Cookie loading error: {str(e)}")
             return False
 
     def check_pin_dialog(self, page: Page) -> bool:
@@ -121,7 +113,7 @@ class MessengerAuth:
                         element = page.locator(selector)
                     
                     if element.count() > 0 and element.first.is_visible(timeout=1000):
-                        print("PIN dialog detected")
+                        logger.info(f"[AUTH] PIN dialog detected")
                         return True
                 except:
                     continue
@@ -132,13 +124,13 @@ class MessengerAuth:
 
     def handle_pin_dialog(self, page: Page) -> bool:
         try:
-            print("Handling PIN dialog")
-            
+            logger.info(f"[AUTH] Handling PIN dialog")
+
             try:
                 page.wait_for_selector("input[maxlength='6']", timeout=5000)
             except:
-                print("PIN input not found")
-                self._take_screenshot(page, "pin_input_not_found")
+                logger.critical(f"[AUTH] PIN input not found")
+                take_error_screenshot(page, "pin_input_not_found")
                 return False
             
             pin_input = None
@@ -158,11 +150,9 @@ class MessengerAuth:
                     continue
             
             if not pin_input:
-                self._take_screenshot(page, "pin_input_not_found")
+                logger.critical(f"[AUTH] PIN input not found")
+                take_error_screenshot(page, "pin_input_not_found")
                 return False
-            
-            print(f"Entering PIN: {self.pin}")
-            self._take_screenshot(page, "before_pin_enter")
             
             pin_input.click()
             page.wait_for_timeout(500)
@@ -177,32 +167,28 @@ class MessengerAuth:
             
             entered_value = pin_input.input_value()
             if entered_value == self.pin:
-                print("PIN entered correctly")
+                logger.info(f"[AUTH] PIN entered correctly")
             else:
-                print(f"PIN mismatch: expected {self.pin}, got {entered_value}")
+                logger.critical(f"[AUTH] PIN mismatch: expected {self.pin}, got {entered_value}")
                 pin_input.fill(self.pin)
-            
-            self._take_screenshot(page, "after_pin_enter")
             
             pin_input.press("Enter")
             page.wait_for_timeout(3000)
             
             try:
                 page.wait_for_selector("input[maxlength='6']", state="hidden", timeout=5000)
-                print("PIN dialog closed")
-                self._take_screenshot(page, "pin_dialog_closed")
                 return True
             except:
                 if page.locator("text=Incorrect").count() > 0 or page.locator("text=Wrong").count() > 0:
-                    print("Incorrect PIN")
+                    logger.critical("[AUTH] Incorrect PIN")
                     return False
                 
-                print("PIN dialog may still be visible, but continuing")
+                logger.warning("[AUTH] PIN dialog may still be visible, but continuing")
                 return True
                 
         except Exception as e:
-            print(f"Error in handle_pin_dialog: {e}")
-            self._take_screenshot(page, "pin_error")
+            logger.critical(f"[AUTH] Error in handle_pin_dialog: {e}", exc_info=True)
+            take_error_screenshot(page, "pin_submit")
             return False
 
 
@@ -229,7 +215,7 @@ class MessengerAuth:
                 timeout=30000
             )
         except Exception as e:
-            print(f"Loading error: {e}")
+            logger.critical(f"[AUTH] Loading error: {e}")
             browser.close()
             p.stop()
             return None, None
@@ -239,14 +225,14 @@ class MessengerAuth:
 
         if self.check_pin_dialog(page):
             if not self.handle_pin_dialog(page):
-                print("Failed to handle PIN dialog")
+                logger.critical("[AUTH] Failed to handle PIN dialog")
                 browser.close()
                 p.stop()
                 return None, None, None
         
         time.sleep(10)
 
-        self._take_screenshot(page, "after log_in_to_messenger")
+        take_info_screenshot(page, "after_log_in")
 
         return page, browser, p
     
@@ -254,30 +240,22 @@ class MessengerAuth:
         try:
             time.sleep(5)
             
-            print("Looking for Close button with tabindex='0'...")
-            
             close_buttons = page.locator("button[tabindex='0']")
             
             if close_buttons.count() > 0:
-                print(f"Found {close_buttons.count()} button(s) with tabindex='0'")
                 
                 for i in range(close_buttons.count()):
                     try:
                         btn = close_buttons.nth(i)
                         if btn.is_visible(timeout=1000):
                             btn_text = btn.inner_text().strip()
-                            print(f"Button {i}: text='{btn_text}', visible={btn.is_visible()}")
                             
                             if btn_text.lower() in ["close", "zamknij", "x"]:
-                                print(f"Clicking Close button (text='{btn_text}')...")
                                 btn.click(force=True)
                                 time.sleep(1)
                                 return True
                     except Exception as e:
-                        print(f"Error checking button {i}: {e}")
                         continue
-            
-            print("Trying generic Close button search...")
             
             close_selectors = [
                 "button:has-text('Close')",
@@ -288,7 +266,6 @@ class MessengerAuth:
                 try:
                     close_btn = page.locator(selector).first
                     if close_btn.count() > 0 and close_btn.is_visible(timeout=1000):
-                        print(f"Found Close button with selector: {selector}")
                         close_btn.click(force=True)
                         page.wait_for_timeout(1000)
                         return True
@@ -297,29 +274,23 @@ class MessengerAuth:
             
             all_buttons = page.locator("button")
             if all_buttons.count() > 0:
-                print(f"Total buttons on page: {all_buttons.count()}")
-                
-                self._take_screenshot(page, "button_debug")
-                
                 for i in range(min(all_buttons.count(), 10)):
                     try:
                         btn = all_buttons.nth(i)
                         if btn.is_visible(timeout=500):
                             btn_text = btn.inner_text().strip()
                             if btn_text and btn_text.lower() in ["close", "zamknij"]:
-                                print(f"Found '{btn_text}' button at index {i}")
                                 btn.click(force=True)
                                 page.wait_for_timeout(1000)
                                 return True
                     except:
                         continue
             
-            print("No Close button found - either not present or already closed")
             return True
                 
         except Exception as e:
-            print(f"Error handling browser notice: {e}")
-            self._take_screenshot(page, "browser_notice_error")
+            logger.critical(f"Error handling browser notice: {e}", exc_info=True)
+            take_error_screenshot(page, "handlle_browser_notice")
             return False
 
     def remove_unwanted_aria_labels(self, page: Page):
