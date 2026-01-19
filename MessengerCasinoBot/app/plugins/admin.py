@@ -402,6 +402,9 @@ Created: {created_at}
 
     def add_money_to_user(self, user_manager, name_or_id, amount):
 
+        if isinstance(name_or_id, str) and name_or_id.startswith('@'):
+            name_or_id = name_or_id[1:].strip()
+
         if name_or_id.isdigit():
             user_id = int(name_or_id)
             user_data = user_manager.cache.users.get(user_id)
