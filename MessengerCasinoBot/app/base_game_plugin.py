@@ -25,7 +25,7 @@ class BaseGamePlugin:
         
         if amount > balance_before:
             logger.info(f"[BaseGamePlugin] Insufficient balance, user: {sender}, amount: {amount}, balance: {balance_before}")
-            return None, None, "Insufficient balance"
+            return user_id, user, "Insufficient balance"
         
         return user_id, user, None
     
