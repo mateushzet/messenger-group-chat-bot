@@ -122,13 +122,16 @@ class MathChallengePlugin(BaseGamePlugin):
             logger.warning(f"[MathChallenge] Animation folder does not exist: {self.answer_anim_folder}")
             return None
         
-        for file in os.listdir(self.answer_anim_folder):
-            if file.lower().endswith('.webp'):
-                path = os.path.join(self.answer_anim_folder, file)
-                return path
+        padded_amount = f"{reward_amount:03d}"
+        filename = f"reward_{padded_amount}.webp"
+        path = os.path.join(self.answer_anim_folder, filename)
         
-        logger.critical(f"[MathChallenge] No animation found for reward {reward_amount}")
-        return None
+        if os.path.exists(path):
+            logger.info(f"[MathChallenge] Found animation for reward {reward_amount}: {filename}")
+            return path
+        else:
+            logger.critical(f"[MathChallenge] No animation found for reward {reward_amount}")
+            return None
 
     def _generate_question_image(self, question, question_id):
         
@@ -633,11 +636,11 @@ class MathChallengePlugin(BaseGamePlugin):
         if command_name not in ["/answer", "/a"]:
             return "Use: /answer [number] or /a [number]"
         
+        user_id, user, error = self.validate_user_and_balance(cache, sender, avatar_url, 0)
+
         if not args:
             self.send_message_image(sender, file_queue, "Provide answer: /answer [number]\n\nExample: /answer 42", "Math Challenge", cache, user_id)
             return ""
-        
-        user_id, user, error = self.validate_user_and_balance(cache, sender, avatar_url, 0)
         
         if error:
             self.send_message_image(sender, file_queue, "User validation failed!", "Error", cache, user_id)
