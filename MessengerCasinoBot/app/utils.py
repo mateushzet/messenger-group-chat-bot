@@ -23,7 +23,7 @@ def _take_screenshot(page, name, prefix="screenshot"):
     try:
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_name = _sanitize(name)
-        filename = f"{prefix}_{safe_name}_{timestamp}.png"
+        filename = f"{prefix}_{timestamp}_{safe_name}.png"
         
         folder = "screenshots"
         if prefix == "error":
@@ -40,7 +40,7 @@ def _take_screenshot(page, name, prefix="screenshot"):
         cleanup_old_files(ERROR_DIR)
         return full_path
     except Exception as e:
-        logger.error(f"Failed to take {prefix} screenshot", exc_info=True)
+        logger.error(f"[Utils] Failed to take {prefix} screenshot", exc_info=True)
         return None
 
 def take_error_screenshot(page, name):
@@ -51,22 +51,6 @@ def take_info_screenshot(page, name):
 
 def _get_unique_id():
     return f"{int(time.time() * 1000000)}_{uuid.uuid4().hex[:8]}"
-
-def _try_cleanup():
-    global _last_cleanup_time
-    
-    current_time = time.time()
-    if current_time - _last_cleanup_time >= _CLEANUP_INTERVAL:
-        try:
-            deleted_info = cleanup_old_files(INFO_DIR, days_to_keep=1, file_pattern="*.png")
-            deleted_error = cleanup_old_files(ERROR_DIR, days_to_keep=1, file_pattern="*.png")
-            
-            if deleted_info > 0 or deleted_error > 0:
-                logger.info(f"[Cleanup] Auto-cleaned {deleted_info} info + {deleted_error} error screenshots")
-            
-            _last_cleanup_time = current_time
-        except Exception as e:
-            logger.error(f"[Cleanup] Failed: {e}")
 
 def cleanup_old_files(directory, days_to_keep=1, file_pattern="*"):
     if not os.path.exists(directory):
