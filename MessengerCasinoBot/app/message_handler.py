@@ -64,7 +64,7 @@ def click_menu_option(page, row, label):
         more_btn = row.wait_for_selector("div[aria-label='More']", timeout=1000)
         if more_btn:
             more_btn.click(force=True)
-            menu_btn = page.wait_for_selector(f"div[aria-label='{label}'][role='menuitem']", timeout=3000)
+            menu_btn = page.wait_for_selector(f"div[aria-label='{label}'][role='menuitem']", timeout=1000)
             if menu_btn:
                 menu_btn.click(force=True)
                 return True
@@ -75,10 +75,10 @@ def click_menu_option(page, row, label):
 def add_reaction_to_message(page, row):
     try:
         row.hover(position={"x": 0, "y": 0})
-        react_btn = row.wait_for_selector("div[aria-label='React']", timeout=3000)
+        react_btn = row.wait_for_selector("div[aria-label='React']", timeout=1000)
         if react_btn:
             react_btn.click(force=True)
-            heart = page.wait_for_selector("img[alt='❤']", timeout=3000)
+            heart = page.wait_for_selector("img[alt='❤']", timeout=1000)
             if heart:
                 heart.click(force=True)
                 return True
@@ -91,7 +91,7 @@ def add_reaction_to_message(page, row):
 def remove_message(page, row, sender_name):
     try:
         if click_menu_option(page, row, "Remove message"):
-            confirm = page.wait_for_selector("div[aria-label='Remove']", timeout=3000)
+            confirm = page.wait_for_selector("div[aria-label='Remove']", timeout=1000)
             if confirm:
                 confirm.click(force=True)
                 return True
@@ -104,11 +104,11 @@ def remove_message(page, row, sender_name):
 def unsend_message(page, row, sender_name):
     try:
         if click_menu_option(page, row, "Unsend message"):
-            radio = page.wait_for_selector("input[type='radio'][value='1']", timeout=3000)
+            radio = page.wait_for_selector("input[type='radio'][value='1']", timeout=1000)
             if radio:
                 radio.click(force=True)
                 remove_button = page.wait_for_selector(
-                    'xpath=//div[@aria-label="Remove" and @role="button"]', timeout=3000
+                    'xpath=//div[@aria-label="Remove" and @role="button"]', timeout=1000
                 )
                 if remove_button:
                     remove_button.click(force=True)
@@ -144,17 +144,40 @@ def extract_messages_fix_unknown_sender(page, command_queue):
                     continue
                 if row.get_attribute("class") is None or row.get_attribute("class") == "x9f619 x1n2onr6 x1ja2u2z":
                     continue
+                
+                you_sent_element = row.query_selector('span:has-text("You sent")')
+                
+                has_reaction = bool(row.query_selector('div[aria-label*="Like"][role="img"], div[aria-label*="Thumbs up"][role="img"]'))
+                has_reaction_svg = bool(row.query_selector('svg title[id*="_r_a"]'))
+                
                 message_el = gridcell.query_selector("div[dir='auto']")
                 message_text = message_el.inner_text().strip() if message_el else ""
 
+                img_elements = row.query_selector_all('img[alt^=""]')
+                emoji_imgs = []
+                for img in img_elements:
+                    try:
+                        src = img.get_attribute('src')
+                        if src and src.startswith('https://static.xx.fbcdn.net/images/emoji.php'):
+                            emoji_imgs.append(img)
+                    except:
+                        pass
+                
                 if message_text == "":
-                    img_el = row.query_selector('img[alt="Open photo"]')
-                    gif_el = row.query_selector('img[alt="GIF Image"]')
-                    if img_el or gif_el:
-                        message_text = "photo"
+                    if has_reaction or has_reaction_svg:
+                        message_text = "reaction"
+                    elif you_sent_element or emoji_imgs:
+                        message_text = "emoji_or_special"
+                    else:
+                        aria_label = row.get_attribute("aria-label")
+                        if aria_label:
+                            aria_label_lower = aria_label.lower()
+                            if any(word in aria_label_lower for word in ["like", "thumbs", "reaction", "emoji"]):
+                                message_text = "reaction"
 
                 if message_text == "Enter":
                     continue
+                    
                 avatar = row.query_selector("img.x1rg5ohu, [role='row'] img")
                 row_text = row.inner_text().lower()
                 contains_you_sent = "you sent" in row_text
@@ -166,12 +189,16 @@ def extract_messages_fix_unknown_sender(page, command_queue):
                     sender_name = "You"
                 else:
                     sender_name = "Unknown"
+                    
                 messages_local.append({
                     "row": row,
                     "sender": sender_name,
                     "message": message_text,
                     "timestamp": dt.now().isoformat(),
-                    "avatar_url": avatar_url
+                    "avatar_url": avatar_url,
+                    "contains_emoji": len(emoji_imgs) > 0,
+                    "has_you_sent": contains_you_sent,
+                    "has_reaction": has_reaction or has_reaction_svg
                 })
             except Exception as e:
                 logger.warning(f"[MessageHandler] Error during message extraction: {e}")
@@ -206,9 +233,17 @@ def extract_messages_fix_unknown_sender(page, command_queue):
                 remove_message(page, row, sender_name)
 
         elif sender_name == "You":
-            if message_text.strip() == "" and "Open photo" not in message_text:
+            # Usuń reakcje, emoji i specjalne wiadomości
+            if message_text == "reaction" or message["has_reaction"]:
+                if unsend_message(page, row, sender_name):
+                    logger.info(f"[MessageHandler] Removed reaction message from 'You'")
+            elif message_text == "emoji_or_special":
+                if unsend_message(page, row, sender_name):
+                    logger.info(f"[MessageHandler] Removed emoji/special message from 'You'")
+            elif message_text.strip() == "" and "Open photo" not in message_text:
                 continue
-            unsend_message(page, row, sender_name)
+            else:
+                unsend_message(page, row, sender_name)
 
         elif is_command_message:
             if add_reaction_to_message(page, row):
@@ -219,7 +254,6 @@ def extract_messages_fix_unknown_sender(page, command_queue):
 
         else:
             remove_message(page, row, sender_name)
-
 
 def start_monitoring_messages(command_queue):
     last_cleanup_time = None
