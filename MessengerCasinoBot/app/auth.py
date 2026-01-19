@@ -46,40 +46,20 @@ class MessengerAuth:
                     logger.critical("[AUTH] Cookies file is empty")
                     return False
 
-                def _clean_cookie_object(cookie_obj):
-                    sameSite_raw = cookie_obj.get('sameSite', '').lower()
-                    sameSite_map = {
-                        'no_restriction': 'None',
-                        'unspecified': 'Lax',
-                        'lax': 'Lax',
-                        'strict': 'Strict',
-                        'none': 'None'
-                    }
-                    cookie_obj['sameSite'] = sameSite_map.get(sameSite_raw, 'Lax')
-
-                    if 'expirationDate' in cookie_obj:
-                        cookie_obj['expires'] = int(cookie_obj['expirationDate'])
-                        del cookie_obj['expirationDate']
-
-                    domain = cookie_obj.get('domain', '')
-                    if domain == '.facebook.com' or not domain.endswith('messenger.com'):
-                        cookie_obj['domain'] = '.messenger.com'
-
-                    fields_to_remove = ['hostOnly', 'session', 'storeId', 'id']
-                    for field in fields_to_remove:
-                        cookie_obj.pop(field, None)
-
-                    if cookie_obj.get('name') == 'locale':
-                        logger.info(f"[AUTH] Changing locale cookie from {cookie_obj.get('value')} to en_US")
-                        cookie_obj['value'] = 'en_US'
-
-                    return cookie_obj
-
                 cleaned_cookies = []
                 for cookie in cookies_raw:
                     try:
-                        cleaned_cookie = _clean_cookie_object(cookie)
-                        cleaned_cookies.append(cleaned_cookie)
+                        sameSite_raw = cookie.get('sameSite', '').lower()
+                        sameSite_map = {
+                            'no_restriction': 'None',
+                            'unspecified': 'Lax',
+                            'lax': 'Lax',
+                            'strict': 'Strict',
+                            'none': 'None'
+                        }
+                        cookie['sameSite'] = sameSite_map.get(sameSite_raw, 'Lax')
+                        
+                        cleaned_cookies.append(cookie)
                     except Exception as e:
                         logger.critical(f"[AUTH] Could not clean cookie: {e}", exc_info=True)
                         continue
