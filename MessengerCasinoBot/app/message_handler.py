@@ -5,11 +5,29 @@ from utils import take_error_screenshot
 from utils import take_info_screenshot
 from auth import MessengerAuth
 from logger import logger
+from collections import deque
 
 last_message_time = None
 
+recent_messages = deque(maxlen=20)
+MESSAGES_THRESHOLD = 2
+TIME_WINDOW = 5
+
 BASE_DIR = os.path.dirname(__file__)
 TEMP_DIR = os.path.join(BASE_DIR, "temp")
+
+def add_to_message_history(username):
+    recent_messages.append((dt.now(), username))
+
+def is_user_spamming(username):
+    now = dt.now()
+    
+    count = 0
+    for timestamp, user in recent_messages:
+        if user == username and (now - timestamp).total_seconds() <= TIME_WINDOW:
+            count += 1
+    
+    return count >= MESSAGES_THRESHOLD
 
 def update_last_message_time():
     global last_message_time
@@ -64,12 +82,15 @@ def click_menu_option(page, row, label):
         more_btn = row.wait_for_selector("div[aria-label='More']", timeout=1000)
         if more_btn:
             more_btn.click(force=True)
+            time.sleep(0.01)
             menu_btn = page.wait_for_selector(f"div[aria-label='{label}'][role='menuitem']", timeout=1000)
             if menu_btn:
                 menu_btn.click(force=True)
+                time.sleep(0.01)
                 return True
     except Exception as e:
         logger.info(f"[MessageHandler] Error clicking menu option '{label}'")
+        close_message_remove_popup(page)
     return False
 
 def add_reaction_to_message(page, row):
@@ -78,12 +99,33 @@ def add_reaction_to_message(page, row):
         react_btn = row.wait_for_selector("div[aria-label='React']", timeout=1000)
         if react_btn:
             react_btn.click(force=True)
+            time.sleep(0.01)
             heart = page.wait_for_selector("img[alt='❤']", timeout=1000)
             if heart:
                 heart.click(force=True)
+                time.sleep(0.01)
                 return True
     except Exception as e:
-        logger.info(f"[MessageHandler] Error adding reaction")
+        logger.info(f"[MessageHandler] Error adding heart reaction")
+        take_error_screenshot(page,"adding_reaction")
+        close_message_remove_popup(page)
+    return False
+
+
+def add_angry_reaction_to_message(page, row):
+    try:
+        row.hover(position={"x": 0, "y": 0})
+        react_btn = row.wait_for_selector("div[aria-label='React']", timeout=1000)
+        if react_btn:
+            react_btn.click(force=True)
+            time.sleep(0.01)
+            angry = page.wait_for_selector("img[alt='😡']", timeout=1000)
+            if angry:
+                angry.click(force=True)
+                time.sleep(0.01)
+                return True
+    except Exception as e:
+        logger.info(f"[MessageHandler] Error adding angry reaction")
         take_error_screenshot(page,"adding_reaction")
         close_message_remove_popup(page)
     return False
@@ -107,11 +149,13 @@ def unsend_message(page, row, sender_name):
             radio = page.wait_for_selector("input[type='radio'][value='1']", timeout=1000)
             if radio:
                 radio.click(force=True)
+                time.sleep(0.01)
                 remove_button = page.wait_for_selector(
                     'xpath=//div[@aria-label="Remove" and @role="button"]', timeout=1000
                 )
                 if remove_button:
                     remove_button.click(force=True)
+                    time.sleep(0.01)
                     return True
     except Exception as e:
         logger.warning(f"[MessageHandler] Error unsending message from '{sender_name}': {e}")
@@ -223,9 +267,16 @@ def extract_messages_fix_unknown_sender(page, command_queue):
                 for m in retry_messages:
                     if m["message"] == message_text:
                         if m["sender"] != "Unknown":
+                            if is_user_spamming(sender_name):
+                                if add_angry_reaction_to_message(page, row):
+                                    if remove_message(page, row, sender_name):
+                                        logger.warning(f"[AntiSpam] Removed spam message from {sender_name}")
+                                        add_to_message_history(sender_name)
+                                continue
                             if add_reaction_to_message(page, m["row"]):
                                 if remove_message(page, m["row"], m["sender"]):
                                     command_queue.put(m)
+                                    add_to_message_history(sender_name)
                                     update_last_message_time()
                                     logger.info(f"[MessageHandler] Message queued: '{sender_name}' - '{message_text}'")
                         break
@@ -246,9 +297,16 @@ def extract_messages_fix_unknown_sender(page, command_queue):
                 unsend_message(page, row, sender_name)
 
         elif is_command_message:
+            if is_user_spamming(sender_name):
+                if add_angry_reaction_to_message(page, row):
+                    if remove_message(page, row, sender_name):
+                        logger.warning(f"[AntiSpam] Removed spam message from {sender_name}")
+                        add_to_message_history(sender_name)
+                continue
             if add_reaction_to_message(page, row):
                 if remove_message(page, row, sender_name):
                     command_queue.put(message)
+                    add_to_message_history(sender_name)
                     update_last_message_time()
                     logger.info(f"[MessageHandler] Message queued: '{sender_name}' - '{message_text}'")
 
