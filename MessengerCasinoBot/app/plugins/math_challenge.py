@@ -630,38 +630,125 @@ class MathChallengePlugin(BaseGamePlugin):
         return result_path, error
 
     def execute_game(self, command_name, args, file_queue, cache=None, sender=None, avatar_url=None):
-
         self.cache = cache
+        
+        user_id, user, error = self.validate_user_and_balance(cache, sender, avatar_url, 0)
+        
+        if not args:
+            challenge = self.cache.get_active_math_challenge()
+            
+            if challenge and challenge.get("status") == "active":
+                if challenge.get("image_generated", False):
+                    image_path = os.path.join(self.results_folder, f"math_question_{challenge['id']}.png")
+                    
+                    if os.path.exists(image_path):
+                        file_queue.put(image_path)
+                        
+                        reward = challenge.get("reward", 0)
+                        return f"**Current Math Challenge**\nReward: {reward} coins\nAnswer using: `/a [number]`"
+                    else:
+                        new_image_path = self._generate_question_image(challenge["question"], challenge["id"])
+                        if new_image_path:
+                            file_queue.put(new_image_path)
+                            return f"**Current Math Challenge**\nReward: {reward} coins\nAnswer using: `/a [number]`"
+                else:
+                    self.send_message_image(sender, file_queue, 
+                        "Math challenge is active!\n\nPlease wait for the image to appear first.",
+                        "Math Challenge", cache, user_id)
+                    return ""
+            else:
+                
+                self.send_message_image(sender, file_queue, 
+                    f"No active math challenge at the moment!\nMath challenges appear randomly once per hour.",
+                    "Math Challenge", cache, user_id)
+                return ""
         
         if command_name not in ["/answer", "/a"]:
             return "Use: /answer [number] or /a [number]"
         
-        user_id, user, error = self.validate_user_and_balance(cache, sender, avatar_url, 0)
-
-        if not args:
-            self.send_message_image(sender, file_queue, "Provide answer: /answer [number]\n\nExample: /answer 42", "Math Challenge", cache, user_id)
-            return ""
+        answer = args[0].strip()
         
         if error:
             self.send_message_image(sender, file_queue, "User validation failed!", "Error", cache, user_id)
             return ""
         
-        answer = args[0].strip()
-        
         is_correct, reward, challenge, error_msg = self._check_answer(user_id, answer)
         
         if error_msg:
             logger.warning(f"MathChallengePlugin: Answer check failed: {error_msg}")
-            if "Wrong answer" in error_msg:
-                self.send_message_image(sender, file_queue, "Wrong answer!\n\nTry again or wait for the next challenge.", "Math Challenge", cache, user_id)
-            elif "No active challenge" in error_msg:
-                self.send_message_image(sender, file_queue, "No active math challenge!\n\nMath challenges appear randomly once per hour.", "Math Challenge", cache, user_id)
+            
+            if "No active challenge" in error_msg:
+                active_challenge = self.cache.get_active_math_challenge()
+                if active_challenge:
+                    status = active_challenge.get("status", "unknown")
+                    if status == "scheduled":
+                        try:
+                            scheduled_time = datetime.fromisoformat(active_challenge.get("scheduled_for", ""))
+                            now = datetime.now()
+                            time_until = scheduled_time - now
+                            
+                            if time_until.total_seconds() > 0:
+                                minutes = int(time_until.total_seconds() // 60)
+                                wait_msg = f"\nNext challenge in approximately {minutes} minutes"
+                            else:
+                                wait_msg = "\nChallenge should appear soon!"
+                        except:
+                            wait_msg = "\nChallenge is scheduled for later."
+                        
+                        self.send_message_image(sender, file_queue, 
+                            f"No active math challenge at the moment!{wait_msg}\n\nMath challenges appear randomly once per hour.",
+                            "Math Challenge", cache, user_id)
+                    elif status == "solved":
+                        self.send_message_image(sender, file_queue, 
+                            "Challenge already solved!\n\nWait for the next math challenge.",
+                            "Math Challenge", cache, user_id)
+                    else:
+                        self.send_message_image(sender, file_queue, 
+                            f"No active math challenge! (Status: {status})\n\nMath challenges appear randomly once per hour.",
+                            "Math Challenge", cache, user_id)
+                else:
+                    self.send_message_image(sender, file_queue, 
+                        "No math challenge scheduled!\n\nMath challenges appear randomly once per hour.",
+                        "Math Challenge", cache, user_id)
+            elif "Wrong answer" in error_msg:
+                self.send_message_image(sender, file_queue, 
+                    "Wrong answer!\n\nTry again or wait for the next challenge.",
+                    "Math Challenge", cache, user_id)
             elif "already solved" in error_msg:
-                self.send_message_image(sender, file_queue, "Challenge already solved!\n\nWait for the next math challenge.", "Math Challenge", cache, user_id)
+                self.send_message_image(sender, file_queue, 
+                    "Challenge already solved!\n\nWait for the next math challenge.",
+                    "Math Challenge", cache, user_id)
             elif "Invalid answer format" in error_msg:
-                self.send_message_image(sender, file_queue, "Invalid answer format!\n\nPlease provide a number.\nExample: /answer 42", "Math Challenge", cache, user_id)
+                self.send_message_image(sender, file_queue, 
+                    "Invalid answer format!\n\nPlease provide a number.\nExample: /a 42",
+                    "Math Challenge", cache, user_id)
+            elif "Challenge not yet active" in error_msg:
+                active_challenge = self.cache.get_active_math_challenge()
+                if active_challenge and active_challenge.get("status") == "scheduled":
+                    try:
+                        scheduled_time = datetime.fromisoformat(active_challenge.get("scheduled_for", ""))
+                        now = datetime.now()
+                        time_until = scheduled_time - now
+                        
+                        if time_until.total_seconds() > 0:
+                            minutes = int(time_until.total_seconds() // 60)
+                            wait_msg = f"\nChallenge will be active in approximately {minutes} minutes"
+                        else:
+                            wait_msg = "\nChallenge should become active soon!"
+                    except:
+                        wait_msg = "\nChallenge is scheduled for later."
+                    
+                    self.send_message_image(sender, file_queue, 
+                        f"Challenge not yet active!{wait_msg}\n\nWait for the image to appear first.",
+                        "Math Challenge", cache, user_id)
+                else:
+                    self.send_message_image(sender, file_queue, 
+                        "Challenge not yet active!\n\nWait for the image to appear first.",
+                        "Math Challenge", cache, user_id)
             else:
-                self.send_message_image(sender, file_queue, f"Error: {error_msg}", "Math Challenge", cache, user_id)
+                self.send_message_image(sender, file_queue, 
+                    f"Error: {error_msg}", 
+                    "Math Challenge", cache, user_id)
             return ""
         
         if is_correct:
@@ -675,7 +762,7 @@ class MathChallengePlugin(BaseGamePlugin):
             user_info_before = self.create_user_info(
                 sender, 0, 0, balance_before, user
             )
-             
+            
             user_info_after = self.create_user_info(
                 sender, 0, reward, balance_after, user
             )
@@ -688,19 +775,19 @@ class MathChallengePlugin(BaseGamePlugin):
                 file_queue.put(anim_path)
                 
                 response = (
-                    f"CORRECT ANSWER!\n"
-                    f"Player: {sender}\n"
-                    f"+{reward} coins\n"
-                    f"New balance: {balance_after}\n"
+                    f"**CORRECT ANSWER!**\n\n"
+                    f"**Player:** {sender}\n"
+                    f"**Reward:** +{reward} coins\n"
+                    f"**New balance:** {balance_after}\n\n"
                     f"Next math challenge will appear randomly in the next hour!"
                 )
                 return response
             else:
                 response = (
-                    f"CORRECT ANSWER!\n"
-                    f"Player: {sender}\n"
-                    f"+{reward} coins\n"
-                    f"New balance: {balance_after}"
+                    f"**CORRECT ANSWER!**\n\n"
+                    f"**Player:** {sender}\n"
+                    f"**Reward:** +{reward} coins\n"
+                    f"**New balance:** {balance_after}"
                 )
                 logger.error(f"[MathChallenge] Reward animation (error: {anim_error})")
                 return response
