@@ -348,8 +348,8 @@ class AnimationGenerator:
         return output_path
 
     def generate_static(self, image_path, avatar_path, bg_path, user_info, output_path="output.webp", 
-                       game_type=None, custom_overlay_kwargs=None, show_win_text=True,
-                       font_scale=1.0, avatar_size=85):
+                    game_type=None, custom_overlay_kwargs=None, show_win_text=True,
+                    font_scale=1.0, avatar_size=85):
         
         self._preload_resources()
         
@@ -359,7 +359,10 @@ class AnimationGenerator:
             convert_mode="RGBA"
         )
         
-        base_img = self.resource_cache.get_image(image_path, convert_mode="RGBA")
+        if hasattr(image_path, 'read'):
+            base_img = Image.open(image_path).convert("RGBA")
+        else:
+            base_img = self.resource_cache.get_image(image_path, convert_mode="RGBA")
         
         overlay_data = self._get_cached_overlay(
             avatar_img=avatar,
