@@ -42,8 +42,7 @@ class TimePlugin(BaseGamePlugin):
         
         user = cache.get_user(user_id)
         if user:
-            new_balance = user.get("balance", 0) + 37
-            cache.update_balance(user_id, new_balance)
+            new_balance = cache.update_balance(user_id, 37)
             logger.info(f"[Time] Easter egg awarded to {user_id}: +37 coins at {current_time_iso}. New balance: {new_balance}")
             return True, new_balance
         
