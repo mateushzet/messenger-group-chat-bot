@@ -487,12 +487,7 @@ class RankingPlugin(BaseGamePlugin):
         img_path = os.path.join(self.results_folder, f"ranking_{ranking_type}_{user_id}.webp")
         self.create_ranking_image(img_path, cache, user_id, ranking_type)
         
-        overlay_path, error = self.apply_user_overlay(
-            img_path, user_id, sender, 0, 0, user["balance"], user
-        )
-        if overlay_path:
-            file_queue.put(overlay_path)
-            logger.info(f"[Ranking] Ranking overlay saved to: {overlay_path}")
+        file_queue.put(img_path)
         
         position, user_data = self.get_user_position(cache, user_id, ranking_type)
         total_users = len(cache.users) if hasattr(cache, 'users') else 0
