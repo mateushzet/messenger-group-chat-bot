@@ -217,12 +217,12 @@ class AnimationGenerator:
         
         if total_frames <= 30:
             frame_skip = 1
-        elif total_frames <= 80:
-            frame_skip = 2  
+        elif total_frames <= 100:
+            frame_skip = 1  
         elif total_frames <= 120:
-            frame_skip = 3
+            frame_skip = 2
         else:
-            frame_skip = 4
+            frame_skip = 3
         
         included_frames = list(range(0, total_frames, frame_skip))
         
