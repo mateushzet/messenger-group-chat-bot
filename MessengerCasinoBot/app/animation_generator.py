@@ -196,7 +196,8 @@ class AnimationGenerator:
                  user_info_after, output_path="output.webp", 
                  game_type=None, frame_duration=100, last_frame_multiplier=1.0,
                  custom_overlay_kwargs=None, show_win_text=True,
-                 font_scale=1.0, avatar_size=85, overlay_frames=1):
+                 font_scale=1.0, avatar_size=85, overlay_frames=1,
+                 show_bet_amount=True):
 
         icons = self._preload_resources()
         
@@ -246,7 +247,8 @@ class AnimationGenerator:
             is_after=False,
             font_scale=font_scale,
             avatar_size=avatar_size,
-            is_win=is_win
+            is_win=is_win,
+            show_bet_amount=show_bet_amount
         )
         
         overlay_after = self._create_avatar_overlay(
@@ -258,7 +260,8 @@ class AnimationGenerator:
             user_info_before=user_info_before,
             font_scale=font_scale,
             avatar_size=avatar_size,
-            is_win=is_win
+            is_win=is_win,
+            show_bet_amount=show_bet_amount
         )
         
         win_text_img = None
@@ -353,7 +356,7 @@ class AnimationGenerator:
 
     def generate_static(self, image_path, avatar_path, bg_path, user_info, output_path="output.webp", 
                         game_type=None, custom_overlay_kwargs=None, show_win_text=True,
-                        font_scale=1.0, avatar_size=85):
+                        font_scale=1.0, avatar_size=85, show_bet_amount=True):
         
         icons = self._preload_resources()
         
@@ -376,7 +379,8 @@ class AnimationGenerator:
             is_after=False,
             font_scale=font_scale,
             avatar_size=avatar_size,
-            is_win=False
+            is_win=False,
+            show_bet_amount=show_bet_amount
         )
         
         overlay_img = overlay_data['image']
@@ -471,7 +475,8 @@ class AnimationGenerator:
 
     def _create_avatar_overlay(self, avatar_img, user_info, bet_icon=None, balance_icon=None, 
                                     is_after=False, user_info_before=None, 
-                                    font_scale=1.0, avatar_size=95, is_win=False):
+                                    font_scale=1.0, avatar_size=95, is_win=False,
+                                    show_bet_amount=True):
 
         username = user_info.get('username', '')
         balance = user_info.get('balance', 0)
@@ -483,17 +488,23 @@ class AnimationGenerator:
         scaled_username_size = int(18 * font_scale)
         scaled_icon_size = int(24 * font_scale)
         
-        bet_text = f"${bet:,}"
-        bet_color = self.colors['warning'] if not is_after or is_win else self.colors['danger']
-        
-        bet_img = self.text_renderer.render_text_to_image(
-            text=bet_text,
-            font_path=self._default_font_path,
-            font_size=scaled_font_size,
-            color=bet_color,
-            stroke_width=max(1, int(1 * font_scale)),
-            stroke_color=(0, 0, 0, 150)
-        )
+        bet_img = None
+        bet_bg_width = 0
+        if show_bet_amount:
+            bet_text = f"${bet:,}"
+            bet_color = self.colors['warning'] if not is_after or is_win else self.colors['danger']
+            
+            bet_img = self.text_renderer.render_text_to_image(
+                text=bet_text,
+                font_path=self._default_font_path,
+                font_size=scaled_font_size,
+                color=bet_color,
+                stroke_width=max(1, int(1 * font_scale)),
+                stroke_color=(0, 0, 0, 150)
+            )
+            
+            icon_text_spacing = int(4 * font_scale)
+            bet_bg_width = scaled_icon_size + bet_img.width + icon_text_spacing + int(4 * font_scale)
         
         if is_after and user_info_before is not None:
             balance_before = user_info_before.get('balance', 0)
@@ -526,11 +537,14 @@ class AnimationGenerator:
         
         icon_text_spacing = int(4 * font_scale)
         
-        bet_bg_width = scaled_icon_size + bet_img.width + icon_text_spacing + int(4 * font_scale)
         balance_bg_width = scaled_icon_size + balance_img.width + icon_text_spacing + int(4 * font_scale)
         username_bg_width = username_img.width + int(8 * font_scale) if username_img else 0
 
-        actual_left_width = max(bet_bg_width, balance_bg_width, username_bg_width)
+        widths_to_check = [balance_bg_width, username_bg_width]
+        if show_bet_amount and bet_img:
+            widths_to_check.append(bet_bg_width)
+        
+        actual_left_width = max(widths_to_check) if widths_to_check else 0
         
         element_height = int(28 * font_scale)
         username_height = int(26 * font_scale) if username_img else 0
@@ -538,10 +552,13 @@ class AnimationGenerator:
         
         total_width = actual_left_width + avatar_size + int(5 * font_scale)
         
-        num_elements = 2 + (1 if username_img else 0)
-        total_elements_height = (num_elements * element_height) + ((num_elements - 1) * element_spacing)
+        num_elements = 1 + (1 if username_img else 0) + (1 if show_bet_amount else 0)
+        total_elements_height = (num_elements * element_height) + max(0, (num_elements - 1) * element_spacing)
         if username_img:
-            total_elements_height = (2 * element_height) + username_height + (2 * element_spacing)
+            if show_bet_amount:
+                total_elements_height = (3 * element_height) + username_height + (2 * element_spacing)
+            else:
+                total_elements_height = (2 * element_height) + username_height + element_spacing
         
         overlay_height = max(
             total_elements_height + int(10 * font_scale),
@@ -673,32 +690,33 @@ class AnimationGenerator:
                             (text_start_x + scaled_icon_size + int(2 * font_scale), 
                             current_y + text_offset_y))
         
-        current_y -= element_height + element_spacing
-        
-        bet_bg_key = f"bet_bg_{bet_bg_width}_{element_height}"
-        if bet_bg_key not in blur_cache:
-            bet_bg = Image.new('RGBA', (bet_bg_width, element_height), (0, 0, 0, 140))
-            bet_bg_draw = ImageDraw.Draw(bet_bg)
-            bet_bg_draw.rounded_rectangle(
-                [0, 0, bet_bg_width-1, element_height-1], 
-                radius=bg_radius, 
-                fill=(0, 0, 0, 140)
-            )
-            blur_cache[bet_bg_key] = bet_bg.filter(ImageFilter.GaussianBlur(radius=3))
-        
-        overlay.alpha_composite(blur_cache[bet_bg_key], (text_start_x, current_y))
-        
-        if bet_icon:
-            bet_icon_resized = bet_icon.resize((scaled_icon_size, scaled_icon_size))
-            icon_offset_y = (element_height - scaled_icon_size) // 2
-            overlay.alpha_composite(bet_icon_resized, 
-                                (text_start_x + int(2 * font_scale), 
-                                current_y + icon_offset_y))
-        
-        text_offset_y = (element_height - bet_img.height) // 2
-        overlay.alpha_composite(bet_img, 
-                            (text_start_x + scaled_icon_size + int(2 * font_scale), 
-                            current_y + text_offset_y))
+        if show_bet_amount and bet_img:
+            current_y -= element_height + element_spacing
+            
+            bet_bg_key = f"bet_bg_{bet_bg_width}_{element_height}"
+            if bet_bg_key not in blur_cache:
+                bet_bg = Image.new('RGBA', (bet_bg_width, element_height), (0, 0, 0, 140))
+                bet_bg_draw = ImageDraw.Draw(bet_bg)
+                bet_bg_draw.rounded_rectangle(
+                    [0, 0, bet_bg_width-1, element_height-1], 
+                    radius=bg_radius, 
+                    fill=(0, 0, 0, 140)
+                )
+                blur_cache[bet_bg_key] = bet_bg.filter(ImageFilter.GaussianBlur(radius=3))
+            
+            overlay.alpha_composite(blur_cache[bet_bg_key], (text_start_x, current_y))
+            
+            if bet_icon:
+                bet_icon_resized = bet_icon.resize((scaled_icon_size, scaled_icon_size))
+                icon_offset_y = (element_height - scaled_icon_size) // 2
+                overlay.alpha_composite(bet_icon_resized, 
+                                    (text_start_x + int(2 * font_scale), 
+                                    current_y + icon_offset_y))
+            
+            text_offset_y = (element_height - bet_img.height) // 2
+            overlay.alpha_composite(bet_img, 
+                                (text_start_x + scaled_icon_size + int(2 * font_scale), 
+                                current_y + text_offset_y))
         
         return {
             'image': overlay,
@@ -714,7 +732,8 @@ class AnimationGenerator:
             'parameters': {
                 'font_scale': font_scale,
                 'avatar_size': avatar_size,
-                'overlay_height': overlay_height
+                'overlay_height': overlay_height,
+                'show_bet_amount': show_bet_amount
             }
         }
 
@@ -722,7 +741,8 @@ class AnimationGenerator:
                                 user_info_after, output_path, 
                                 game_type=None, custom_overlay_kwargs=None,
                                 show_win_text=True,
-                                font_scale=1.0, avatar_size=85):
+                                font_scale=1.0, avatar_size=85,
+                                show_bet_amount=True):
         
         last_frame = self.lazy_loader.get_last_frame(anim_path, use_cache=True)
         
@@ -748,7 +768,8 @@ class AnimationGenerator:
                 custom_overlay_kwargs=custom_overlay_kwargs,
                 show_win_text=show_win_text,
                 font_scale=font_scale,
-                avatar_size=avatar_size
+                avatar_size=avatar_size,
+                show_bet_amount=show_bet_amount
             )
             
             return result

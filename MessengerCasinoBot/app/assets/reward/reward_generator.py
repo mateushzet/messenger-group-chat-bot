@@ -23,8 +23,8 @@ class AnimationConfig:
     bar_height: int = 30
     segments: int = 9
     bar_y: Optional[int] = None
-    frame_delay_ms: int = 40
-    final_pause_ms: int = 2500
+    frame_delay_ms: int = 60
+    final_pause_ms: int = 60
     max_frames: int = 120
     progress_step: float = 0.015
     webp_quality: int = 90
@@ -176,7 +176,10 @@ class ProgressBarAnimation:
         
         progress = max(0.0, min(1.0, progress))
         
-        img = Image.new("RGBA", (self.config.width, self.config.height), 
+        original_height = self.config.height
+        frame_height = original_height + 40
+        
+        img = Image.new("RGBA", (self.config.width, frame_height), 
                        (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
         
@@ -194,16 +197,34 @@ class ProgressBarAnimation:
             fill=self.colors.progress_background
         )
         
-        title_text = self.title_text
-        bbox_title = draw.textbbox((0, 0), title_text, font=self.title_font)
-        w_title = bbox_title[2] - bbox_title[0]
+        if highlight:
+            title_text = f"Reward: {reward} coins"
+            
+            max_title_width = self.config.width - 40
+            title_font_size = 28
+            current_title_font = self.title_font
+            
+            bbox_title = draw.textbbox((0, 0), title_text, font=current_title_font)
+            w_title = bbox_title[2] - bbox_title[0]
+            
+            while w_title > max_title_width and title_font_size > 18:
+                title_font_size -= 2
+                current_title_font = self.font_manager.get_font(bold=True, size=title_font_size)
+                bbox_title = draw.textbbox((0, 0), title_text, font=current_title_font)
+                w_title = bbox_title[2] - bbox_title[0]
+        else:
+            title_text = self.title_text
+            current_title_font = self.title_font
+            bbox_title = draw.textbbox((0, 0), title_text, font=current_title_font)
+            w_title = bbox_title[2] - bbox_title[0]
+        
         title_x = (self.config.width - w_title) // 2
         title_y = 20
         
         self.draw_text_with_outline(
             draw, title_text,
             (title_x, title_y),
-            self.title_font,
+            current_title_font,
             self.colors.title_color,
             self.colors.title_outline,
             outline_width=3
@@ -295,35 +316,6 @@ class ProgressBarAnimation:
             outline_width=2
         )
         
-        if highlight:
-            text_reward = f"Reward: {reward} coins"
-            bbox_r = draw.textbbox((0, 0), text_reward, font=self.reward_font)
-            w_r = bbox_r[2] - bbox_r[0]
-            
-            x_r = 10
-            
-            max_allowed_width = self.config.width - 20
-            current_font = self.reward_font
-            
-            if w_r > max_allowed_width:
-                if reward == 100:
-                    current_font = self.font_manager.get_font(bold=True, size=28)
-                    bbox_r = draw.textbbox((0, 0), text_reward, font=current_font)
-                    w_r = bbox_r[2] - bbox_r[0]
-            
-            y_r = self.config.bar_y + self.config.bar_height + 45
-            
-            shadow_x = x_r + 4
-            shadow_y = y_r + 4
-            draw.text((shadow_x, shadow_y), text_reward, font=current_font, fill=self.colors.shadow)
-            
-            for dx in [-3, 0, 3]:
-                for dy in [-3, 0, 3]:
-                    if dx != 0 or dy != 0:
-                        draw.text((x_r + dx, y_r + dy), text_reward, font=current_font, fill=self.colors.highlight_outline)
-            
-            draw.text((x_r, y_r), text_reward, font=current_font, fill=self.colors.highlight)
-        
         pixels = img.load()
         for x in range(img.width):
             for y in range(img.height):
@@ -386,10 +378,7 @@ class ProgressBarAnimation:
                     pulse_value=pulses[pulse_index]
                 )
                 frames.append(frame)
-                if i == highlight_frames - 1:
-                    durations.append(self.config.final_pause_ms)
-                else:
-                    durations.append(self.config.frame_delay_ms // 2)
+                durations.append(self.config.frame_delay_ms)
             
             frames[0].save(
                 output_path,

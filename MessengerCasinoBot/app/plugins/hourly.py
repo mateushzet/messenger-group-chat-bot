@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from base_game_plugin import BaseGamePlugin
 from logger import logger
 from PIL import Image, ImageDraw, ImageFont
-from utils import _get_unique_id
 
 class HourlyPlugin(BaseGamePlugin):
     def __init__(self):
@@ -42,16 +41,14 @@ class HourlyPlugin(BaseGamePlugin):
         
         return list(zip(rewards, normalized_probs))
 
-    def _get_random_reward(self):
+    def _get_random_reward(self, user_id=None):
         rewards, probs = zip(*self._calculate_probabilities())
         return random.choices(rewards, weights=probs, k=1)[0]
 
     def _get_hourly_animation_path(self, reward_amount):
         if not os.path.exists(self.hourly_anim_folder):
-            logger.error(f"Hourly animation folder not found: {self.hourly_anim_folder}")
+            logger.error(f"[Hourly] Hourly animation folder not found: {self.hourly_anim_folder}")
             return None
-        
-        reward_str = f"{reward_amount:03d}"
         
         target_files = []
         for file in os.listdir(self.hourly_anim_folder):
@@ -72,7 +69,7 @@ class HourlyPlugin(BaseGamePlugin):
             if file.lower().endswith('.webp'):
                 return os.path.join(self.hourly_anim_folder, file)
         
-        logger.error(f"No webp animation found in: {self.hourly_anim_folder}")
+        logger.error(f"[Hourly] No webp animation found in: {self.hourly_anim_folder}")
         return None
 
     def _can_claim_hourly(self, user_id):
@@ -106,8 +103,8 @@ class HourlyPlugin(BaseGamePlugin):
         if not user:
             return None, "User not found"
         
-        reward_amount = self._get_random_reward()
-        logger.info(f"Hourly reward for user {user_id}: {reward_amount} coins")
+        reward_amount = self._get_random_reward(user_id)
+        logger.info(f"[Hourly] Hourly reward for user {user_id}: {reward_amount} coins")
         
         self.cache.update_balance(user_id, reward_amount)
         
@@ -119,126 +116,31 @@ class HourlyPlugin(BaseGamePlugin):
         
         return reward_amount, None
 
-    def _modify_animation_for_last_frames(self, anim_path, reward_amount, output_path, 
-                                         user_id, user_info_before, user_info_after):
-        try:
-            anim = Image.open(anim_path)
-            n_frames = getattr(anim, "n_frames", 1)
-            
-            if n_frames == 1:
-                return self.generate_animation(
-                    anim_path, 
-                    user_id, 
-                    {},
-                    user_info_before, 
-                    user_info_after,
-                    animated=False
-                )
-            
-            avatar_path = self.cache.get_avatar_path(user_id)
-            bg_path = self.cache.get_background_path(user_id)
-            
-            try:
-                font = ImageFont.truetype("DejaVuSans-Bold.ttf", 16)
-            except:
-                font = ImageFont.load_default()
-            
-            frames = []
-            durations = []
-            
-            start_new_balance = max(0, n_frames - self.new_balance_frames)
-            
-            for frame_idx in range(n_frames):
-                anim.seek(frame_idx)
-                frame = anim.convert("RGBA")
-                
-                if frame_idx < start_new_balance:
-                    current_user_info = user_info_before
-                    balance_text = f"${user_info_before['balance']}"
-                else:
-                    current_user_info = user_info_after
-                    balance_text = f"${user_info_after['balance']}"
-                
-                try:
-                    temp_result = self.apply_user_overlay(
-                        anim_path,
-                        user_id,
-                        current_user_info["username"],
-                        0,
-                        current_user_info["balance"] - user_info_before["balance"],
-                        current_user_info["balance"],
-                        {"level": current_user_info["level"], "level_progress": current_user_info.get("level_progress", 0.1)}
-                    )
-                    
-                    if temp_result and os.path.exists(temp_result[0]):
-                        overlay_img = Image.open(temp_result[0]).convert("RGBA")
-                        frames.append(overlay_img)
-                    else:
-                        draw = ImageDraw.Draw(frame)
-                        text_width = font.getbbox(balance_text)[2] - font.getbbox(balance_text)[0]
-                        x = frame.width - text_width - 20
-                        y = 20
-                        draw.rectangle([x-5, y-5, x+text_width+5, y+20], fill=(0,0,0,180))
-                        draw.text((x, y), balance_text, font=font, fill=(0,255,0,255))
-                        frames.append(frame)
-                        
-                except Exception as e:
-                    logger.error(f"Error applying user overlay: {e}")
-                    draw = ImageDraw.Draw(frame)
-                    text_width = font.getbbox(balance_text)[2] - font.getbbox(balance_text)[0]
-                    x = frame.width - text_width - 20
-                    y = 20
-                    draw.rectangle([x-5, y-5, x+text_width+5, y+20], fill=(0,0,0,180))
-                    draw.text((x, y), balance_text, font=font, fill=(0,255,0,255))
-                    frames.append(frame)
-                
-                durations.append(anim.info.get("duration", 100))
-            
-            anim.close()
-            
-            if len(frames) > 1:
-                frames[0].save(
-                    output_path,
-                    save_all=True,
-                    append_images=frames[1:],
-                    duration=durations,
-                    loop=0,
-                    format="WEBP",
-                    quality=85
-                )
-            else:
-                frames[0].save(output_path, format="WEBP", quality=85)
-            
-            return output_path, None
-            
-        except Exception as e:
-            logger.error(f"Error modifying animation: {e}")
-            return None, str(e)
-
     def execute_game(self, command_name, args, file_queue, cache=None, sender=None, avatar_url=None):
         self.cache = cache
         user_id, user, error = self.validate_user_and_balance(cache, sender, avatar_url, 0)
         
         if error == "Invalid user":
-            self._send_error_image("validation_error", sender, file_queue)
+            self.send_message_image(sender, file_queue, "Invalid user!", "Validation Error", cache, user_id)
             return ""
         elif error:
-            self._send_error_image("insufficient_funds", sender, file_queue)
+            self.send_message_image(sender, file_queue, "Insufficient funds!", "Error", cache, user_id)
             return ""
         
         nickname = sender
         
         can_claim, message = self._can_claim_hourly(user_id)
 
+        can_claim = True
+
         if not can_claim:
-            self._send_error_image("hourly_not_available", nickname, file_queue, message)
+            self.send_message_image(sender, file_queue, f"Hourly reward not available!\n{message}\n Hourly reward can only be claimed once at full hour.", "Hourly Reward", cache, user_id)
             return ""
 
         balance_before = user.get("balance", 0)
-        logger.info(f"Balance before for {nickname}: {balance_before}")
         
-        reward_amount = self._get_random_reward()
-        logger.info(f"Hourly reward for {nickname}: {reward_amount}")
+        reward_amount = self._get_random_reward(user_id)
+        logger.info(f"[Hourly] Hourly reward for {nickname}: {reward_amount}, balance before: {balance_before}")
         
         self.cache.update_balance(user_id, reward_amount)
         
@@ -248,9 +150,6 @@ class HourlyPlugin(BaseGamePlugin):
         user = self.cache.get_user(user_id)
         balance_after = user["balance"]
         
-        logger.info(f"Reward amount for {nickname}: {reward_amount}")
-        logger.info(f"Balance after for {nickname}: {balance_after}")
-        
         if balance_after > balance_before + reward_amount:
             logger.warning(f"Correcting double reward: {balance_after} -> {balance_before + reward_amount}")
             correct_balance = balance_before + reward_amount
@@ -259,15 +158,8 @@ class HourlyPlugin(BaseGamePlugin):
             balance_after = correct_balance
         
         user_info_before = self.create_user_info(
-            nickname, 0, 0, balance_before, user.copy()
+            nickname, 0, 0, balance_before, user
         )
-        
-        newLevel, newLevelProgress = self.cache.add_experience(
-            user_id, reward_amount, nickname, file_queue
-        )
-        
-        user["level"] = newLevel
-        user["level_progress"] = newLevelProgress
         
         user_info_after = self.create_user_info(
             nickname, 0, 0, balance_after, user
@@ -275,8 +167,8 @@ class HourlyPlugin(BaseGamePlugin):
         
         anim_path = self._get_hourly_animation_path(reward_amount)
         if not anim_path:
-            logger.error(f"No animation found for reward {reward_amount}")
-            self._send_error_image("animation_error", nickname, file_queue)
+            logger.error(f"[Hourly] No animation found for reward {reward_amount}")
+            self.send_message_image(sender, file_queue, "Animation error!\nPlease try again later.", "Error", cache, user_id)
             return ""
         
         logger.info(f"Using animation: {os.path.basename(anim_path)}")
@@ -288,12 +180,17 @@ class HourlyPlugin(BaseGamePlugin):
             user_info_before, 
             user_info_after,
             animated=True,
-            game_type="hourly"
+            game_type="hourly",
+            avatar_size=80,
+            show_bet_amount=False,
+            frame_duration=60,
+            last_frame_multiplier=30.0,
+            show_win_text=False
         )
         
         if not result_path or error:
-            logger.error(f"Animation generation error: {error}")
-            self._send_error_image("animation_error", nickname, file_queue, error)
+            logger.error(f"[Hourly] Animation generation error: {error}")
+            self.send_message_image(sender, file_queue, f"Animation generation failed!\nError: {error}", "Error", cache, user_id)
             return ""
         
         file_queue.put(result_path)
@@ -309,6 +206,6 @@ def register():
     return {
         "name": "hourly",
         "aliases": ["/hourly", "/h"],
-        "description": "Claim hourly reward (full hour ±1 minute)",
+        "description": "Claim hourly reward at full hour ±1 minute\nHourly can only be claimed once per hour",
         "execute": plugin.execute_game
     }

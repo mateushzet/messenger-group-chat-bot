@@ -34,7 +34,7 @@ class BaseGamePlugin:
     def generate_animation(self, base_animation_path, user_id, user, user_info_before, 
                          user_info_after, game_type=None, animated=True, frame_duration=100,
                          last_frame_multiplier=1.0, custom_overlay_kwargs=None, 
-                         show_win_text=True, font_scale=1.0, avatar_size=85):
+                         show_win_text=True, font_scale=1.0, avatar_size=85, show_bet_amount=True):
         
         if game_type is None:
             game_type = self.game_name
@@ -74,7 +74,8 @@ class BaseGamePlugin:
                     custom_overlay_kwargs=custom_overlay_kwargs,
                     show_win_text=show_win_text,
                     font_scale=font_scale,
-                    avatar_size=avatar_size
+                    avatar_size=avatar_size,
+                    show_bet_amount=show_bet_amount
                 )
             else:
                 result_path = self.generator.generate_last_frame_static(
@@ -87,7 +88,8 @@ class BaseGamePlugin:
                     custom_overlay_kwargs=custom_overlay_kwargs,
                     show_win_text=show_win_text,
                     font_scale=font_scale,
-                    avatar_size=avatar_size
+                    avatar_size=avatar_size,
+                    show_bet_amount=show_bet_amount
                 )
             
             return result_path, None
@@ -99,7 +101,8 @@ class BaseGamePlugin:
     
     def generate_static(self, image_path: str, avatar_path: str, bg_path: str,
                        user_info: Dict, output_path: Optional[str] = None,
-                       custom_overlay_kwargs: Optional[Dict] = None) -> str:
+                       custom_overlay_kwargs: Optional[Dict] = None,
+                       show_bet_amount: bool = True) -> str: 
         
         try:
             if output_path is None:
@@ -112,7 +115,8 @@ class BaseGamePlugin:
                 user_info=user_info,
                 output_path=output_path,
                 game_type=self.game_name,
-                custom_overlay_kwargs=custom_overlay_kwargs
+                custom_overlay_kwargs=custom_overlay_kwargs,
+                show_bet_amount=show_bet_amount
             )
                         
             return result_path
@@ -123,7 +127,7 @@ class BaseGamePlugin:
     
     def apply_user_overlay(self, base_image_path: str, user_id: str, sender: str,
                           total_bet: int, win_amount: int, balance: int,
-                          user: Dict) -> Tuple[Optional[str], Optional[str]]:
+                          user: Dict, show_bet_amount: bool = True) -> Tuple[Optional[str], Optional[str]]:
         try:
             user_info = self.create_user_info(sender, total_bet, win_amount, balance, user)
             
@@ -137,7 +141,8 @@ class BaseGamePlugin:
                 image_path=base_image_path,
                 avatar_path=avatar_path,
                 bg_path=bg_path,
-                user_info=user_info
+                user_info=user_info,
+                show_bet_amount=show_bet_amount
             )
             
             return final_path, None
