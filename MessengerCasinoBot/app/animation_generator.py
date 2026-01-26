@@ -356,7 +356,7 @@ class AnimationGenerator:
 
     def generate_static(self, image_path, avatar_path, bg_path, user_info, output_path="output.webp", 
                         game_type=None, custom_overlay_kwargs=None, show_win_text=True,
-                        font_scale=1.0, avatar_size=85, show_bet_amount=True):
+                        font_scale=1.0, avatar_size=85, show_bet_amount=True, is_win=False):
         
         icons = self._preload_resources()
         
@@ -379,7 +379,7 @@ class AnimationGenerator:
             is_after=False,
             font_scale=font_scale,
             avatar_size=avatar_size,
-            is_win=False,
+            is_win=is_win,
             show_bet_amount=show_bet_amount
         )
         
@@ -491,7 +491,7 @@ class AnimationGenerator:
         bet_img = None
         bet_bg_width = 0
         if show_bet_amount:
-            bet_text = f"${bet:,}"
+            bet_text = f"{bet:,}"
             bet_color = self.colors['warning'] if not is_after or is_win else self.colors['danger']
             
             bet_img = self.text_renderer.render_text_to_image(
@@ -511,10 +511,12 @@ class AnimationGenerator:
             balance_color = self.colors['success'] if balance > balance_before else \
                         self.colors['danger'] if balance < balance_before else \
                         self.colors['text_light']
+        elif is_win:
+            balance_color = self.colors['success']
         else:
             balance_color = self.colors['text_light']
         
-        balance_text = f"${balance:,}"
+        balance_text = f"{balance:,}"
         balance_img = self.text_renderer.render_text_to_image(
             text=balance_text,
             font_path=self._default_font_path,

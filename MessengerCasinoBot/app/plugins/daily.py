@@ -3,7 +3,6 @@ import time
 from datetime import datetime, timedelta
 from PIL import Image
 from base_game_plugin import BaseGamePlugin
-from logger import logger
 
 class DailyPlugin(BaseGamePlugin):
     def __init__(self):
@@ -177,24 +176,31 @@ class DailyPlugin(BaseGamePlugin):
         user_id, user, error = self.validate_user_and_balance(cache, sender, avatar_url, 0)
         
         if error == "Invalid user":
-            self._send_error_image("validation_error", sender, file_queue)
+            self.send_message_image(sender, file_queue, error, "Validation Error", cache, user_id)
             return ""
         elif error:
-            self._send_error_image("insufficient_funds", sender, file_queue)
+            self.send_message_image(sender, file_queue, error, "Error", cache, user_id)
             return ""
         
         nickname = sender
         
         can_claim, claim_status = self._can_claim_daily(user_id)
-        
+
         if not can_claim:
+            if claim_status == "User not found":
+                self.send_message_image(sender, file_queue, "User not found in database", "User Error", cache, user_id)
+                return ""
+            
             daily_img = self._get_daily_status_image(user_id, claimed=True)
             if daily_img:
                 img_path = os.path.join(self.results_folder, f"daily_status_{user_id}.webp")
                 daily_img.save(img_path, format='WEBP', quality=85, optimize=True)
                 
                 overlay_path, error = self.apply_user_overlay(
-                    img_path, user_id, nickname, 0, 0, user["balance"], user
+                    img_path, user_id, nickname, 0, 0, user["balance"], user,
+                    show_bet_amount=False,
+                    show_win_text=False,
+                    avatar_size=70
                 )
                 if overlay_path:
                     file_queue.put(overlay_path)
@@ -209,7 +215,10 @@ class DailyPlugin(BaseGamePlugin):
         
         reward_amount, new_streak, error = self._claim_daily_reward(user_id)
         if error:
-            self._send_error_image("reward_error", nickname, file_queue, error)
+            if error == "User not found":
+                self.send_message_image(sender, file_queue, "User not found in database", "User Error", cache, user_id)
+            else:
+                self.send_message_image(sender, file_queue, error, "Reward Error", cache, user_id)
             return ""
         
         day_to_show = new_streak
@@ -219,7 +228,7 @@ class DailyPlugin(BaseGamePlugin):
             img_path = self._get_daily_reward_image_path(1, claimed=False)
         
         if not img_path:
-            self._send_error_image("image_generation_error", nickname, file_queue)
+            self.send_message_image(sender, file_queue, "Daily reward image not found", "Image Error", cache, user_id)
             return ""
         
         try:
@@ -237,7 +246,7 @@ class DailyPlugin(BaseGamePlugin):
                 pass
                 
         except Exception as e:
-            self._send_error_image("image_generation_error", nickname, file_queue)
+            self.send_message_image(sender, file_queue, f"Failed to load daily image: {str(e)}", "Image Error", cache, user_id)
             return ""
         
         output_path = os.path.join(self.results_folder, f"daily_{user_id}_{int(time.time())}.webp")
@@ -247,7 +256,11 @@ class DailyPlugin(BaseGamePlugin):
         
         overlay_path, error = self.apply_user_overlay(
             output_path, user_id, nickname, reward_amount, reward_amount, 
-            user.get("balance", 0) if user else 0, user
+            user.get("balance", 0) if user else 0, user,
+            show_bet_amount=False,
+            show_win_text=False,
+            avatar_size=70,
+            is_win=True
         )
         if overlay_path:
             file_queue.put(overlay_path)
@@ -277,6 +290,6 @@ def register():
     return {
         "name": "daily",
         "aliases": ["/daily", "/d"],
-        "description": "Claim your daily reward and maintain streak",
+        "description": "Claim daily reward and maintain streak\nStreak resets after missing a day",
         "execute": plugin.execute_game
     }
