@@ -3,9 +3,8 @@ from PIL import Image, ImageDraw, ImageFilter
 from text_renderer import CachedTextRenderer
 from resource_cache import ResourceCache
 from lazy_loader import LazyAnimationLoader
-from typing import Dict, Optional, Callable, Any
-import functools
-import time
+from typing import Dict, Optional, Callable
+from logger import logger
 
 class AnimationGenerator:
     
@@ -62,7 +61,7 @@ class AnimationGenerator:
             return overlay_data
             
         except Exception as e:
-            print(f"[AnimationGenerator] Error getting custom overlay for {game_type}: {e}")
+            logger.error(f"[AnimationGenerator] Error getting custom overlay for {game_type}: {e}")
             import traceback
             traceback.print_exc()
             return None
@@ -129,11 +128,13 @@ class AnimationGenerator:
         is_on_animation = overlay_data.get('is_on_animation', False)
         
         if is_on_animation:
-            if overlay_img.width < frame.width:
+            if overlay_img.width != frame.width or overlay_img.height > frame.height:
                 params = overlay_data.get('parameters', {})
                 font_scale = params.get('font_scale', 1.0)
                 avatar_size = params.get('avatar_size', 85)
                 overlay_height = params.get('overlay_height', 110)
+                
+                overlay_height = min(overlay_height, frame.height - 10)
                 
                 if 'resized_overlay' not in overlay_data:
                     new_overlay = Image.new('RGBA', (frame.width, overlay_height), (0, 0, 0, 0))
@@ -152,7 +153,10 @@ class AnimationGenerator:
                     text_start_x = left_section_info.get('text_start_x', int(2 * font_scale))
                     actual_left_width = left_section_info.get('actual_left_width', 260)
                     
-                    text_region = overlay_img.crop((0, 0, actual_left_width, overlay_height))
+                    crop_width = min(actual_left_width, overlay_img.width)
+                    crop_height = min(overlay_height, overlay_img.height)
+                    
+                    text_region = overlay_img.crop((0, 0, crop_width, crop_height))
                     new_overlay.paste(text_region, (text_start_x, 0), text_region)
                     
                     overlay_data['resized_overlay'] = new_overlay
@@ -177,7 +181,7 @@ class AnimationGenerator:
                 result.alpha_composite(overlay_img_custom, overlay_pos)
         
         return result
-
+ 
     def _load_animation_frames_batch(self, anim_path, frame_indices):
         frames = []
         
@@ -205,7 +209,7 @@ class AnimationGenerator:
         try:
             bg_image = self.resource_cache.get_image(bg_path, convert_mode="RGBA")
         except Exception as e:
-            print(f"Error loading background: {e}")
+            logger.error(f"[AnimationGenerator] Error loading background: {e}")
             bg_image = None
         
         total_frames = self.lazy_loader.get_frame_count(anim_path)
@@ -228,7 +232,7 @@ class AnimationGenerator:
         frames = self._load_animation_frames_batch(anim_path, included_frames)
         
         if not frames:
-            print("ERROR: No frames loaded!")
+            logger.error("[AnimationGenerator] No frames loaded!")
             return None
 
         win_value = user_info_after.get("win", 0)
@@ -348,10 +352,10 @@ class AnimationGenerator:
         return output_path
 
     def generate_static(self, image_path, avatar_path, bg_path, user_info, output_path="output.webp", 
-                    game_type=None, custom_overlay_kwargs=None, show_win_text=True,
-                    font_scale=1.0, avatar_size=85):
+                        game_type=None, custom_overlay_kwargs=None, show_win_text=True,
+                        font_scale=1.0, avatar_size=85):
         
-        self._preload_resources()
+        icons = self._preload_resources()
         
         avatar = self.resource_cache.get_image(
             avatar_path,
@@ -364,14 +368,51 @@ class AnimationGenerator:
         else:
             base_img = self.resource_cache.get_image(image_path, convert_mode="RGBA")
         
-        overlay_data = self._get_cached_overlay(
+        overlay_data = self._create_avatar_overlay(
             avatar_img=avatar,
             user_info=user_info,
+            bet_icon=icons['bet_icon'],
+            balance_icon=icons['balance_icon'],
             is_after=False,
             font_scale=font_scale,
             avatar_size=avatar_size,
             is_win=False
         )
+        
+        overlay_img = overlay_data['image']
+        frame_width, frame_height = base_img.size
+        
+        if overlay_img.width != frame_width or overlay_img.height > frame_height:
+            params = overlay_data.get('parameters', {})
+            font_scale_param = params.get('font_scale', 1.0)
+            avatar_size_param = params.get('avatar_size', 85)
+            overlay_height = params.get('overlay_height', 110)
+            
+            overlay_height = min(overlay_height, frame_height - 10)
+            
+            new_overlay = Image.new('RGBA', (frame_width, overlay_height), (0, 0, 0, 0))
+            
+            avatar_x_old, avatar_y_old, _ = overlay_data.get('avatar_position', (0, 0, avatar_size_param))
+            avatar_x_new = frame_width - avatar_size_param
+            avatar_y_new = overlay_height - avatar_size_param
+            
+            avatar_region = overlay_img.crop((
+                avatar_x_old, avatar_y_old,
+                avatar_x_old + avatar_size_param, avatar_y_old + avatar_size_param
+            ))
+            new_overlay.paste(avatar_region, (avatar_x_new, avatar_y_new))
+            
+            left_section_info = overlay_data.get('left_section_info', {})
+            text_start_x = left_section_info.get('text_start_x', int(2 * font_scale_param))
+            actual_left_width = left_section_info.get('actual_left_width', 260)
+            
+            crop_width = min(actual_left_width, overlay_img.width)
+            crop_height = min(overlay_height, overlay_img.height)
+            
+            text_region = overlay_img.crop((0, 0, crop_width, crop_height))
+            new_overlay.paste(text_region, (text_start_x, 0), text_region)
+            
+            overlay_img = new_overlay
         
         custom_overlay = None
         if game_type and game_type in self.custom_overlay_providers:
@@ -382,30 +423,22 @@ class AnimationGenerator:
                 **custom_overlay_kwargs
             )
         
-        new_height = base_img.height + self.extra_bottom
-        final_img = Image.new("RGBA", (base_img.width, new_height))
+        final_img = Image.new("RGBA", (frame_width, frame_height))
         
         try:
             bg_image = self.resource_cache.get_image(bg_path, convert_mode="RGBA")
-            bg_resized = self._get_cached_background(bg_image, base_img.size)
+            bg_resized = self._get_cached_background(bg_image, (frame_width, frame_height))
             if bg_resized:
                 final_img.paste(bg_resized, (0, 0))
         except:
             draw = ImageDraw.Draw(final_img)
-            top_color = (20, 20, 30)
-            bottom_color = (40, 40, 50)
-            draw.rectangle([0, 0, base_img.width, new_height], 
-                          fill=top_color)
-            if new_height > base_img.height:
-                draw.rectangle([0, base_img.height, base_img.width, new_height], 
-                              fill=bottom_color)
+            draw.rectangle([0, 0, frame_width, frame_height], 
+                        fill=(20, 20, 30))
         
         final_img.paste(base_img, (0, 0), base_img)
         
-        overlay_img = overlay_data['image']
-        avatar_x = base_img.width - overlay_img.width - 10
-        avatar_y = new_height - overlay_img.height - 10
-        final_img.alpha_composite(overlay_img, (avatar_x, avatar_y))
+        overlay_y = frame_height - overlay_img.height
+        final_img.alpha_composite(overlay_img, (0, overlay_y))
 
         if show_win_text and game_type not in ["case", "hourly", "math"]:
             win_value = user_info.get("win", 0)
@@ -419,11 +452,11 @@ class AnimationGenerator:
             
             win_text = f"{label} ${abs(win_value):,}"
             
-            base_font_size = base_img.size[0] // 8 if base_img else 48
+            base_font_size = frame_width // 8
             win_text_img = self._get_cached_win_text(win_text, base_font_size, color)
             
-            win_text_x = (base_img.width - win_text_img.width) // 2
-            win_text_y = (base_img.height - win_text_img.height) // 2
+            win_text_x = (frame_width - win_text_img.width) // 2
+            win_text_y = (frame_height - win_text_img.height) // 2
             final_img.alpha_composite(win_text_img, (win_text_x, win_text_y))
         
         if custom_overlay and 'image' in custom_overlay:
@@ -432,13 +465,13 @@ class AnimationGenerator:
                 custom_overlay['image'].height <= final_img.height):
                 final_img.alpha_composite(custom_overlay['image'], overlay_pos)
         
-        final_img.save(output_path, format="WEBP", quality=85, optimize=True)
+        final_img.save(output_path, format="WEBP", quality=90, optimize=True)
         
         return output_path
 
     def _create_avatar_overlay(self, avatar_img, user_info, bet_icon=None, balance_icon=None, 
-                                      is_after=False, user_info_before=None, 
-                                      font_scale=1.0, avatar_size=95, is_win=False):
+                                    is_after=False, user_info_before=None, 
+                                    font_scale=1.0, avatar_size=95, is_win=False):
 
         username = user_info.get('username', '')
         balance = user_info.get('balance', 0)
@@ -465,8 +498,8 @@ class AnimationGenerator:
         if is_after and user_info_before is not None:
             balance_before = user_info_before.get('balance', 0)
             balance_color = self.colors['success'] if balance > balance_before else \
-                          self.colors['danger'] if balance < balance_before else \
-                          self.colors['text_light']
+                        self.colors['danger'] if balance < balance_before else \
+                        self.colors['text_light']
         else:
             balance_color = self.colors['text_light']
         
@@ -545,8 +578,12 @@ class AnimationGenerator:
             stroke_width=max(2, int(2 * font_scale)),
             stroke_color=(0, 0, 0, 200)
         )
-        level_x = avatar_x + avatar_size - level_img.width - int(5 * font_scale)
-        level_y = avatar_y + int(5 * font_scale)
+        
+        level_margin_right = int(5 * font_scale)
+        level_margin_top = int(5 * font_scale)
+        level_x = avatar_x + avatar_size - level_img.width - level_margin_right
+        level_y = avatar_y + level_margin_top
+        
         overlay.alpha_composite(level_img, (level_x, level_y))
 
         progress_bar_width = avatar_size - int(15 * font_scale)
@@ -557,10 +594,9 @@ class AnimationGenerator:
         
         draw = ImageDraw.Draw(overlay)
         
-        draw.rounded_rectangle(
+        draw.rectangle(
             [progress_bar_x, progress_bar_y, 
-             progress_bar_x + progress_bar_width, progress_bar_y + progress_bar_height],
-            radius=progress_bar_height // 2,
+            progress_bar_x + progress_bar_width, progress_bar_y + progress_bar_height],
             fill=(255, 255, 255, 200)
         )
         
@@ -570,17 +606,15 @@ class AnimationGenerator:
         bg_height = progress_bar_height - int(2 * font_scale)
         
         if bg_width > 0 and bg_height > 0:
-            draw.rounded_rectangle(
+            draw.rectangle(
                 [bg_x, bg_y, bg_x + bg_width, bg_y + bg_height],
-                radius=(bg_height // 2) - 1,
                 fill=(40, 40, 60, 220)
             )
             
             filled_width = int(bg_width * (level_progress_percent / 100))
             if filled_width > 0:
-                draw.rounded_rectangle(
+                draw.rectangle(
                     [bg_x, bg_y, bg_x + filled_width, bg_y + bg_height],
-                    radius=(bg_height // 2) - 1,
                     fill=(80, 160, 255, 220)
                 )
         
@@ -631,13 +665,13 @@ class AnimationGenerator:
             balance_icon_resized = balance_icon.resize((scaled_icon_size, scaled_icon_size))
             icon_offset_y = (element_height - scaled_icon_size) // 2
             overlay.alpha_composite(balance_icon_resized, 
-                                  (text_start_x + int(2 * font_scale), 
-                                   current_y + icon_offset_y))
+                                (text_start_x + int(2 * font_scale), 
+                                current_y + icon_offset_y))
         
         text_offset_y = (element_height - balance_img.height) // 2
         overlay.alpha_composite(balance_img, 
-                              (text_start_x + scaled_icon_size + int(2 * font_scale), 
-                               current_y + text_offset_y))
+                            (text_start_x + scaled_icon_size + int(2 * font_scale), 
+                            current_y + text_offset_y))
         
         current_y -= element_height + element_spacing
         
@@ -658,13 +692,13 @@ class AnimationGenerator:
             bet_icon_resized = bet_icon.resize((scaled_icon_size, scaled_icon_size))
             icon_offset_y = (element_height - scaled_icon_size) // 2
             overlay.alpha_composite(bet_icon_resized, 
-                                  (text_start_x + int(2 * font_scale), 
-                                   current_y + icon_offset_y))
+                                (text_start_x + int(2 * font_scale), 
+                                current_y + icon_offset_y))
         
         text_offset_y = (element_height - bet_img.height) // 2
         overlay.alpha_composite(bet_img, 
-                              (text_start_x + scaled_icon_size + int(2 * font_scale), 
-                               current_y + text_offset_y))
+                            (text_start_x + scaled_icon_size + int(2 * font_scale), 
+                            current_y + text_offset_y))
         
         return {
             'image': overlay,
@@ -689,19 +723,23 @@ class AnimationGenerator:
                                 game_type=None, custom_overlay_kwargs=None,
                                 show_win_text=True,
                                 font_scale=1.0, avatar_size=85):
-        """Zoptymalizowane pobieranie ostatniej klatki jako statyczny obraz"""
         
         last_frame = self.lazy_loader.get_last_frame(anim_path, use_cache=True)
         
         if not last_frame:
             return None
         
-        import io
+        frame_width, frame_height = last_frame.size
         
+        import io
         try:
             buffer = io.BytesIO()
             last_frame.save(buffer, format='PNG', optimize=True)
             buffer.seek(0)
+            
+            if custom_overlay_kwargs is None:
+                custom_overlay_kwargs = {}
+            custom_overlay_kwargs['frame_width'] = frame_width
             
             result = self.generate_static(
                 buffer,
@@ -714,20 +752,5 @@ class AnimationGenerator:
             )
             
             return result
-            
         finally:
             buffer.close() if 'buffer' in locals() else None
-    
-    def clear_caches(self):
-        self.text_renderer.text_image_cache.clear()
-        self.text_renderer.text_metrics_cache.clear()
-        self.resource_cache.clear()
-        self.win_text_cache.clear()
-        self.processed_bg_cache.clear()
-        self._preloaded_icons = None
-        
-        if hasattr(self, '_avatar_mask_cache'):
-            self._avatar_mask_cache.clear()
-        
-        import gc
-        gc.collect()
