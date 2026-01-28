@@ -101,7 +101,7 @@ class BaseGamePlugin:
     
     def generate_static(self, image_path: str, avatar_path: str, bg_path: str,
                        user_info: Dict, output_path: Optional[str] = None,
-                       custom_overlay_kwargs: Optional[Dict] = None,
+                       custom_overlay_kwargs: Optional[Dict] = None, is_after: bool = True,
                        show_bet_amount: bool = True, show_win_text: bool = True,
                        font_scale: float = 1.0, avatar_size: int = 85, is_win: bool = False) -> str: 
         
@@ -121,7 +121,8 @@ class BaseGamePlugin:
                 show_win_text=show_win_text,
                 font_scale=font_scale,
                 avatar_size=avatar_size,
-                is_win=is_win
+                is_win=is_win,
+                is_after=is_after
             )
                         
             return result_path
@@ -132,7 +133,7 @@ class BaseGamePlugin:
     
     def apply_user_overlay(self, base_image_path: str, user_id: str, sender: str,
                         total_bet: int, win_amount: int, balance: int,
-                        user: Dict, show_win_text: bool = True,
+                        user: Dict, show_win_text: bool = True, is_after: bool = True,
                         font_scale: float = 1.0, avatar_size: int = 85,
                         show_bet_amount: bool = True, is_win:bool = False) -> Tuple[Optional[str], Optional[str]]:
         try:
@@ -153,7 +154,8 @@ class BaseGamePlugin:
                 show_win_text=show_win_text,
                 font_scale=font_scale,
                 avatar_size=avatar_size,
-                is_win=is_win
+                is_win=is_win,
+                is_after=is_after
             )
             
             return final_path, None

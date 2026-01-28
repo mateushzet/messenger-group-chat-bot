@@ -216,14 +216,14 @@ class AnimationGenerator:
         total_frames = self.lazy_loader.get_frame_count(anim_path)
         is_animated = total_frames > 1
         
-        if total_frames <= 30:
+        if total_frames <= 75:
             frame_skip = 1
         elif total_frames <= 100:
-            frame_skip = 1  
-        elif total_frames <= 120:
-            frame_skip = 2
-        else:
+            frame_skip = 2 
+        elif total_frames <= 150:
             frame_skip = 3
+        else:
+            frame_skip = 4
         
         included_frames = list(range(0, total_frames, frame_skip))
         
@@ -247,7 +247,7 @@ class AnimationGenerator:
             is_after=False,
             font_scale=font_scale,
             avatar_size=avatar_size,
-            is_win=is_win,
+            is_win=False,
             show_bet_amount=show_bet_amount
         )
         
@@ -278,7 +278,7 @@ class AnimationGenerator:
             win_text = f"{label} ${abs(win_value):,}"
             
             if game_type not in ["case", "hourly", "math"]:
-                base_font_size = frames[0].size[0] // 8 if frames else 48
+                base_font_size = frames[0].size[0] // 12 if frames else 48
                 win_text_img = self._get_cached_win_text(win_text, base_font_size, color)
         
         custom_overlay_data = None
@@ -355,7 +355,7 @@ class AnimationGenerator:
         return output_path
 
     def generate_static(self, image_path, avatar_path, bg_path, user_info, output_path="output.webp", 
-                        game_type=None, custom_overlay_kwargs=None, show_win_text=True,
+                        game_type=None, custom_overlay_kwargs=None, show_win_text=True, is_after=True,
                         font_scale=1.0, avatar_size=85, show_bet_amount=True, is_win=False):
         
         icons = self._preload_resources()
@@ -376,7 +376,7 @@ class AnimationGenerator:
             user_info=user_info,
             bet_icon=icons['bet_icon'],
             balance_icon=icons['balance_icon'],
-            is_after=False,
+            is_after=is_after,
             font_scale=font_scale,
             avatar_size=avatar_size,
             is_win=is_win,
@@ -456,7 +456,7 @@ class AnimationGenerator:
             
             win_text = f"{label} ${abs(win_value):,}"
             
-            base_font_size = frame_width // 8
+            base_font_size = frame_width // 12
             win_text_img = self._get_cached_win_text(win_text, base_font_size, color)
             
             win_text_x = (frame_width - win_text_img.width) // 2
@@ -648,14 +648,14 @@ class AnimationGenerator:
             
             username_bg_key = f"username_bg_{username_bg_width}_{username_height}"
             if username_bg_key not in blur_cache:
-                username_bg = Image.new('RGBA', (username_bg_width, username_height), (0, 0, 0, 140))
+                username_bg = Image.new('RGBA', (username_bg_width, username_height), (0, 0, 0, 180))
                 username_bg_draw = ImageDraw.Draw(username_bg)
                 username_bg_draw.rounded_rectangle(
                     [0, 0, username_bg_width-1, username_height-1], 
                     radius=bg_radius, 
-                    fill=(0, 0, 0, 140)
+                    fill=(0, 0, 0, 180)
                 )
-                blur_cache[username_bg_key] = username_bg.filter(ImageFilter.GaussianBlur(radius=3))
+                blur_cache[username_bg_key] = username_bg
             
             overlay.alpha_composite(blur_cache[username_bg_key], (text_start_x, current_y))
             
@@ -669,14 +669,14 @@ class AnimationGenerator:
         
         balance_bg_key = f"balance_bg_{balance_bg_width}_{element_height}"
         if balance_bg_key not in blur_cache:
-            balance_bg = Image.new('RGBA', (balance_bg_width, element_height), (0, 0, 0, 140))
+            balance_bg = Image.new('RGBA', (balance_bg_width, element_height), (0, 0, 0, 180))
             balance_bg_draw = ImageDraw.Draw(balance_bg)
             balance_bg_draw.rounded_rectangle(
                 [0, 0, balance_bg_width-1, element_height-1], 
                 radius=bg_radius, 
-                fill=(0, 0, 0, 140)
+                fill=(0, 0, 0, 180)
             )
-            blur_cache[balance_bg_key] = balance_bg.filter(ImageFilter.GaussianBlur(radius=3))
+            blur_cache[balance_bg_key] = balance_bg
         
         overlay.alpha_composite(blur_cache[balance_bg_key], (text_start_x, current_y))
         
@@ -697,14 +697,14 @@ class AnimationGenerator:
             
             bet_bg_key = f"bet_bg_{bet_bg_width}_{element_height}"
             if bet_bg_key not in blur_cache:
-                bet_bg = Image.new('RGBA', (bet_bg_width, element_height), (0, 0, 0, 140))
+                bet_bg = Image.new('RGBA', (bet_bg_width, element_height), (0, 0, 0, 180))
                 bet_bg_draw = ImageDraw.Draw(bet_bg)
                 bet_bg_draw.rounded_rectangle(
                     [0, 0, bet_bg_width-1, element_height-1], 
                     radius=bg_radius, 
-                    fill=(0, 0, 0, 140)
+                    fill=(0, 0, 0, 180)
                 )
-                blur_cache[bet_bg_key] = bet_bg.filter(ImageFilter.GaussianBlur(radius=3))
+                blur_cache[bet_bg_key] = bet_bg
             
             overlay.alpha_composite(blur_cache[bet_bg_key], (text_start_x, current_y))
             
