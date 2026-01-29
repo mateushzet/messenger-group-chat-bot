@@ -499,7 +499,7 @@ class AnimationGenerator:
         bet_bg_width = 0
         if show_bet_amount:
             bet_text = f"{bet:,}"
-            bet_color = self.colors['warning'] if not is_after or is_win else self.colors['danger']
+            bet_color = self.colors['warning'] if not is_after or is_win or user_info.get('win', 0) > user_info.get('amount', 0) else self.colors['danger']
             
             bet_img = self.text_renderer.render_text_to_image(
                 text=bet_text,
@@ -518,8 +518,10 @@ class AnimationGenerator:
             balance_color = self.colors['success'] if balance > balance_before else \
                         self.colors['danger'] if balance < balance_before else \
                         self.colors['text_light']
-        elif is_win:
+        elif user_info.get('win', 0) > 0:
             balance_color = self.colors['success']
+        elif user_info.get('win', 0) < 0:
+            balance_color = self.colors['danger']
         else:
             balance_color = self.colors['text_light']
         
