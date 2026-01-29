@@ -6,17 +6,13 @@ from logger import logger
 
 class RankingPlugin(BaseGamePlugin):
     def __init__(self):
-        results_folder = self.get_app_path("temp")
         
         super().__init__(
-            game_name="ranking",
-            results_folder=results_folder,
+            game_name="ranking"
         )
         
         self.avatars_folder = self.get_asset_path("avatars")
         self.backgrounds_folder = self.get_asset_path("backgrounds")
-        
-        os.makedirs(self.results_folder, exist_ok=True)
     
     def _load_user_avatar(self, user_id, avatar_file, size=80):
         try:

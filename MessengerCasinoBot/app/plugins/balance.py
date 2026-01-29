@@ -6,14 +6,10 @@ from utils import _get_unique_id
 
 class BalancePlugin(BaseGamePlugin):
     def __init__(self):
-        results_folder = self.get_app_path("temp")
-        
+
         super().__init__(
-            game_name="balance",
-            results_folder=results_folder,
+            game_name="balance"
         )
-        
-        os.makedirs(self.results_folder, exist_ok=True)
         
         self.assets_dir = self.get_app_path("assets")
         self.balance_icon_path = os.path.join(self.assets_dir, "balance_icon.png")

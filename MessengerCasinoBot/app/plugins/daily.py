@@ -6,17 +6,14 @@ from base_game_plugin import BaseGamePlugin
 
 class DailyPlugin(BaseGamePlugin):
     def __init__(self):
-        results_folder = self.get_app_path("temp")
+
         super().__init__(
-            game_name="daily",
-            results_folder=results_folder,
+            game_name="daily"
         )
         
         self.daily_rewards_folder = self.get_asset_path("reward/daily_rewards")
         error_folder = self.get_asset_path("errors")
         self.error_folder = error_folder
-        
-        os.makedirs(self.results_folder, exist_ok=True)
         
         self.daily_rewards = {
             1: 10,

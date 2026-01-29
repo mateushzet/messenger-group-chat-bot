@@ -6,8 +6,7 @@ from logger import logger
 class HelpPlugin(BaseGamePlugin):
     def __init__(self):
         super().__init__(
-            game_name="help",
-            results_folder=self.get_asset_path("help", "help_results"),
+            game_name="help"
         )
     
     def get_plugins_from_global(self):

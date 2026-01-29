@@ -9,8 +9,7 @@ from user_manager import UserManager
 class TransferPlugin(BaseGamePlugin):
     def __init__(self):
         super().__init__(
-            game_name="transfer",
-            results_folder=self.get_app_path("temp"),
+            game_name="transfer"
         )
         self._text_renderer = None
         self.WIDTH, self.HEIGHT = 300, 200

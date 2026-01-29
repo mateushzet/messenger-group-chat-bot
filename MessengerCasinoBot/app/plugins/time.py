@@ -8,11 +8,9 @@ from logger import logger
 
 class TimePlugin(BaseGamePlugin):
     def __init__(self):
-        results_folder = self.get_app_path("temp")
         
         super().__init__(
-            game_name="time",
-            results_folder=results_folder,
+            game_name="time"
         )
         
         os.makedirs(self.results_folder, exist_ok=True)

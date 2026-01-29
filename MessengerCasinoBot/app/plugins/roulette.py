@@ -12,8 +12,7 @@ BLACK_NUMBERS = set(range(1,37)) - RED_NUMBERS
 class RoulettePlugin(BaseGamePlugin):
     def __init__(self):
         super().__init__(
-            game_name="roulette",
-            results_folder=self.get_asset_path("temp")
+            game_name="roulette"
         )
         
         self.history_colors = {

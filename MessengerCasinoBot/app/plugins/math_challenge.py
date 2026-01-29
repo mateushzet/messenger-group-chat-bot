@@ -12,18 +12,15 @@ from queue import Queue, Empty
 
 class MathChallengePlugin(BaseGamePlugin):
     def __init__(self):
-        results_folder = self.get_app_path("temp")
+
         super().__init__(
-            game_name="math",
-            results_folder=results_folder,
+            game_name="math"
         )
         
         self.answer_anim_folder = self.get_asset_path("reward/answer")
         self.math_bg_folder = self.get_asset_path("reward/math_question_bg")
         error_folder = self.get_asset_path("errors")
         self.error_folder = error_folder
-
-        os.makedirs(self.results_folder, exist_ok=True)
         
         self.min_reward = 10
         self.max_reward = 100
@@ -619,7 +616,12 @@ class MathChallengePlugin(BaseGamePlugin):
             user_info_before, 
             user_info_after,
             animated=True,
-            game_type="math"
+            game_type="math",
+            avatar_size=80,
+            show_bet_amount=False,
+            frame_duration=60,
+            last_frame_multiplier=30.0,
+            show_win_text=False
         )
         
         if result_path:

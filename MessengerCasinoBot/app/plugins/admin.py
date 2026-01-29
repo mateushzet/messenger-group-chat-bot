@@ -10,7 +10,7 @@ from base_game_plugin import BaseGamePlugin
 
 class AdminPlugin(BaseGamePlugin):
     def __init__(self):
-        super().__init__(game_name="admin_system", results_folder="/tmp/admin_results")
+        super().__init__(game_name="admin_system")
 
     def execute(self, command_name, args, file_queue, cache=None, sender=None, avatar_url=None):
         
