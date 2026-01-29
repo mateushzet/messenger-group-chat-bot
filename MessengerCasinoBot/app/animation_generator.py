@@ -113,7 +113,7 @@ class AnimationGenerator:
         return bg_resized
 
     def _process_single_frame(self, frame, overlay_data, win_text_img=None, 
-                            bg_image=None, custom_overlay_data=None):
+                            bg_image=None, custom_overlay_data=None, win_text_height=-1):
         
         result = Image.new("RGBA", (frame.width, frame.height))
         
@@ -169,7 +169,10 @@ class AnimationGenerator:
         
         if win_text_img:
             win_text_x = (frame.width - win_text_img.width) // 2
-            win_text_y = (frame.height - win_text_img.height) // 2
+            if win_text_height != -1:
+                    win_text_y = win_text_height
+            else: 
+                win_text_y = (frame.height - win_text_img.height) // 2
             result.alpha_composite(win_text_img, (win_text_x, win_text_y))
         
         if custom_overlay_data and 'image' in custom_overlay_data:
@@ -197,7 +200,7 @@ class AnimationGenerator:
                  game_type=None, frame_duration=100, last_frame_multiplier=1.0,
                  custom_overlay_kwargs=None, show_win_text=True,
                  font_scale=1.0, avatar_size=85, overlay_frames=1,
-                 show_bet_amount=True):
+                 show_bet_amount=True, win_text_height=-1):
 
         icons = self._preload_resources()
         
@@ -328,7 +331,8 @@ class AnimationGenerator:
                 current_overlay,
                 current_win_text,
                 bg_image,
-                current_custom_overlay
+                current_custom_overlay,
+                win_text_height=win_text_height
             )
             
             all_processed_frames.append(processed)
@@ -356,7 +360,7 @@ class AnimationGenerator:
 
     def generate_static(self, image_path, avatar_path, bg_path, user_info, output_path="output.webp", 
                         game_type=None, custom_overlay_kwargs=None, show_win_text=True, is_after=True,
-                        font_scale=1.0, avatar_size=85, show_bet_amount=True, is_win=False):
+                        font_scale=1.0, avatar_size=85, show_bet_amount=True, is_win=False, win_text_height=-1):
         
         icons = self._preload_resources()
         
@@ -460,7 +464,10 @@ class AnimationGenerator:
             win_text_img = self._get_cached_win_text(win_text, base_font_size, color)
             
             win_text_x = (frame_width - win_text_img.width) // 2
-            win_text_y = (frame_height - win_text_img.height) // 2
+            if win_text_height != -1:
+                win_text_y = win_text_height
+            else:
+                win_text_y = (frame_height - win_text_img.height) // 2
             final_img.alpha_composite(win_text_img, (win_text_x, win_text_y))
         
         if custom_overlay and 'image' in custom_overlay:
@@ -744,7 +751,7 @@ class AnimationGenerator:
                                 game_type=None, custom_overlay_kwargs=None,
                                 show_win_text=True,
                                 font_scale=1.0, avatar_size=85,
-                                show_bet_amount=True):
+                                show_bet_amount=True, win_text_height=-1):
         
         last_frame = self.lazy_loader.get_last_frame(anim_path, use_cache=True)
         
@@ -771,7 +778,8 @@ class AnimationGenerator:
                 show_win_text=show_win_text,
                 font_scale=font_scale,
                 avatar_size=avatar_size,
-                show_bet_amount=show_bet_amount
+                show_bet_amount=show_bet_amount,
+                win_text_height=win_text_height
             )
             
             return result

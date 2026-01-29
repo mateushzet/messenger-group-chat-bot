@@ -8,9 +8,9 @@ from logger import logger
 
 class BaseGamePlugin:
     
-    def __init__(self, game_name: str, results_folder: str):
+    def __init__(self, game_name: str):
         self.game_name = game_name
-        self.results_folder = results_folder
+        self.results_folder = self.get_asset_path("temp")
         self.cache = None
         
         os.makedirs(self.results_folder, exist_ok=True)
@@ -34,7 +34,8 @@ class BaseGamePlugin:
     def generate_animation(self, base_animation_path, user_id, user, user_info_before, 
                          user_info_after, game_type=None, animated=True, frame_duration=100,
                          last_frame_multiplier=1.0, custom_overlay_kwargs=None, 
-                         show_win_text=True, font_scale=1.0, avatar_size=85, show_bet_amount=True):
+                         show_win_text=True, font_scale=1.0, avatar_size=85, show_bet_amount=True
+                         , win_text_height=-1):
         
         if game_type is None:
             game_type = self.game_name
@@ -75,7 +76,8 @@ class BaseGamePlugin:
                     show_win_text=show_win_text,
                     font_scale=font_scale,
                     avatar_size=avatar_size,
-                    show_bet_amount=show_bet_amount
+                    show_bet_amount=show_bet_amount,
+                    win_text_height=win_text_height
                 )
             else:
                 result_path = self.generator.generate_last_frame_static(
@@ -89,7 +91,8 @@ class BaseGamePlugin:
                     show_win_text=show_win_text,
                     font_scale=font_scale,
                     avatar_size=avatar_size,
-                    show_bet_amount=show_bet_amount
+                    show_bet_amount=show_bet_amount,
+                    win_text_height=win_text_height
                 )
             
             return result_path, None
