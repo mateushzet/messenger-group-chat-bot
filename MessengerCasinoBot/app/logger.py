@@ -3,7 +3,7 @@ import os
 import glob
 from datetime import datetime, timedelta
 
-def cleanup_old_logs(logs_dir, days_to_keep=3):
+def cleanup_old_logs(logs_dir, days_to_keep=2):
     if not os.path.exists(logs_dir):
         return
     
@@ -29,7 +29,7 @@ def cleanup_old_logs(logs_dir, days_to_keep=3):
     else:
         print("No old log files to clean up")
 
-def setup_logging(days_to_keep=3, enable_console=True):
+def setup_logging(days_to_keep=2, enable_console=True):
     logs_dir = os.path.join(os.path.dirname(__file__), "logs")
     os.makedirs(logs_dir, exist_ok=True)
     
@@ -59,4 +59,4 @@ def setup_logging(days_to_keep=3, enable_console=True):
     
     return logger
 
-logger = setup_logging(days_to_keep=3)
+logger = setup_logging(days_to_keep=2)

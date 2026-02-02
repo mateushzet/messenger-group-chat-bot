@@ -167,7 +167,7 @@ class UserManager:
         
         self.cache.update_user(
             user_id,
-            avatar=new_avatar_filename
+            avatar_url=new_avatar_filename
         )
         
         return True, f"Avatar updated for user: {name} (ID: {user_id})"
@@ -192,3 +192,10 @@ class UserManager:
         
         action = "granted" if is_admin else "revoked"
         return True, f"Admin privileges {action} for user: {name}"
+    
+    def find_user_by_id(self, user_id_input):
+        user_id_str = str(user_id_input)
+        if user_id_str in self.cache.users:
+            return user_id_str, self.cache.users[user_id_str]
+        
+        return None, None

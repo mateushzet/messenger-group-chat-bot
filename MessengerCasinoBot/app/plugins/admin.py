@@ -56,10 +56,10 @@ class AdminPlugin(BaseGamePlugin):
                 old_avatar_url = args[1]
                 new_avatar_url = args[2]
                 name_or_id = " ".join(args[3:])
-                
                 if name_or_id.isdigit():
                     user_id = int(name_or_id)
-                    user_data = user_manager.cache.users.get(user_id)
+                    user_id, user_data = user_manager.find_user_by_id(user_id)
+
                     if not user_data:
                         self.send_message_image(sender, file_queue, f"User with ID {user_id} not found", 
                                         "Admin - Error", cache, None)
@@ -122,7 +122,7 @@ class AdminPlugin(BaseGamePlugin):
                 
                 if name_or_id.isdigit():
                     user_id = int(name_or_id)
-                    user_data = user_manager.cache.users.get(user_id)
+                    user_id, user_data = user_manager.find_user_by_id(user_id)
                     if user_data:
                         actual_name = user_data.get('name', str(user_id))
                         user_info_text = self.show_user_info_by_id(cache, user_id, actual_name)
@@ -150,7 +150,7 @@ class AdminPlugin(BaseGamePlugin):
                 
                 if raw_name_or_id.isdigit():
                     user_id = int(raw_name_or_id)
-                    user_data = user_manager.cache.users.get(user_id)
+                    user_id, user_data = user_manager.find_user_by_id(user_id)
                     if not user_data:
                         logger.error(f"[Admin] Failed to grant admin rights, user not found: {user_id}")
                         self.send_message_image(sender, file_queue, f"User with ID {user_id} not found", 
@@ -183,7 +183,7 @@ class AdminPlugin(BaseGamePlugin):
                 
                 if raw_name_or_id.isdigit():
                     user_id = int(raw_name_or_id)
-                    user_data = user_manager.cache.users.get(user_id)
+                    user_id, user_data = user_manager.find_user_by_id(user_id)
                     if not user_data:
                         self.send_message_image(sender, file_queue, f"User with ID {user_id} not found", 
                                         "Admin - Error", cache, None)
@@ -277,8 +277,6 @@ class AdminPlugin(BaseGamePlugin):
                 
         except Exception as e:
             logger.critical(f"[Admin] Plugin failed executing command {e}", exc_info=True)
-            import traceback
-            traceback.print_exc()
             self.send_message_image(sender, file_queue, 
                             f"Error executing command: {str(e)}\n\n" \
                             "Please check the command syntax.",
@@ -407,8 +405,7 @@ Created: {created_at}
 
         if name_or_id.isdigit():
             user_id = int(name_or_id)
-            user_data = user_manager.cache.users.get(user_id)
-            
+            user_id, user_data = user_manager.find_user_by_id(user_id)
             if not user_data:
                 return False, f"User with ID {user_id} not found"
             
