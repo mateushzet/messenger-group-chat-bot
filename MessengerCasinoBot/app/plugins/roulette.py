@@ -407,7 +407,7 @@ class RoulettePlugin(BaseGamePlugin):
 
         net_win = win - amount
         
-        user_info_before = self.create_user_info(sender, amount, 0, balance_before, user.copy())
+        user_info_before = self.create_user_info(sender, amount, 0, balance_before + amount, user.copy())
         
         try:
             exp_amount = net_win if net_win > 0 else -amount

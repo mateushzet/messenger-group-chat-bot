@@ -1,9 +1,8 @@
 from base_game_plugin import BaseGamePlugin
 from logger import logger
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 import os
 from utils import _get_unique_id
-from text_renderer import CachedTextRenderer
 from user_manager import UserManager
 
 class TransferPlugin(BaseGamePlugin):
@@ -11,81 +10,23 @@ class TransferPlugin(BaseGamePlugin):
         super().__init__(
             game_name="transfer"
         )
-        self._text_renderer = None
         self.WIDTH, self.HEIGHT = 300, 200
+    
+    def _get_text_width(self, text, font_size):
+        font = self.text_renderer.get_font(font_size)
         
-    def _get_text_renderer(self):
-        if self._text_renderer is None:
-            try:
-                self._text_renderer = CachedTextRenderer()
-                logger.info("[Transfer] Initialized CachedTextRenderer")
-            except ImportError as e:
-                logger.warning(f"[Transfer] Cannot load CachedTextRenderer: {e}")
-                self._text_renderer = None
-        return self._text_renderer
-
-    def _render_text(self, text, font_path, font_size, **kwargs):
-        renderer = self._get_text_renderer()
+        temp_img = Image.new('RGBA', (1, 1))
+        temp_draw = ImageDraw.Draw(temp_img)
         
-        if renderer is None:
-            try:
-                font = ImageFont.truetype(font_path, font_size)
-            except:
-                font = ImageFont.load_default()
-            
-            bbox = font.getbbox(text)
-            text_width = bbox[2] - bbox[0]
-            text_height = bbox[3] - bbox[1]
-            
-            img = Image.new("RGBA", (text_width, text_height), (0, 0, 0, 0))
-            draw = ImageDraw.Draw(img)
-            draw.text((0, 0), text, font=font, fill=kwargs.get('color', (255, 255, 255, 255)))
-            
-            return img
-        else:
-            config = {
-                'text': text,
-                'font_path': font_path,
-                'font_size': font_size,
-                'color': kwargs.get('color', (255, 255, 255, 255)),
-                'stroke_width': kwargs.get('stroke_width', 0),
-                'stroke_color': kwargs.get('stroke_color', (0, 0, 0)),
-                'bg_color': kwargs.get('bg_color', None),
-                'shadow': kwargs.get('shadow', False),
-                'shadow_color': kwargs.get('shadow_color', (0, 0, 0, 100)),
-                'shadow_offset': kwargs.get('shadow_offset', (2, 2)),
-                'include_full_ascent_descent': kwargs.get('include_full_ascent_descent', True)
-            }
-            return renderer.render_text_to_image(**config)
-
-    def _get_text_width(self, text, font_path, font_size):
-        renderer = self._get_text_renderer()
-        
-        if renderer is None:
-            try:
-                font = ImageFont.truetype(font_path, font_size)
-            except:
-                font = ImageFont.load_default()
-            
-            bbox = font.getbbox(text)
-            return bbox[2] - bbox[0]
-        else:
-            metrics = renderer.get_text_metrics(text, font_path, font_size)
-            return metrics['width']
-
+        bbox = temp_draw.textbbox((0, 0), text, font=font)
+        return bbox[2] - bbox[0]
+    
     def _create_transfer_image(self, sender_id, sender_data, recipient_id, recipient_data, 
                              amount, sender_balance_before, recipient_balance_before):
         try:
-            font_dir = self.get_app_path("fonts")
-            bold_font = os.path.join(font_dir, "DejaVuSans-Bold.ttf")
-            
-            if not os.path.exists(bold_font):
-                bold_font = "DejaVuSans-Bold.ttf"
-            
             title_text = "TRANSFER COMPLETED"
-            title_image = self._render_text(
+            title_image = self.text_renderer.render_text(
                 text=title_text,
-                font_path=bold_font,
                 font_size=20,
                 color=(255, 255, 255, 255),
                 stroke_width=2,
@@ -93,9 +34,8 @@ class TransferPlugin(BaseGamePlugin):
             )
             
             amount_text = f"{amount}$"
-            amount_image = self._render_text(
+            amount_image = self.text_renderer.render_text(
                 text=amount_text,
-                font_path=bold_font,
                 font_size=26,
                 color=(0, 255, 0, 255),
                 stroke_width=2,
@@ -103,7 +43,7 @@ class TransferPlugin(BaseGamePlugin):
             )
             
             sender_bg_path = self.cache.get_background_path(sender_id)
-            if os.path.exists(sender_bg_path):
+            if sender_bg_path and os.path.exists(sender_bg_path):
                 background = Image.open(sender_bg_path).convert("RGBA")
             else:
                 background = Image.new("RGBA", (self.WIDTH, self.HEIGHT), (30, 30, 40, 255))
@@ -162,12 +102,11 @@ class TransferPlugin(BaseGamePlugin):
             info_start_y = sender_avatar_y + avatar_size + 10
             
             sender_name = sender_data.get("name", "Sender")
-            sender_lines = self._split_nickname(sender_name, avatar_size + 10, bold_font, 11)
+            sender_lines = self._split_nickname(sender_name, avatar_size + 10, font_size=11)
             
             for i, line in enumerate(sender_lines):
-                name_image = self._render_text(
+                name_image = self.text_renderer.render_text(
                     text=line,
-                    font_path=bold_font,
                     font_size=11,
                     color=(220, 220, 220, 255),
                     stroke_width=1,
@@ -177,12 +116,11 @@ class TransferPlugin(BaseGamePlugin):
                 overlay.paste(name_image, (line_x, info_start_y + (i * 12)), name_image)
             
             recipient_name = recipient_data.get("name", "Recipient")
-            recipient_lines = self._split_nickname(recipient_name, avatar_size + 10, bold_font, 11)
+            recipient_lines = self._split_nickname(recipient_name, avatar_size + 10, font_size=11)
             
             for i, line in enumerate(recipient_lines):
-                name_image = self._render_text(
+                name_image = self.text_renderer.render_text(
                     text=line,
-                    font_path=bold_font,
                     font_size=11,
                     color=(220, 220, 220, 255),
                     stroke_width=1,
@@ -194,9 +132,8 @@ class TransferPlugin(BaseGamePlugin):
             balance_y = info_start_y + max(len(sender_lines), len(recipient_lines)) * 12 + 5
             
             sender_balance_text = f"{sender_balance_before} → {sender_balance_before - amount}"
-            sender_balance_image = self._render_text(
+            sender_balance_image = self.text_renderer.render_text(
                 text=sender_balance_text,
-                font_path=bold_font,
                 font_size=10,
                 color=(255, 100, 100, 255)
             )
@@ -204,9 +141,8 @@ class TransferPlugin(BaseGamePlugin):
             overlay.paste(sender_balance_image, (sender_balance_x, balance_y), sender_balance_image)
             
             recipient_balance_text = f"{recipient_balance_before} → {recipient_balance_before + amount}"
-            recipient_balance_image = self._render_text(
+            recipient_balance_image = self.text_renderer.render_text(
                 text=recipient_balance_text,
-                font_path=bold_font,
                 font_size=10,
                 color=(100, 255, 100, 255)
             )
@@ -242,14 +178,14 @@ class TransferPlugin(BaseGamePlugin):
             traceback.print_exc()
             return None
 
-    def _split_nickname(self, nickname, max_width, font_path, font_size):
+    def _split_nickname(self, nickname, max_width, font_size=11):
         words = nickname.split()
         lines = []
         current_line = []
         
         for word in words:
             test_line = ' '.join(current_line + [word])
-            if self._get_text_width(test_line, font_path, font_size) <= max_width:
+            if self._get_text_width(test_line, font_size) <= max_width:
                 current_line.append(word)
             else:
                 if current_line:
