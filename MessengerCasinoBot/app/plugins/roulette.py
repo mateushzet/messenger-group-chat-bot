@@ -1,10 +1,10 @@
 import random
 import os
 import time
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 from base_game_plugin import BaseGamePlugin
 from logger import logger
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 RED_NUMBERS = {1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36}
 BLACK_NUMBERS = set(range(1,37)) - RED_NUMBERS
@@ -22,45 +22,109 @@ class RoulettePlugin(BaseGamePlugin):
         }
         
         self.max_history = 13
-        
-    def get_custom_overlay(self, **kwargs) -> Optional[Dict]:
+    
+    def get_custom_overlay(self, **kwargs) -> Optional[Dict[str, Any]]:
         try:
-            anim_width = kwargs.get('width', 400)
+            frame_width = kwargs.get('frame_width', 400)
+            request = kwargs.get('request', None)
             
-            history = kwargs.get('history')
-            if history is None:
-                history = self.get_history()
+            custom_kwargs = {}
+            if request and hasattr(request.options, 'custom_overlay_kwargs'):
+                custom_kwargs = request.options.custom_overlay_kwargs or {}
+            
+            result_number = custom_kwargs.get('result_number')
+            
+            font_scale = 1.0
+            if request and hasattr(request.options, 'font_scale'):
+                font_scale = request.options.font_scale
+            
+            history = self.get_history()
+            history_to_display = history[:self.max_history]
+            
+            overlay_before = self._generate_history_overlay(
+                frame_width=frame_width,
+                history=history_to_display,
+                font_scale=font_scale
+            )
+            
+            overlay_after = None
+            if result_number is not None:
+                result_color = self._get_color_for_number(result_number)
+                
+                history_with_new = history_to_display.copy()
+                new_entry = {
+                    "number": result_number,
+                    "color": result_color,
+                    "timestamp": time.time(),
+                    "is_current": True
+                }
+                history_with_new.insert(0, new_entry)
+                
+                if len(history_with_new) > self.max_history:
+                    history_with_new = history_with_new[:self.max_history]
+                
+                overlay_after = self._generate_history_overlay(
+                    frame_width=frame_width,
+                    history=history_with_new,
+                    show_current=True,
+                    font_scale=font_scale
+                )
+            else:
+                overlay_after = overlay_before
+            
+            overlay_y_position = int(10 * font_scale)
+            
+            return {
+                'before': {
+                    'image': overlay_before,
+                    'position': (0, overlay_y_position),
+                    'type': 'before',
+                    'per_frame': False
+                },
+                'after': {
+                    'image': overlay_after,
+                    'position': (0, overlay_y_position),
+                    'type': 'after',
+                    'per_frame': False
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"[Roulette] Error in get_custom_overlay: {e}", exc_info=True)
+            return None
+    
+    def _generate_history_overlay(self, frame_width: int, history=None, show_current=False, font_scale=1.0):
+        try:
+            overlay_height = int(30 * font_scale)
+            overlay = Image.new('RGBA', (frame_width, overlay_height), (0, 0, 0, 0))
             
             if not history:
-                return None
+                return overlay
             
-            overlay_height = 30
-            overlay = Image.new('RGBA', (anim_width, overlay_height), (0, 0, 0, 0))
             draw = ImageDraw.Draw(overlay)
             
             total_items = min(len(history), self.max_history)
             
             if total_items == 0:
-                return None
+                return overlay
             
-            circle_diameter = 28
-            spacing = 3
+            circle_diameter = int(28 * font_scale)
+            min_circle_diameter = 20
+            circle_diameter = max(circle_diameter, min_circle_diameter)
             
-            available_width = anim_width - 20
+            spacing = int(3 * font_scale)
+            
+            available_width = frame_width - int(20 * font_scale)
             total_width_needed = (total_items * circle_diameter) + ((total_items - 1) * spacing)
             
-            start_x = 10 + (available_width - total_width_needed) // 2
+            start_x = int(10 * font_scale) + (available_width - total_width_needed) // 2
             circle_y = (overlay_height - circle_diameter) // 2
-            
-            try:
-                font = ImageFont.truetype("DejaVuSans-Bold.ttf", 10)
-            except:
-                font = ImageFont.load_default()
             
             for i in range(total_items):
                 item = history[i]
                 number = item.get("number", 0)
                 color_name = item.get("color", "green")
+                is_current = item.get('is_current', False) and show_current
                 
                 color_rgb = self.history_colors.get(color_name, self.history_colors["green"])
                 
@@ -79,52 +143,53 @@ class RoulettePlugin(BaseGamePlugin):
                 if item.get("timestamp", 0) == 0:
                     alpha = 0
                 
+                current_circle_diameter = circle_diameter
+                if is_current:
+                    alpha = 255
+                    current_circle_diameter = circle_diameter + int(4 * font_scale)
+                    current_offset = int(-2 * font_scale)
+                else:
+                    current_offset = 0
+                
                 circle_color = color_rgb + (alpha,)
                 
-                circle_x = start_x + (position_on_screen * (circle_diameter + spacing))
+                circle_x = start_x + (position_on_screen * (circle_diameter + spacing)) + current_offset
                 
                 if alpha > 0 and (number > 0 or color_name == "green"):
                     draw.ellipse(
-                        [(circle_x, circle_y), 
-                        (circle_x + circle_diameter - 1, circle_y + circle_diameter - 1)],
+                        [(circle_x, circle_y + current_offset), 
+                         (circle_x + current_circle_diameter - 1, circle_y + current_offset + current_circle_diameter - 1)],
                         fill=circle_color,
                         outline=(30, 30, 30, 150),
-                        width=2
+                        width=int(2 * font_scale)
                     )
                     
-                    number_text = str(number)
-                    bbox = font.getbbox(number_text)
-                    text_width = bbox[2] - bbox[0]
-                    text_height = bbox[3] - bbox[1]
-                    
-                    text_x = circle_x + (circle_diameter - text_width) // 2
-                    text_y = circle_y + (circle_diameter - text_height) // 2 - 1
-                    
-                    text_alpha = min(alpha + 50, 255)
-                    
-                    draw.text(
-                        (text_x + 1, text_y + 1),
-                        number_text,
-                        font=font,
-                        fill=(0, 0, 0, text_alpha - 50)
-                    )
-                    draw.text(
-                        (text_x, text_y),
-                        number_text,
-                        font=font,
-                        fill=(255, 255, 255, text_alpha)
-                    )
+                    if number > 0 or color_name == "green":
+                        number_text = str(number) if number > 0 else "0"
+                        
+                        text_font_size = int(12 * font_scale)
+                        min_font_size = 8
+                        text_font_size = max(text_font_size, min_font_size)
+                        
+                        number_img = self.text_renderer.render_text(
+                            text=number_text,
+                            font_size=text_font_size,
+                            color=(255, 255, 255, min(alpha + 50, 255)),
+                            stroke_width=1,
+                            stroke_color=(0, 0, 0, min(alpha, 200)),
+                            shadow=False
+                        )
+                        
+                        text_x = circle_x + (current_circle_diameter - number_img.width) // 2
+                        text_y = circle_y + current_offset + (current_circle_diameter - number_img.height) // 2
+                        
+                        overlay.alpha_composite(number_img, (text_x, text_y))
             
-            return {
-                'image': overlay,
-                'position': (0, 10),
-                'cache_key': f"roulette_history_{len(history)}",
-                'per_frame': False
-            }
+            return overlay
             
         except Exception as e:
-            logger.error(f"[Roulette] Error generating roulette history overlay: {e}")
-            return None
+            logger.error(f"[Roulette] Error generating history overlay: {e}")
+            return Image.new('RGBA', (frame_width, int(30 * font_scale)), (0, 0, 0, 0))
     
     def _get_color_for_number(self, number):
         if number == 0:
@@ -240,23 +305,19 @@ class RoulettePlugin(BaseGamePlugin):
             except:
                 img_width, img_height = 400, 400
             
-            overlay_data = self.get_custom_overlay(
-                width=img_width,
-                height=img_height,
-               history=self.get_history()
-            )
+            overlay_data = self.get_custom_overlay(frame_width=img_width)
             
-            if overlay_data and overlay_data['image']:
-                help_img = Image.open(help_image_path).convert("RGBA")
-                overlay_img = overlay_data['image']
-                
-                position = (0, 10)
-                help_img.paste(overlay_img, position, overlay_img)
-                
-                temp_path = os.path.join(self.get_asset_path("temp"), f"roulette_help_with_history_{int(time.time())}.png")
-                help_img.save(temp_path, "PNG")
-                
+            if overlay_data and overlay_data.get('before', {}).get('image'):
                 try:
+                    help_img = Image.open(help_image_path).convert("RGBA")
+                    overlay_img = overlay_data['before']['image']
+                    position = overlay_data['before']['position']
+                    
+                    help_img.paste(overlay_img, position, overlay_img)
+                    
+                    temp_path = os.path.join(self.get_asset_path("temp"), f"roulette_help_with_history_{int(time.time())}.png")
+                    help_img.save(temp_path, "PNG")
+                    
                     file_queue.put(temp_path)
                 except Exception as e:
                     logger.error(f"[Roulette] Error sending help image: {e}")
@@ -331,7 +392,6 @@ class RoulettePlugin(BaseGamePlugin):
         balance_before = user["balance"] - amount
 
         result_number = random.randint(0, 36)
-        result_color = self._get_color_for_number(result_number)
         win = self.calculate_win(bet_type, amount, result_number)
         new_balance = balance_before + win
         
@@ -375,14 +435,11 @@ class RoulettePlugin(BaseGamePlugin):
             user=user,
             user_info_before=user_info_before,
             user_info_after=user_info_after,
-            game_type="roulette",
             animated=animated,
             frame_duration=75,
             last_frame_multiplier=30.0,
             custom_overlay_kwargs={
-                'width': 400,
-                'height': 400,
-                'history': self.get_history()
+                'result_number': result_number
             },
             show_win_text=True,
             font_scale=1.2,
@@ -416,7 +473,7 @@ class RoulettePlugin(BaseGamePlugin):
             win_str = f"{net_win}"
         
         logger.info(f"ROULETTE: {sender} bet {amount} on {bet_type} | "
-                   f"Result: {result_number} {result_color} | "
+                   f"Result: {result_number} {self._get_color_for_number(result_number)} | "
                    f"Net: {win_str} | Balance: {balance_before} -> {new_balance}")
         
         return None
