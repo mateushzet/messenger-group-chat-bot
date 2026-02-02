@@ -20,6 +20,8 @@ class GenerationOptions:
     show_bet_amount: bool = True
     win_text_height: int = -1
     custom_overlay_kwargs: Optional[Dict] = None
+    final_frames_start_index: int = -1
+    win_text_scale: int = -1
     
     @classmethod
     def from_kwargs(cls, **kwargs) -> 'GenerationOptions':
@@ -89,7 +91,8 @@ class GenerationRequest:
         if self.output_path:
             return self.output_path
         
-        ext = ".gif" if self.options.animated else f".{self.options.output_format.lower()}"
+        ext = f".{self.options.output_format.lower()}"
+        
         filename = f"{self.game_name}_{self.user_before.user_id}_{self.timestamp.strftime('%Y%m%d_%H%M%S')}{ext}"
         
         if self.cache_path:
@@ -170,18 +173,21 @@ class TextRenderer:
         return self.default_fonts[closest_size]
     
     def render_text(self, text: str, font_size: int, 
-                   color: Tuple[int, int, int, int] = (240, 240, 240, 255),
-                   stroke_width: int = 0,
-                   stroke_color: Tuple[int, int, int, int] = (0, 0, 0, 255),
-                   shadow: bool = False,
-                   shadow_color: Tuple[int, int, int, int] = (0, 0, 0, 180),
-                   shadow_offset: Tuple[int, int] = (2, 2)) -> Image.Image:
+                color: Tuple[int, int, int, int] = (240, 240, 240, 255),
+                stroke_width: int = 0,
+                stroke_color: Tuple[int, int, int, int] = (0, 0, 0, 255),
+                shadow: bool = False,
+                shadow_color: Tuple[int, int, int, int] = (0, 0, 0, 180),
+                shadow_offset: Tuple[int, int] = (2, 2)) -> Image.Image:
         font = self.get_font(font_size)
         
         draw = ImageDraw.Draw(Image.new('RGBA', (1, 1)))
-        bbox = draw.textbbox((0, 0), text, font=font, stroke_width=stroke_width)
+        
+        bbox = draw.textbbox((0, 0), text, font=font, stroke_width=stroke_width, anchor='lt')
+        
+        extra_bottom = int(font_size * 0.2)
         text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
+        text_height = (bbox[3] - bbox[1]) + extra_bottom
         
         if shadow:
             text_width += abs(shadow_offset[0]) * 2
@@ -193,15 +199,15 @@ class TextRenderer:
         x_offset = abs(shadow_offset[0]) if shadow and shadow_offset[0] < 0 else 0
         y_offset = abs(shadow_offset[1]) if shadow and shadow_offset[1] < 0 else 0
         
-        text_position = (x_offset, y_offset)
+        text_position = (x_offset, y_offset + extra_bottom)
         
         if shadow:
-            shadow_pos = (x_offset + shadow_offset[0], y_offset + shadow_offset[1])
+            shadow_pos = (x_offset + shadow_offset[0], y_offset + extra_bottom + shadow_offset[1])
             draw.text(shadow_pos, text, font=font, fill=shadow_color, 
-                     stroke_width=stroke_width, stroke_fill=stroke_color)
+                    stroke_width=stroke_width, stroke_fill=stroke_color, anchor='lt')
         
         draw.text(text_position, text, font=font, fill=color,
-                 stroke_width=stroke_width, stroke_fill=stroke_color)
+                stroke_width=stroke_width, stroke_fill=stroke_color, anchor='lt')
         
         return img
 
@@ -231,7 +237,7 @@ class AnimationGenerator:
     
     def register_custom_overlay_provider(self, game_name: str, provider_func: callable):
         self.custom_overlay_providers[game_name] = provider_func
-                
+                        
     def generate(self, request: GenerationRequest) -> Tuple[Optional[str], Optional[str]]:
         try:
             is_valid, error_msg = request.validate()
@@ -312,9 +318,15 @@ class AnimationGenerator:
                 
                 processed_frames.append(processed_frame)
                 
-                if options.animated and i == len(frame_indices) - 1 and options.last_frame_multiplier > 1:
-                    for _ in range(int(options.last_frame_multiplier) - 1):
-                        processed_frames.append(processed_frame.copy())
+                if options.animated and options.last_frame_multiplier > 1:
+                    if options.final_frames_start_index == -1:
+                        if i == len(frame_indices) - 1:
+                            for _ in range(int(options.last_frame_multiplier) - 1):
+                                processed_frames.append(processed_frame.copy())
+                    else:
+                        if i >= options.final_frames_start_index:
+                            for _ in range(int(options.last_frame_multiplier) - 1):
+                                processed_frames.append(processed_frame.copy())
             
             output_dir = self.results_folder
             
@@ -333,9 +345,9 @@ class AnimationGenerator:
                 return output_path, None
             else:
                 return None, "Failed to save file"
-                
+                    
         except Exception as e:
-            return None, f"Animation generation error: {str(e)}"
+            return None, f"Animation generation error: {str(e)}"   
         
     def _load_image(self, path: str) -> Optional[Image.Image]:
         if not path or not os.path.exists(path):
@@ -604,8 +616,11 @@ class AnimationGenerator:
         else:
             text = f"LOSE! ${abs(request.win_amount):.0f}"
         
-        font_size = int(48 * options.font_scale)
-        
+        if options.win_text_scale != -1:
+            font_size = int(48 * options.win_text_scale)
+        else:
+            font_size = int(48 * options.font_scale)
+
         return self.text_renderer.render_text(
             text=text,
             font_size=font_size,
@@ -660,19 +675,52 @@ class AnimationGenerator:
             result.alpha_composite(overlay_img, (overlay_x, overlay_y))
         
         return result
-    
+
     def _save_animation(self, frames: List[Image.Image], output_path: str,
                     options: GenerationOptions) -> bool:
         if not frames:
             return False
         
         try:
+            durations_to_use = []
+            
+            if options.last_frame_multiplier <= 1:
+                durations_to_use = [options.frame_duration] * len(frames)
+            else:
+                if options.final_frames_start_index == -1:
+                    for i in range(len(frames)):
+                        if i == len(frames) - 1:
+                            durations_to_use.append(int(options.frame_duration * options.last_frame_multiplier))
+                        else:
+                            durations_to_use.append(options.frame_duration)
+                else:
+                    
+                    multiplier = int(options.last_frame_multiplier)
+                    start_index = options.final_frames_start_index
+                    
+                    if start_index >= len(frames):
+                        start_index = len(frames) - 1
+                    
+                    for i in range(len(frames)):
+                        duration = options.frame_duration
+                        
+                        if i >= start_index:
+                            pos_in_final = i - start_index
+                            
+                            if pos_in_final % multiplier == 0:
+                                duration = int(options.frame_duration * options.last_frame_multiplier)
+                        
+                        if i == len(frames) - 1:
+                            duration = int(options.frame_duration * 10 * options.last_frame_multiplier)
+                        
+                        durations_to_use.append(duration)
+            
             frames[0].save(
                 output_path,
                 format='WEBP',
                 save_all=True,
                 append_images=frames[1:],
-                duration=options.frame_duration,
+                duration=durations_to_use,
                 loop=0,
                 quality=options.quality
             )
@@ -680,7 +728,7 @@ class AnimationGenerator:
         except Exception as e:
             logger.error(f"Error saving animation: {e}")
             return False
-
+        
     def _save_static(self, frame: Optional[Image.Image], output_path: str,
                     options: GenerationOptions) -> bool:
         if not frame:

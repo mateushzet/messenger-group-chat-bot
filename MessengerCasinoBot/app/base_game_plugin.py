@@ -41,7 +41,8 @@ class BaseGamePlugin:
                          user_info_after, animated=True, frame_duration=100,
                          last_frame_multiplier=1.0, custom_overlay_kwargs=None, 
                          show_win_text=True, font_scale=1.0, avatar_size=85, 
-                         show_bet_amount=True, win_text_height=-1):
+                         show_bet_amount=True, win_text_height=-1, final_frames_start_index=-1,
+                         win_text_scale=-1):
         avatar_path = None
         bg_path = None
         
@@ -86,7 +87,9 @@ class BaseGamePlugin:
             last_frame_multiplier=last_frame_multiplier,
             show_bet_amount=show_bet_amount,
             win_text_height=win_text_height,
-            custom_overlay_kwargs=custom_overlay_kwargs
+            custom_overlay_kwargs=custom_overlay_kwargs,
+            final_frames_start_index=final_frames_start_index,
+            win_text_scale=win_text_scale
         )
         
         request = GenerationRequest(
