@@ -1,10 +1,9 @@
 import os
 import random
-import math
 from datetime import datetime, timedelta
 from base_game_plugin import BaseGamePlugin
 from logger import logger
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 from utils import _get_unique_id
 import threading
 import time
@@ -136,78 +135,26 @@ class MathChallengePlugin(BaseGamePlugin):
             bg_info = self._get_random_background()
             if not bg_info:
                 logger.warning("[MathChallenge] No background available, using fallback")
-                return self._generate_question_image_fallback(question, question_id)
+                return None
             
-            bg_img = Image.open(bg_info['path']).convert('RGB')
-            draw = ImageDraw.Draw(bg_img)
-            
-            font = None
-            try:
-                font_sizes = [48, 52, 56, 60]
-                for size in font_sizes:
-                    try:
-                        font = ImageFont.truetype("DejaVuSans-Bold.ttf", size)
-                        bbox = draw.textbbox((0, 0), question, font=font)
-                        text_width = bbox[2] - bbox[0]
-                        if text_width < 700:
-                            break
-                    except Exception as e:
-                        logger.warning(f"[MathChallenge] Font error for size {size}: {e}")
-                        continue
-                
-                if font is None:
-                    logger.warning("[MathChallenge] Could not load preferred font, using default")
-                    font = ImageFont.load_default()
-            except Exception as e:
-                logger.error(f"[MathChallenge] Font loading error: {e}")
-                font = ImageFont.load_default()
+            bg_img = Image.open(bg_info['path']).convert('RGBA')
+
+            question_img = self.text_renderer.render_text(
+                text=question,
+                font_size=48,
+                color=(255, 255, 255, 255),
+                stroke_width=2,
+                stroke_color=(0, 0, 0, 255),
+                shadow=True,
+                shadow_color=(0, 0, 0, 150),
+                shadow_offset=(2, 2)
+            )
             
             question_area = (100, 150, 700, 250)
-            bbox = draw.textbbox((0, 0), question, font=font)
-            text_width = bbox[2] - bbox[0]
-            text_height = bbox[3] - bbox[1]
+            text_x = question_area[0] + (question_area[2] - question_area[0] - question_img.width) // 2
+            text_y = question_area[1] + (question_area[3] - question_area[1] - question_img.height) // 2
             
-            shadow_offset = 2
-            
-            if text_width < (question_area[2] - question_area[0] - 40):
-                text_x = question_area[0] + (question_area[2] - question_area[0] - text_width) // 2
-                text_y = question_area[1] + (question_area[3] - question_area[1] - text_height) // 2
-                
-                draw.text((text_x + shadow_offset, text_y + shadow_offset), 
-                         question, font=font, fill=(0, 0, 0))
-                draw.text((text_x, text_y), question, font=font, fill=(255, 255, 255))
-            else:
-                if "=" in question:
-                    parts = question.split("=", 1)
-                    line1 = parts[0].strip() + " ="
-                    line2 = "= " + parts[1].strip() if parts[1].strip() else "?"
-                else:
-                    mid = len(question) // 2
-                    split_points = ['+', '-', '×', '÷']
-                    split_pos = -1
-                    
-                    for i in range(mid - 10, mid + 10):
-                        if 0 <= i < len(question):
-                            if question[i] in split_points and i > 0 and i < len(question) - 1:
-                                split_pos = i + 1
-                                break
-                    
-                    if split_pos > 0:
-                        line1 = question[:split_pos].strip()
-                        line2 = question[split_pos:].strip()
-                    else:
-                        line1 = question[:mid]
-                        line2 = question[mid:]
-                
-                for i, line in enumerate([line1, line2]):
-                    bbox = draw.textbbox((0, 0), line, font=font)
-                    line_width = bbox[2] - bbox[0]
-                    line_x = question_area[0] + (question_area[2] - question_area[0] - line_width) // 2
-                    line_y = question_area[1] + 20 + (i * 60)
-                    
-                    draw.text((line_x + shadow_offset, line_y + shadow_offset), 
-                             line, font=font, fill=(0, 0, 0))
-                    draw.text((line_x, line_y), line, font=font, fill=(255, 255, 255))
+            bg_img.alpha_composite(question_img, (text_x, text_y))
             
             output_path = os.path.join(self.results_folder, f"math_question_{question_id}.png")
             bg_img.save(output_path, 'PNG', quality=95)
@@ -217,97 +164,6 @@ class MathChallengePlugin(BaseGamePlugin):
             
         except Exception as e:
             logger.critical(f"[MathChallenge] Error generating question image: {e}")
-            return self._generate_question_image_fallback(question, question_id)
-
-    def _generate_question_image_fallback(self, question, question_id):
-        try:
-            width, height = 800, 400
-            bg_color1 = (random.randint(20, 40), random.randint(20, 40), random.randint(40, 80))
-            bg_color2 = (random.randint(40, 60), random.randint(40, 60), random.randint(80, 120))
-            
-            bg_img = Image.new('RGB', (width, height), bg_color1)
-            draw = ImageDraw.Draw(bg_img)
-            
-            for y in range(height):
-                ratio = y / height
-                r = int(bg_color1[0] + (bg_color2[0] - bg_color1[0]) * ratio)
-                g = int(bg_color1[1] + (bg_color2[1] - bg_color1[1]) * ratio)
-                b = int(bg_color1[2] + (bg_color2[2] - bg_color1[2]) * ratio)
-                
-                for x in range(width):
-                    bg_img.putpixel((x, y), (r, g, b))
-            
-            symbols = ["+", "-", "×", "÷", "=", "√", "π"]
-            try:
-                symbol_font = ImageFont.truetype("arial.ttf", 24)
-            except:
-                symbol_font = ImageFont.load_default()
-                logger.warning("[MathChallenge] Could not load symbol font, using default")
-            
-            for _ in range(30):
-                symbol = random.choice(symbols)
-                x = random.randint(0, width - 30)
-                y = random.randint(0, height - 30)
-                opacity = random.randint(30, 80)
-                color = (220, 220, 255, opacity)
-                
-                symbol_img = Image.new('RGBA', (50, 50), (0, 0, 0, 0))
-                symbol_draw = ImageDraw.Draw(symbol_img)
-                symbol_draw.text((10, 10), symbol, font=symbol_font, fill=color)
-                
-                angle = random.randint(-30, 30)
-                rotated = symbol_img.rotate(angle, expand=True, fillcolor=(0, 0, 0, 0))
-                bg_img.paste(rotated, (x, y), rotated)
-                draw = ImageDraw.Draw(bg_img)
-            
-            try:
-                title_font = ImageFont.truetype("arialbd.ttf", 42)
-            except:
-                title_font = ImageFont.load_default()
-                logger.warning("[MathChallenge] Could not load title font, using default")
-            
-            title = "MATH QUESTION"
-            title_bbox = draw.textbbox((0, 0), title, font=title_font)
-            title_x = (width - (title_bbox[2] - title_bbox[0])) // 2
-            draw.text((title_x, 45), title, font=title_font, fill=(255, 255, 255))
-            
-            qx1, qy1 = 100, 150
-            qx2, qy2 = width - 100, 250
-            draw.rectangle([qx1, qy1, qx2, qy2], fill=(40, 50, 80))
-            draw.rectangle([qx1, qy1, qx2, qy2], outline=(255, 255, 255), width=3)
-            
-            try:
-                font = ImageFont.truetype("DejaVuSans-Bold.ttf", 48)
-            except:
-                font = ImageFont.load_default()
-                logger.warning("[MathChallenge] Could not load question font, using default")
-            
-            bbox = draw.textbbox((0, 0), question, font=font)
-            text_width = bbox[2] - bbox[0]
-            text_x = qx1 + (qx2 - qx1 - text_width) // 2
-            text_y = qy1 + (qy2 - qy1 - 48) // 2
-            
-            draw.text((text_x + 2, text_y + 2), question, font=font, fill=(0, 0, 0))
-            draw.text((text_x, text_y), question, font=font, fill=(255, 255, 255))
-            
-            instruction = "Answer using: /answer [number] or /a [number]"
-            try:
-                small_font = ImageFont.truetype("arial.ttf", 18)
-            except:
-                small_font = ImageFont.load_default()
-            
-            inst_bbox = draw.textbbox((0, 0), instruction, font=small_font)
-            inst_x = (width - (inst_bbox[2] - inst_bbox[0])) // 2
-            draw.text((inst_x, 300), instruction, font=small_font, fill=(0, 255, 100))
-            
-            output_path = os.path.join(self.results_folder, f"math_question_{question_id}.png")
-            bg_img.save(output_path, 'PNG', quality=95)
-            logger.warning(f"[MathChallenge] Fallback image saved to {output_path}")
-            
-            return output_path
-            
-        except Exception as e:
-            logger.critical(f"[MathChallenge] Error generating fallback question image: {e}")
             return None
 
     def _generate_new_challenge(self):
@@ -616,8 +472,8 @@ class MathChallengePlugin(BaseGamePlugin):
             user_info_before, 
             user_info_after,
             animated=True,
-            game_type="math",
-            avatar_size=80,
+            avatar_size=48,
+            font_scale=0.7,
             show_bet_amount=False,
             frame_duration=60,
             last_frame_multiplier=30.0,
@@ -683,22 +539,9 @@ class MathChallengePlugin(BaseGamePlugin):
                 active_challenge = self.cache.get_active_math_challenge()
                 if active_challenge:
                     status = active_challenge.get("status", "unknown")
-                    if status == "scheduled":
-                        try:
-                            scheduled_time = datetime.fromisoformat(active_challenge.get("scheduled_for", ""))
-                            now = datetime.now()
-                            time_until = scheduled_time - now
-                            
-                            if time_until.total_seconds() > 0:
-                                minutes = int(time_until.total_seconds() // 60)
-                                wait_msg = f"\nNext challenge in approximately {minutes} minutes"
-                            else:
-                                wait_msg = "\nChallenge should appear soon!"
-                        except:
-                            wait_msg = "\nChallenge is scheduled for later."
-                        
+                    if status == "scheduled":                        
                         self.send_message_image(sender, file_queue, 
-                            f"No active math challenge at the moment!{wait_msg}\n\nMath challenges appear randomly once per hour.",
+                            f"No active math challenge at the moment!\nMath challenges appear randomly once per hour.",
                             "Math Challenge", cache, user_id)
                     elif status == "solved":
                         self.send_message_image(sender, file_queue, 
@@ -726,26 +569,13 @@ class MathChallengePlugin(BaseGamePlugin):
                     "Math Challenge", cache, user_id)
             elif "Challenge not yet active" in error_msg:
                 active_challenge = self.cache.get_active_math_challenge()
-                if active_challenge and active_challenge.get("status") == "scheduled":
-                    try:
-                        scheduled_time = datetime.fromisoformat(active_challenge.get("scheduled_for", ""))
-                        now = datetime.now()
-                        time_until = scheduled_time - now
-                        
-                        if time_until.total_seconds() > 0:
-                            minutes = int(time_until.total_seconds() // 60)
-                            wait_msg = f"\nChallenge will be active in approximately {minutes} minutes"
-                        else:
-                            wait_msg = "\nChallenge should become active soon!"
-                    except:
-                        wait_msg = "\nChallenge is scheduled for later."
-                    
+                if active_challenge and active_challenge.get("status") == "scheduled":                   
                     self.send_message_image(sender, file_queue, 
-                        f"Challenge not yet active!{wait_msg}\n\nWait for the image to appear first.",
+                        f"Challenge not yet active!\nWait for the image to appear first.",
                         "Math Challenge", cache, user_id)
                 else:
                     self.send_message_image(sender, file_queue, 
-                        "Challenge not yet active!\n\nWait for the image to appear first.",
+                        "Challenge not yet active!\nWait for the image to appear first.",
                         "Math Challenge", cache, user_id)
             else:
                 self.send_message_image(sender, file_queue, 
@@ -822,9 +652,6 @@ class QuestionGenerator:
         question = " ".join(question_parts) + " = ?"
         
         return question, result
-
-    def generate_question(self, difficulty="medium"):
-        return self.generate_4number_question()
 
 _math_plugin_instance = None
 
