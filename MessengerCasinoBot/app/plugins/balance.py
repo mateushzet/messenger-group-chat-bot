@@ -1,26 +1,18 @@
 import os
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 from base_game_plugin import BaseGamePlugin
 from logger import logger
 from utils import _get_unique_id
 
 class BalancePlugin(BaseGamePlugin):
     def __init__(self):
-
         super().__init__(
             game_name="balance"
         )
         
         self.assets_dir = self.get_app_path("assets")
         self.balance_icon_path = os.path.join(self.assets_dir, "balance_icon.png")
-        
-        if not hasattr(self, 'text_renderer') or self.text_renderer is None:
-            try:
-                from text_renderer import CachedTextRenderer
-                self.text_renderer = CachedTextRenderer(max_text_cache=300, max_metrics_cache=1000)
-            except ImportError:
-                self.text_renderer = None
-    
+
     def _load_icon(self, icon_path, default_size=(40, 40)):
         if hasattr(self, 'generator') and hasattr(self.generator, 'resource_cache'):
             icon = self.generator.resource_cache.get_icon(icon_path, default_size)
@@ -39,23 +31,18 @@ class BalancePlugin(BaseGamePlugin):
 
         draw.ellipse([5, 5, 35, 35], fill=(255, 215, 0, 255))
         
-        if self.text_renderer:
-            dollar_img = self.text_renderer.render_text_to_image(
-                text="$",
-                font_path="DejaVuSans-Bold.ttf",
-                font_size=18,
-                color=(139, 69, 19, 255)
-            )
-            dollar_x = (default_size[0] - dollar_img.width) // 2
-            dollar_y = (default_size[1] - dollar_img.height) // 2
-            icon.paste(dollar_img, (dollar_x, dollar_y), dollar_img)
-        else:
-            try:
-                font = ImageFont.truetype("DejaVuSans-Bold.ttf", 18)
-            except:
-                font = ImageFont.load_default(22)
-            draw.text((20, 20), "$", fill=(139, 69, 19, 255), 
-                     font=font, anchor="mm")
+        dollar_text = "$"
+        dollar_img = self.text_renderer.render_text(
+            text=dollar_text,
+            font_size=18,
+            color=(139, 69, 19, 255),
+            stroke_width=1,
+            stroke_color=(0, 0, 0, 255)
+        )
+        
+        dollar_x = (default_size[0] - dollar_img.width) // 2
+        dollar_y = (default_size[1] - dollar_img.height) // 2
+        icon.paste(dollar_img, (dollar_x, dollar_y), dollar_img)
         
         return icon
     
@@ -79,23 +66,17 @@ class BalancePlugin(BaseGamePlugin):
                 draw = ImageDraw.Draw(avatar)
                 draw.rectangle([10, 10, size-10, size-10], fill=(255, 255, 255, 255))
                 
-                if self.text_renderer:
-                    question_img = self.text_renderer.render_text_to_image(
-                        text="?",
-                        font_path="DejaVuSans-Bold.ttf",
-                        font_size=size//3,
-                        color=(70, 130, 180, 255)
-                    )
-                    q_x = (size - question_img.width) // 2
-                    q_y = (size - question_img.height) // 2
-                    avatar.paste(question_img, (q_x, q_y), question_img)
-                else:
-                    try:
-                        font = ImageFont.truetype("DejaVuSans-Bold.ttf", size//3)
-                    except:
-                        font = ImageFont.load_default(size//3)
-                    draw.text((size//2, size//2), "?", fill=(70, 130, 180, 255),
-                             font=font, anchor="mm")
+                question_text = "?"
+                question_img = self.text_renderer.render_text(
+                    text=question_text,
+                    font_size=size//3,
+                    color=(70, 130, 180, 255),
+                    stroke_width=2,
+                    stroke_color=(0, 0, 0, 255)
+                )
+                q_x = (size - question_img.width) // 2
+                q_y = (size - question_img.height) // 2
+                avatar.paste(question_img, (q_x, q_y), question_img)
             
             avatar = avatar.resize((size, size), Image.Resampling.LANCZOS)
             
@@ -105,32 +86,17 @@ class BalancePlugin(BaseGamePlugin):
             logger.error(f"[Balance] Error creating avatar: {e}")
             return Image.new('RGBA', (size, size), (70, 130, 180, 255))
     
-    def _render_text(self, text, font_path, font_size, color, **kwargs):
-        if self.text_renderer:
-            return self.text_renderer.render_text_to_image(
-                text=text,
-                font_path=font_path,
-                font_size=font_size,
-                color=color,
-                **kwargs
-            )
-        else:
-            try:
-                font = ImageFont.truetype(font_path, font_size)
-            except:
-                font = ImageFont.load_default(font_size)
-            
-            temp_img = Image.new('RGBA', (1, 1), (0, 0, 0, 0))
-            temp_draw = ImageDraw.Draw(temp_img)
-            bbox = temp_draw.textbbox((0, 0), text, font=font)
-            width = bbox[2] - bbox[0]
-            height = bbox[3] - bbox[1]
-            
-            img = Image.new('RGBA', (width, height), (0, 0, 0, 0))
-            draw = ImageDraw.Draw(img)
-            draw.text((0, 0), text, fill=color, font=font)
-            
-            return img
+    def _render_text(self, text, font_size, color, **kwargs):
+        return self.text_renderer.render_text(
+            text=text,
+            font_size=font_size,
+            color=color,
+            stroke_width=kwargs.get('stroke_width', 0),
+            stroke_color=kwargs.get('stroke_color', (0, 0, 0, 255)),
+            shadow=kwargs.get('shadow', False),
+            shadow_color=kwargs.get('shadow_color', (0, 0, 0, 100)),
+            shadow_offset=kwargs.get('shadow_offset', (2, 2))
+        )
     
     def _add_progress_bar(self, draw, position, size, progress, text=""):
         x, y = position
@@ -147,31 +113,19 @@ class BalancePlugin(BaseGamePlugin):
                               radius=height//2, outline=(255, 255, 255, 255), width=2)
         
         if text:
-            if self.text_renderer:
-                text_img = self.text_renderer.render_text_to_image(
-                    text=text,
-                    font_path="DejaVuSans-Bold.ttf",
-                    font_size=14,
-                    color=(255, 255, 255, 255)
-                )
-                text_x = x + (width - text_img.width) // 2
-                text_y = y + (height - text_img.height) // 2
-                
-                mask = Image.new('L', (text_img.width, text_img.height), 0)
-                mask.paste(255, (0, 0), text_img.split()[3] if text_img.mode == 'RGBA' else None)
-                draw.bitmap((text_x, text_y), mask, fill=(255, 255, 255, 255))
-            else:
-                try:
-                    font = ImageFont.truetype("DejaVuSans-Bold.ttf", 14)
-                except:
-                    font = ImageFont.load_default(16)
-                
-                bbox = draw.textbbox((0, 0), text, font=font)
-                text_width = bbox[2] - bbox[0]
-                text_x = x + (width - text_width) // 2
-                text_y = y + (height - (bbox[3] - bbox[1])) // 2
-                
-                draw.text((text_x, text_y), text, fill=(255, 255, 255, 255), font=font)
+            text_img = self.text_renderer.render_text(
+                text=text,
+                font_size=14,
+                color=(255, 255, 255, 255),
+                stroke_width=1,
+                stroke_color=(0, 0, 0, 255)
+            )
+            text_x = x + (width - text_img.width) // 2
+            text_y = y + (height - text_img.height) // 2
+            
+            draw.bitmap((text_x, text_y), 
+                       text_img.split()[3] if text_img.mode == 'RGBA' else None,
+                       fill=(255, 255, 255, 255))
     
     def _create_stat_card(self, icon, value, label, bg_color=(40, 40, 40, 255)):
         card_width = 220
@@ -192,50 +146,26 @@ class BalancePlugin(BaseGamePlugin):
         else:
             formatted_value = str(value)
         
-        if self.text_renderer:
-            value_img = self.text_renderer.render_text_to_image(
-                text=formatted_value,
-                font_path="DejaVuSans-Bold.ttf",
-                font_size=24,
-                color=(255, 255, 255, 255)
-            )
-        else:
-            try:
-                font_value = ImageFont.truetype("DejaVuSans-Bold.ttf", 24)
-            except:
-                font_value = ImageFont.load_default(30)
-            
-            value_img = Image.new('RGBA', (1, 1), (0, 0, 0, 0))
-            value_draw = ImageDraw.Draw(value_img)
-            bbox = value_draw.textbbox((0, 0), formatted_value, font=font_value)
-            value_img = Image.new('RGBA', (bbox[2] - bbox[0], bbox[3] - bbox[1]), (0, 0, 0, 0))
-            value_draw = ImageDraw.Draw(value_img)
-            value_draw.text((0, 0), formatted_value, fill=(255, 255, 255, 255), font=font_value)
+        value_img = self.text_renderer.render_text(
+            text=formatted_value,
+            font_size=24,
+            color=(255, 255, 255, 255),
+            stroke_width=1,
+            stroke_color=(0, 0, 0, 255)
+        )
         
         value_x = icon_x + icon.size[0] + 15
         value_y = 15
         
         card.paste(value_img, (value_x, value_y), value_img)
         
-        if self.text_renderer:
-            label_img = self.text_renderer.render_text_to_image(
-                text=label.upper(),
-                font_path="DejaVuSans.ttf",
-                font_size=14,
-                color=(200, 200, 200, 255)
-            )
-        else:
-            try:
-                font_label = ImageFont.truetype("DejaVuSans", 14)
-            except:
-                font_label = ImageFont.load_default(16)
-            
-            label_img = Image.new('RGBA', (1, 1), (0, 0, 0, 0))
-            label_draw = ImageDraw.Draw(label_img)
-            bbox = label_draw.textbbox((0, 0), label.upper(), font=font_label)
-            label_img = Image.new('RGBA', (bbox[2] - bbox[0], bbox[3] - bbox[1]), (0, 0, 0, 0))
-            label_draw = ImageDraw.Draw(label_img)
-            label_draw.text((0, 0), label.upper(), fill=(200, 200, 200, 255), font=font_label)
+        label_img = self.text_renderer.render_text(
+            text=label.upper(),
+            font_size=14,
+            color=(200, 200, 200, 255),
+            stroke_width=1,
+            stroke_color=(0, 0, 0, 255)
+        )
         
         label_y = value_y + 35
         card.paste(label_img, (value_x, label_y), label_img)
@@ -313,26 +243,16 @@ class BalancePlugin(BaseGamePlugin):
             avatar_y = content_start_y + (total_content_height - avatar_height) // 2
             result.paste(avatar, (avatar_x, avatar_y), avatar)
 
-            if self.text_renderer:
-                username_img = self.text_renderer.render_text_to_image(
-                    text=username,
-                    font_path="DejaVuSans-Bold.ttf",
-                    font_size=28,
-                    color=(255, 255, 255, 255)
-                )
-                username_x = avatar_x + avatar.size[0] + padding
-                username_y = content_start_y
-                result.paste(username_img, (username_x, username_y), username_img)
-            else:
-                try:
-                    font_username = ImageFont.truetype("DejaVuSans-Bold.ttf", 28)
-                except:
-                    font_username = ImageFont.load_default(34)
-                
-                username_x = avatar_x + avatar.size[0] + padding
-                username_y = content_start_y
-                draw.text((username_x, username_y), username, 
-                         fill=(255, 255, 255), font=font_username)
+            username_img = self.text_renderer.render_text(
+                text=username,
+                font_size=28,
+                color=(255, 255, 255, 255),
+                stroke_width=2,
+                stroke_color=(0, 0, 0, 255)
+            )
+            username_x = avatar_x + avatar.size[0] + padding
+            username_y = content_start_y
+            result.paste(username_img, (username_x, username_y), username_img)
             
             card_x = avatar_x + avatar.size[0] + padding
             card_y = content_start_y + username_height + 10
@@ -342,29 +262,17 @@ class BalancePlugin(BaseGamePlugin):
             level_y = card_y + card_height + 20
             
             level_text_str = f"LEVEL {level}"
-            if self.text_renderer:
-                level_img = self.text_renderer.render_text_to_image(
-                    text=level_text_str,
-                    font_path="DejaVuSans-Bold.ttf",
-                    font_size=22,
-                    color=(255, 255, 255, 255)
-                )
-                level_x = card_x
-                level_y_pos = level_y
-                result.paste(level_img, (level_x, level_y_pos), level_img)
-                level_text_width = level_img.width
-            else:
-                try:
-                    font_level = ImageFont.truetype("DejaVuSans-Bold.ttf", 22)
-                except:
-                    font_level = ImageFont.load_default(26)
-                
-                level_x = card_x
-                draw.text((level_x, level_y), level_text_str, 
-                         fill=(255, 255, 255), font=font_level)
-                
-                bbox = draw.textbbox((0, 0), level_text_str, font=font_level)
-                level_text_width = bbox[2] - bbox[0]
+            level_img = self.text_renderer.render_text(
+                text=level_text_str,
+                font_size=22,
+                color=(255, 255, 255, 255),
+                stroke_width=1,
+                stroke_color=(0, 0, 0, 255)
+            )
+            level_x = card_x
+            level_y_pos = level_y
+            result.paste(level_img, (level_x, level_y_pos), level_img)
+            level_text_width = level_img.width
             
             progress_x = card_x + level_text_width + 20
             progress_y = level_y + 10
