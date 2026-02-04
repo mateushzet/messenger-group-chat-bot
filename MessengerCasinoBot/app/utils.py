@@ -13,9 +13,6 @@ BASE_DIR = os.path.dirname(__file__)
 INFO_DIR = os.path.join(BASE_DIR, "screenshots","error")
 ERROR_DIR = os.path.join(BASE_DIR, "screenshots","info")
 
-_last_cleanup_time = 0
-_CLEANUP_INTERVAL = 3600
-
 def _sanitize(name):
     return re.sub(r'[<>:"/\\|?*]', '_', str(name or "unknown")).strip('_')
 

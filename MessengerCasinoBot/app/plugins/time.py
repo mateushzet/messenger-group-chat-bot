@@ -2,7 +2,7 @@ import os
 import time
 import math
 from datetime import datetime
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 from base_game_plugin import BaseGamePlugin
 from logger import logger
 
@@ -73,11 +73,6 @@ class TimePlugin(BaseGamePlugin):
             
             draw.line([(x1, y1), (x2, y2)], fill=(30, 30, 40, 255), width=mark_width)
         
-        try:
-            font = ImageFont.truetype("DejaVuSans-Bold", int(radius * 0.12))
-        except:
-            font = ImageFont.load_default()
-        
         for hour in range(1, 13):
             angle = math.radians(hour * 30 - 90)
             text_radius = radius * 0.75
@@ -86,16 +81,18 @@ class TimePlugin(BaseGamePlugin):
             y = center_y + text_radius * math.sin(angle)
             
             hour_text = str(hour)
-            bbox = draw.textbbox((0, 0), hour_text, font=font)
-            text_width = bbox[2] - bbox[0]
-            text_height = bbox[3] - bbox[1]
             
-            draw.text(
-                (x - text_width/2, y - text_height/2),
-                hour_text,
-                fill=(30, 30, 40, 255),
-                font=font
+            hour_img = self.text_renderer.render_text(
+                text=hour_text,
+                font_size=int(radius * 0.12),
+                color=(30, 30, 40, 255),
+                stroke_width=1,
+                stroke_color=(240, 240, 245, 200)
             )
+            
+            text_x = int(x - hour_img.width / 2)
+            text_y = int(y - hour_img.height / 2)
+            img.alpha_composite(hour_img, (text_x, text_y))
         
         hour = current_time.hour % 12
         minute = current_time.minute
@@ -186,81 +183,83 @@ class TimePlugin(BaseGamePlugin):
         
         self.draw_clock(img, center_x, center_y, clock_radius, display_time)
         
-        try:
-            time_font = ImageFont.truetype("DejaVuSans.ttf", 24)
-            date_font = ImageFont.truetype("DejaVuSans.ttf", 20)
-        except:
-            time_font = ImageFont.load_default()
-            date_font = ImageFont.load_default()
-        
         time_text = display_time.strftime("%H:%M:%S")
         date_text = display_time.strftime("%A, %d %B %Y")
         
-        time_bbox = draw.textbbox((0, 0), time_text, font=time_font)
-        time_width = time_bbox[2] - time_bbox[0]
-        time_height = time_bbox[3] - time_bbox[1]
+        time_img = self.text_renderer.render_text(
+            text=time_text,
+            font_size=24,
+            color=(240, 240, 255, 255),
+            stroke_width=2,
+            stroke_color=(0, 0, 0, 200),
+            shadow=True,
+            shadow_color=(0, 0, 0, 150),
+            shadow_offset=(2, 2)
+        )
         
-        date_bbox = draw.textbbox((0, 0), date_text, font=date_font)
-        date_width = date_bbox[2] - date_bbox[0]
-        date_height = date_bbox[3] - date_bbox[1]
+        date_img = self.text_renderer.render_text(
+            text=date_text,
+            font_size=18,
+            color=(200, 200, 220, 255),
+            stroke_width=1,
+            stroke_color=(0, 0, 0, 180),
+            shadow=True,
+            shadow_color=(0, 0, 0, 120),
+            shadow_offset=(1, 1)
+        )
         
-        text_y = center_y + clock_radius + 40
+        text_y = center_y + clock_radius + 15
         
         padding = 20
+        max_width = max(time_img.width, date_img.width)
+        total_height = time_img.height + date_img.height + 10
+        
         draw.rounded_rectangle(
-            [center_x - max(time_width, date_width)//2 - padding, 
+            [center_x - max_width//2 - padding, 
              text_y - padding//2,
-             center_x + max(time_width, date_width)//2 + padding,
-             text_y + time_height + date_height + padding],
+             center_x + max_width//2 + padding,
+             text_y + total_height + padding],
             radius=10,
             fill=(30, 30, 40, 200),
             outline=(60, 60, 80, 255),
             width=2
         )
         
-        time_x = center_x - time_width // 2
-        draw.text((time_x, text_y), time_text, 
-                 fill=(240, 240, 255, 255), 
-                 font=time_font)
+        time_x = center_x - time_img.width // 2
+        img.alpha_composite(time_img, (time_x, text_y))
         
-        date_x = center_x - date_width // 2
-        draw.text((date_x, text_y + time_height + 10), date_text, 
-                 fill=(200, 200, 220, 255), 
-                 font=date_font)
+        date_x = center_x - date_img.width // 2
+        img.alpha_composite(date_img, (date_x, text_y + time_img.height + 10))
         
         if easter_egg_awarded:
-            try:
-                win_font = ImageFont.truetype("DejaVuSans.ttf", 32)
-            except:
-                win_font = ImageFont.load_default()
-            
             win_text = "WIN 37$"
-            win_bbox = draw.textbbox((0, 0), win_text, font=win_font)
-            win_width = win_bbox[2] - win_bbox[0]
-            win_height = win_bbox[3] - win_bbox[1]
+            win_img = self.text_renderer.render_text(
+                text=win_text,
+                font_size=32,
+                color=(255, 255, 255, 255),
+                stroke_width=3,
+                stroke_color=(0, 100, 0, 255),
+                shadow=True,
+                shadow_color=(0, 0, 0, 180),
+                shadow_offset=(3, 3)
+            )
             
-            win_y = center_y - clock_radius - 60
+            win_y = center_y - clock_radius - 70
             
             win_padding = 15
             draw.rounded_rectangle(
-                [center_x - win_width//2 - win_padding,
+                [center_x - win_img.width//2 - win_padding,
                  win_y - win_padding,
-                 center_x + win_width//2 + win_padding,
-                 win_y + win_height + win_padding],
+                 center_x + win_img.width//2 + win_padding,
+                 win_y + win_img.height + win_padding],
                 radius=15,
                 fill=(0, 177, 64, 220),
                 outline=(255, 255, 255, 255),
                 width=3
             )
             
-            draw.text((center_x - win_width//2 + 2, win_y + 2), 
-                     win_text, 
-                     fill=(0, 0, 0, 200), 
-                     font=win_font)
-            draw.text((center_x - win_width//2, win_y), 
-                     win_text, 
-                     fill=(255, 255, 255, 255), 
-                     font=win_font)
+            win_x = center_x - win_img.width // 2
+            img.alpha_composite(win_img, (win_x, win_y))
         
         img.save(output_path, format='WEBP', quality=90, optimize=True)
         return output_path

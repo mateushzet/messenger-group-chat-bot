@@ -17,3 +17,5 @@ backups/*
 *.log
 *.jpg
 *.ttf
+
+test.py

@@ -41,18 +41,18 @@ class RankingPlugin(BaseGamePlugin):
         
         initial = str(user_id)[-1] if str(user_id) else "?"
         
-        try:
-            font = ImageFont.truetype("DejaVuSans-Bold.ttf", int(size * 0.6))
-        except:
-            font = ImageFont.load_default()
+        initial_img = self.text_renderer.render_text(
+            text=initial,
+            font_size=int(size * 0.6),
+            color=(200, 200, 220, 255),
+            stroke_width=2,
+            stroke_color=(0, 0, 0, 255)
+        )
         
-        bbox = draw.textbbox((0, 0), initial, font=font)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
-        x = (size - text_width) // 2
-        y = (size - text_height) // 2
+        x = (size - initial_img.width) // 2
+        y = (size - initial_img.height) // 2
         
-        draw.text((x, y), initial, fill=(200, 200, 220), font=font)
+        img.paste(initial_img, (x, y), initial_img)
         
         mask = Image.new('L', (size, size), 0)
         draw_mask = ImageDraw.Draw(mask)
@@ -169,6 +169,18 @@ class RankingPlugin(BaseGamePlugin):
         
         return None, None
 
+    def _render_text_with_shadow(self, text, font_size, color, shadow_color=(0, 0, 0, 180)):
+        return self.text_renderer.render_text(
+            text=text,
+            font_size=font_size,
+            color=color,
+            stroke_width=2,
+            stroke_color=(0, 0, 0, 255),
+            shadow=True,
+            shadow_color=shadow_color,
+            shadow_offset=(2, 2)
+        )
+
     def create_ranking_image(self, output_path, cache, user_id=None, ranking_type="balance"):
         for rt in ["balance", "level"]:
             ranking = self.get_sorted_ranking(cache, rt)
@@ -192,78 +204,77 @@ class RankingPlugin(BaseGamePlugin):
         img = Image.new('RGBA', (total_width, total_height), (30, 30, 30, 255))
         draw = ImageDraw.Draw(img)
         
-        try:
-            title_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 32)
-            header_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 20)
-            name_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 24)
-            stats_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 18)
-            rank_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 24)
-            small_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 16)
-            time_font = ImageFont.truetype("DejaVuSans-Bold.ttf", 20)
-        except:
-            title_font = ImageFont.load_default()
-            header_font = ImageFont.load_default()
-            name_font = ImageFont.load_default()
-            stats_font = ImageFont.load_default()
-            rank_font = ImageFont.load_default()
-            small_font = ImageFont.load_default()
-            time_font = ImageFont.load_default()
-        
-        top_bar = Image.new('RGBA', (total_width, 90), (40, 40, 50, 255))
-        img.paste(top_bar, (0, 0), top_bar)
-        
         if ranking_type == "level":
             title_text = "LEVEL RANKING"
         else:
             title_text = "BALANCE RANKING"
             
-        title_bbox = draw.textbbox((0, 0), title_text, font=title_font)
-        title_x = (total_width - (title_bbox[2] - title_bbox[0])) // 2
+        title_img = self._render_text_with_shadow(
+            text=title_text,
+            font_size=32,
+            color=(255, 215, 0, 255)
+        )
         
-        for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
-                if dx != 0 or dy != 0:
-                    draw.text((title_x + dx, MARGIN + 10 + dy), title_text, 
-                            fill=(0, 0, 0), font=title_font)
-        draw.text((title_x, MARGIN + 10), title_text, fill=(255, 215, 0), font=title_font)
+        title_x = (total_width - title_img.width) // 2
+        img.alpha_composite(title_img, (title_x, MARGIN + 10))
         
         headers_y = MARGIN + 75
         
-        rank_text = "RANK"
+        rank_text_img = self.text_renderer.render_text(
+            text="RANK",
+            font_size=20,
+            color=(200, 200, 220, 255),
+            stroke_width=1,
+            stroke_color=(0, 0, 0, 255),
+            shadow=True,
+            shadow_color=(0, 0, 0, 150),
+            shadow_offset=(1, 1)
+        )
+        
         rank_x = MARGIN + 10
-        for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
-                if dx != 0 or dy != 0:
-                    draw.text((rank_x + dx, headers_y + dy), rank_text, 
-                            fill=(0, 0, 0), font=header_font)
-        draw.text((rank_x, headers_y), rank_text, fill=(200, 200, 220), font=header_font)
+        img.alpha_composite(rank_text_img, (rank_x, headers_y))
         
-        player_text = "PLAYER"
+        player_text_img = self.text_renderer.render_text(
+            text="PLAYER",
+            font_size=20,
+            color=(200, 200, 220, 255),
+            stroke_width=1,
+            stroke_color=(0, 0, 0, 255),
+            shadow=True,
+            shadow_color=(0, 0, 0, 150),
+            shadow_offset=(1, 1)
+        )
+        
         player_x = MARGIN + 100
-        for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
-                if dx != 0 or dy != 0:
-                    draw.text((player_x + dx, headers_y + dy), player_text, 
-                            fill=(0, 0, 0), font=header_font)
-        draw.text((player_x, headers_y), player_text, fill=(200, 200, 220), font=header_font)
+        img.alpha_composite(player_text_img, (player_x, headers_y))
         
-        level_text = "LEVEL"
+        level_text_img = self.text_renderer.render_text(
+            text="LEVEL",
+            font_size=20,
+            color=(200, 200, 220, 255),
+            stroke_width=1,
+            stroke_color=(0, 0, 0, 255),
+            shadow=True,
+            shadow_color=(0, 0, 0, 150),
+            shadow_offset=(1, 1)
+        )
+        
         level_x = total_width - 380
-        for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
-                if dx != 0 or dy != 0:
-                    draw.text((level_x + dx, headers_y + dy), level_text, 
-                            fill=(0, 0, 0), font=header_font)
-        draw.text((level_x, headers_y), level_text, fill=(200, 200, 220), font=header_font)
+        img.alpha_composite(level_text_img, (level_x, headers_y))
         
-        balance_header_text = "BALANCE"
+        balance_text_img = self.text_renderer.render_text(
+            text="BALANCE",
+            font_size=20,
+            color=(200, 200, 220, 255),
+            stroke_width=1,
+            stroke_color=(0, 0, 0, 255),
+            shadow=True,
+            shadow_color=(0, 0, 0, 150),
+            shadow_offset=(1, 1)
+        )
+        
         balance_x = total_width - 180
-        for dx in [-1, 0, 1]:
-            for dy in [-1, 0, 1]:
-                if dx != 0 or dy != 0:
-                    draw.text((balance_x + dx, headers_y + dy), balance_header_text, 
-                            fill=(0, 0, 0), font=header_font)
-        draw.text((balance_x, headers_y), balance_header_text, fill=(200, 200, 220), font=header_font)
+        img.alpha_composite(balance_text_img, (balance_x, headers_y))
         
         draw.line([(MARGIN, headers_y + 30), (total_width - MARGIN, headers_y + 30)], 
                 fill=(100, 100, 120, 180), width=2)
@@ -342,16 +353,20 @@ class RankingPlugin(BaseGamePlugin):
             rank_text = f"#{i+1}"
             rank_color = (255, 215, 0) if i == 0 else (220, 220, 240) if i == 1 else (205, 127, 50) if i == 2 else (180, 180, 200)
             
-            rank_bbox = draw.textbbox((0, 0), rank_text, font=rank_font)
-            rank_x = MARGIN + 30 - (rank_bbox[2] - rank_bbox[0]) // 2
-            rank_y = y_pos + (ROW_HEIGHT - (rank_bbox[3] - rank_bbox[1])) // 2 - 5
+            rank_img = self.text_renderer.render_text(
+                text=rank_text,
+                font_size=24,
+                color=rank_color,
+                stroke_width=2,
+                stroke_color=(0, 0, 0, 255),
+                shadow=True,
+                shadow_color=(0, 0, 0, 150),
+                shadow_offset=(1, 1)
+            )
             
-            for dx in [-1, 0, 1]:
-                for dy in [-1, 0, 1]:
-                    if dx != 0 or dy != 0:
-                        draw.text((rank_x + dx, rank_y + dy), rank_text, 
-                                fill=(0, 0, 0), font=rank_font)
-            draw.text((rank_x, rank_y), rank_text, fill=rank_color, font=rank_font)
+            rank_x_pos = MARGIN + 30 - rank_img.width // 2
+            rank_y_pos = y_pos + (ROW_HEIGHT - rank_img.height) // 2 - 5
+            img.alpha_composite(rank_img, (rank_x_pos, rank_y_pos))
             
             avatar = self._load_user_avatar(user['id'], user.get('avatar'), AVATAR_SIZE)
             avatar_x = MARGIN + 80
@@ -363,73 +378,90 @@ class RankingPlugin(BaseGamePlugin):
             if len(name) > 20:
                 name = name[:17] + "..."
             
+            name_img = self.text_renderer.render_text(
+                text=name,
+                font_size=24,
+                color=(240, 240, 255, 255),
+                stroke_width=1,
+                stroke_color=(0, 0, 0, 255),
+                shadow=True,
+                shadow_color=(0, 0, 0, 150),
+                shadow_offset=(1, 1)
+            )
+            
             name_x = avatar_x + AVATAR_SIZE + 15
             name_y = y_pos + 20
+            img.alpha_composite(name_img, (name_x, name_y))
             
             if i == 0 and leader_time > 0:
-                for dx in [-1, 0, 1]:
-                    for dy in [-1, 0, 1]:
-                        if dx != 0 or dy != 0:
-                            draw.text((name_x + dx, name_y + dy), name, 
-                                    fill=(0, 0, 0), font=name_font)
-                draw.text((name_x, name_y), name, fill=(240, 240, 255), font=name_font)
-                
                 time_text = f"{self._format_duration(leader_time)}"
+                time_img = self.text_renderer.render_text(
+                    text=time_text,
+                    font_size=20,
+                    color=(255, 200, 100, 255),
+                    stroke_width=1,
+                    stroke_color=(0, 0, 0, 255),
+                    shadow=True,
+                    shadow_color=(0, 0, 0, 150),
+                    shadow_offset=(1, 1)
+                )
+                
                 time_x = name_x + 5
                 time_y = name_y + 25
-                
-                for dx in [-1, 0, 1]:
-                    for dy in [-1, 0, 1]:
-                        if dx != 0 or dy != 0:
-                            draw.text((time_x + dx, time_y + dy), time_text, 
-                                    fill=(0, 0, 0), font=time_font)
-                draw.text((time_x, time_y), time_text, fill=(255, 200, 100), font=time_font)
-            else:
-                for dx in [-1, 0, 1]:
-                    for dy in [-1, 0, 1]:
-                        if dx != 0 or dy != 0:
-                            draw.text((name_x + dx, name_y + dy), name, 
-                                    fill=(0, 0, 0), font=name_font)
-                draw.text((name_x, name_y), name, fill=(240, 240, 255), font=name_font)
+                img.alpha_composite(time_img, (time_x, time_y))
             
             level_text = f"Level {user['level']}"
-            level_x = total_width - 430
-            level_y = y_pos + 20
+            level_img = self.text_renderer.render_text(
+                text=level_text,
+                font_size=18,
+                color=(100, 200, 255, 255),
+                stroke_width=1,
+                stroke_color=(0, 0, 0, 255),
+                shadow=True,
+                shadow_color=(0, 0, 0, 150),
+                shadow_offset=(1, 1)
+            )
             
-            for dx in [-1, 0, 1]:
-                for dy in [-1, 0, 1]:
-                    if dx != 0 or dy != 0:
-                        draw.text((level_x + dx, level_y + dy), level_text, 
-                                fill=(0, 0, 0), font=stats_font)
-            draw.text((level_x, level_y), level_text, fill=(100, 200, 255), font=stats_font)
+            level_x_pos = total_width - 430
+            level_y_pos = y_pos + 20
+            img.alpha_composite(level_img, (level_x_pos, level_y_pos))
             
             progress_bar = self._calculate_level_bar(user['level_progress'], width=200, height=10)
-            img.paste(progress_bar, (level_x, level_y + 25), progress_bar)
+            img.paste(progress_bar, (level_x_pos, level_y_pos + 25), progress_bar)
             
             progress_text = f"{int(user['level_progress'] * 100)}%"
-            progress_bbox = draw.textbbox((0, 0), progress_text, font=small_font)
-            progress_x = level_x + 100 - (progress_bbox[2] - progress_bbox[0]) // 2
+            progress_img = self.text_renderer.render_text(
+                text=progress_text,
+                font_size=16,
+                color=(150, 200, 150, 255),
+                stroke_width=1,
+                stroke_color=(0, 0, 0, 255),
+                shadow=True,
+                shadow_color=(0, 0, 0, 150),
+                shadow_offset=(1, 1)
+            )
             
-            for dx in [-1, 0, 1]:
-                for dy in [-1, 0, 1]:
-                    if dx != 0 or dy != 0:
-                        draw.text((progress_x + dx, level_y + 40 + dy), progress_text, 
-                                fill=(0, 0, 0), font=small_font)
-            draw.text((progress_x, level_y + 40), progress_text, fill=(150, 200, 150), font=small_font)
+            progress_x_pos = level_x_pos + 100 - progress_img.width // 2
+            progress_y_pos = level_y_pos + 40
+            img.alpha_composite(progress_img, (progress_x_pos, progress_y_pos))
             
             balance_text = f"{self._format_number(user['balance'])} $"
             balance_color = (100, 255, 100) if user['balance'] >= 0 else (255, 100, 100)
-                
-            balance_bbox = draw.textbbox((0, 0), balance_text, font=stats_font)
-            balance_x = total_width - MARGIN - 50 - (balance_bbox[2] - balance_bbox[0])
-            balance_y = y_pos + (ROW_HEIGHT - (balance_bbox[3] - balance_bbox[1])) // 2 - 5
             
-            for dx in [-1, 0, 1]:
-                for dy in [-1, 0, 1]:
-                    if dx != 0 or dy != 0:
-                        draw.text((balance_x + dx, balance_y + dy), balance_text, 
-                                fill=(0, 0, 0), font=stats_font)
-            draw.text((balance_x, balance_y), balance_text, fill=balance_color, font=stats_font)
+            balance_img = self.text_renderer.render_text(
+                text=balance_text,
+                font_size=18,
+                color=balance_color,
+                stroke_width=1,
+                stroke_color=(0, 0, 0, 255),
+                shadow=True,
+                shadow_color=(0, 0, 0, 150),
+                shadow_offset=(1, 1)
+            )
+            
+            balance_x_pos = total_width - MARGIN - 50 - balance_img.width
+            balance_y_pos = y_pos + (ROW_HEIGHT - balance_img.height) // 2 - 5
+            img.alpha_composite(balance_img, (balance_x_pos, balance_y_pos))
         
         if user_id and len(ranking) > MAX_ROWS:
             position, user_data = self.get_user_position(cache, user_id, ranking_type)
@@ -442,15 +474,20 @@ class RankingPlugin(BaseGamePlugin):
                                     radius=10, outline=(0, 0, 0), width=2)
                 
                 info_text = f"Your position: #{position}"
-                info_bbox = draw.textbbox((0, 0), info_text, font=header_font)
-                info_x = (total_width - (info_bbox[2] - info_bbox[0])) // 2
+                info_img = self.text_renderer.render_text(
+                    text=info_text,
+                    font_size=20,
+                    color=(255, 200, 100, 255),
+                    stroke_width=1,
+                    stroke_color=(0, 0, 0, 255),
+                    shadow=True,
+                    shadow_color=(0, 0, 0, 150),
+                    shadow_offset=(1, 1)
+                )
                 
-                for dx in [-1, 0, 1]:
-                    for dy in [-1, 0, 1]:
-                        if dx != 0 or dy != 0:
-                            draw.text((info_x + dx, info_y + 20 + dy), info_text, 
-                                    fill=(0, 0, 0), font=header_font)
-                draw.text((info_x, info_y + 20), info_text, fill=(255, 200, 100), font=header_font)
+                info_x = (total_width - info_img.width) // 2
+                info_y_pos = info_y + 20
+                img.alpha_composite(info_img, (info_x, info_y_pos))
         
         img.save(output_path, format='WEBP', quality=90, optimize=True)
         logger.info(f"[Ranking] Ranking image saved to: {output_path}")
