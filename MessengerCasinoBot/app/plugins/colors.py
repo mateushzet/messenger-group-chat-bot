@@ -3,7 +3,7 @@ import os
 import time
 from base_game_plugin import BaseGamePlugin
 from logger import logger
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 class ColorsPlugin(BaseGamePlugin):
     def __init__(self):
@@ -41,60 +41,7 @@ class ColorsPlugin(BaseGamePlugin):
         self.max_history = 25
 
         self._overlay_cache = {}
-    
-    def get_custom_overlay(self, **kwargs):
-        try:
-            frame_index = kwargs.get('frame_index', 0)
-            total_frames = kwargs.get('total_frames', 1)
-            result_color = kwargs.get('result_color', 'black')
-            frame_width = kwargs.get('frame_width', 400)
-            
-            available_width = frame_width - 50
-            section_width = min(int(available_width * 0.9), 350)
-            
-            history_height = 40
-            multipliers_height = 40
-            total_height = history_height + multipliers_height + 30
-            
-            overlay_image = Image.new('RGBA', (frame_width, total_height), (0, 0, 0, 0))
-            
-            history = self.get_history()
-
-            history_to_display = history[:self.max_history]
-            
-            history_overlay = self._generate_history_overlay(
-                width=section_width, 
-                height=history_height,
-                history=history_to_display,
-                show_current=(frame_index == total_frames - 1 and result_color is not None)
-            )
-            
-            multipliers_overlay = self._create_multipliers_overlay(section_width, multipliers_height)
-            
-            section_x = (frame_width - section_width) // 2
-            history_y = 10
-            multipliers_y = history_y + history_height + 15
-            
-            if history_overlay:
-                overlay_image.alpha_composite(history_overlay, (section_x, history_y))
-            
-            if multipliers_overlay:
-                overlay_image.alpha_composite(multipliers_overlay, (section_x, multipliers_y))
-
-            overlay_position_y = 170
-            
-            overlay_data = {
-                'image': overlay_image,
-                'position': (0, overlay_position_y),
-                'per_frame': False
-            }
-            
-            return overlay_data
-            
-        except Exception as e:
-            logger.error(f"[Colors] Error in get_custom_overlay: {e}")
-            return None
-    
+                                
     def _generate_history_overlay(self, width=350, height=40, history=None, show_current=False):
         try:
             if not history:
@@ -107,71 +54,175 @@ class ColorsPlugin(BaseGamePlugin):
             if total_items == 0:
                 return overlay
             
-            bar_width = 10
-            spacing = 2
+            bar_width = 12
+            spacing = 3
             bar_height = 30
             
             total_width_needed = (total_items * bar_width) + ((total_items - 1) * spacing)
+            
+            if total_width_needed > width:
+                bar_width = max(6, (width - (total_items - 1) * spacing) // total_items)
+                total_width_needed = (total_items * bar_width) + ((total_items - 1) * spacing)
+            
             start_x = (width - total_width_needed) // 2
             bar_y_start = (height - bar_height) // 2
-
-            if start_x < 0 or total_width_needed > width:
-                max_items = width // (bar_width + spacing)
-                if max_items < total_items:
-                    total_items = max_items
-                    history = history[:total_items]
-                    total_width_needed = (total_items * bar_width) + ((total_items - 1) * spacing)
-                    start_x = (width - total_width_needed) // 2
-
+            
             for i in range(total_items):
-                history_index = total_items - 1 - i
-                screen_position = i
-                
-                if history_index < len(history):
-                    item = history[history_index]
-                    color_name = item.get("color", "black")
-                    timestamp = item.get("timestamp", 0)
-                    
-                    is_current = (history_index == 0) and show_current and timestamp > time.time() - 2
-                    
-                    if is_current:
-                        alpha = 255
-                        highlight_color = (255, 255, 255, 100)
-                        highlight_x_start = start_x + (screen_position * (bar_width + spacing)) - 1
-                        highlight_x_end = highlight_x_start + bar_width + 2
-                        draw.rectangle([(highlight_x_start, bar_y_start - 1), 
-                                      (highlight_x_end, bar_y_start + bar_height)], 
-                                      fill=highlight_color)
-                    else:
-                        fade_factor = (screen_position / total_items) if total_items > 0 else 0
-                        alpha = int(255 * (0.3 + (fade_factor * 0.7)))
-                        if alpha > 255:
-                            alpha = 255
-                else:
-                    color_name = "black"
-                    alpha = 100
+                display_index = total_items - 1 - i
+                item = history[display_index]
+                color_name = item.get("color", "black")
+                is_current_item = item.get('is_current', False)
                 
                 color_rgb = self.history_colors.get(color_name, self.history_colors["black"])
+                
+                if is_current_item and show_current:
+                    alpha = 255
+                    current_bar_width = bar_width + 4
+                    current_bar_height = bar_height + 4
+                    current_x_start = start_x + (i * (bar_width + spacing)) - 2
+                    current_y_start = bar_y_start - 2
+                    
+                    draw.rectangle([current_x_start, current_y_start,
+                                current_x_start + current_bar_width, current_y_start + current_bar_height],
+                                fill=(255, 255, 255, 80))
+                    
+                    inner_x = current_x_start + 2
+                    inner_y = current_y_start + 2
+                    inner_width = current_bar_width - 4
+                    inner_height = current_bar_height - 4
+                    
+                    draw.rectangle([inner_x, inner_y,
+                                inner_x + inner_width, inner_y + inner_height],
+                                fill=color_rgb + (alpha,))
+                    
+                    continue
+                
+                else:
+                    fade_factor = (i / total_items) if total_items > 0 else 0
+                    alpha = int(255 * (0.3 + (0.7 * fade_factor)))
+                
                 bar_color = color_rgb + (alpha,)
                 
-                x_start = start_x + (screen_position * (bar_width + spacing))
+                x_start = start_x + (i * (bar_width + spacing))
                 x_end = x_start + bar_width
-                draw.rectangle([(x_start, bar_y_start), (x_end - 1, bar_y_start + bar_height - 1)], 
-                              fill=bar_color)
+                
+                draw.rectangle([x_start, bar_y_start, x_end, bar_y_start + bar_height],
+                            fill=bar_color)
             
             return overlay
             
         except Exception as e:
             logger.error(f"[Colors] Error generating history overlay: {e}")
             return None
-    
+            
+    def get_custom_overlay(self, **kwargs):
+        try:
+            frame_width = kwargs.get('frame_width', 400)
+            request = kwargs.get('request', None)
+            
+            custom_kwargs = {}
+            if request and hasattr(request.options, 'custom_overlay_kwargs'):
+                custom_kwargs = request.options.custom_overlay_kwargs or {}
+            
+            result_color = custom_kwargs.get('result_color')
+            result_position = custom_kwargs.get('result_position')
+            
+            history = self.get_history()
+            history_to_display = history[:self.max_history]
+            
+            overlay_before = self._generate_complete_overlay(
+                frame_width=frame_width,
+                history=history_to_display,
+                show_current=False
+            )
+            
+            overlay_after = None
+            if result_color:
+                history_with_new = history_to_display.copy()
+                new_entry = {
+                    "color": result_color,
+                    "position": result_position,
+                    "timestamp": time.time(),
+                    "is_current": True
+                }
+                history_with_new.insert(0, new_entry)
+                
+                if len(history_with_new) > self.max_history:
+                    history_with_new = history_with_new[:self.max_history]
+                
+                overlay_after = self._generate_complete_overlay(
+                    frame_width=frame_width,
+                    history=history_with_new,
+                    show_current=True
+                )
+            else:
+                overlay_after = overlay_before
+            
+            overlay_y_position = 150
+            
+            return {
+                'before': {
+                    'image': overlay_before,
+                    'position': (0, overlay_y_position),
+                    'type': 'before'
+                },
+                'after': {
+                    'image': overlay_after,
+                    'position': (0, overlay_y_position),
+                    'type': 'after'
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"[Colors] Error in get_custom_overlay: {e}", exc_info=True)
+            return None
+            
+    def _generate_complete_overlay(self, frame_width, history=None, show_current=False):
+        if history is None:
+            history = []
+        
+        available_width = frame_width - 50
+        section_width = min(int(available_width * 0.9), 350)
+        
+        history_height = 40
+        multipliers_height = 50
+        padding_between = 10
+
+        top_margin = 30
+        
+        total_height = history_height + multipliers_height + padding_between + top_margin
+        
+        overlay_image = Image.new('RGBA', (frame_width, total_height), (0, 0, 0, 0))
+        
+        multipliers_overlay = self._create_multipliers_overlay(section_width, multipliers_height)
+        
+        history_overlay = self._generate_history_overlay(
+            width=section_width, 
+            height=history_height,
+            history=history,
+            show_current=show_current
+        )
+        
+        section_x = (frame_width - section_width) // 2
+        history_y = top_margin
+        multipliers_y = history_y + history_height + padding_between
+        
+        if history_overlay:
+            overlay_image.alpha_composite(history_overlay, (section_x, history_y))
+        
+        if multipliers_overlay:
+            overlay_image.alpha_composite(multipliers_overlay, (section_x, multipliers_y))
+        
+        return overlay_image
+
     def _create_multipliers_overlay(self, width, height):
         try:
             overlay = Image.new('RGBA', (width, height), (0, 0, 0, 0))
             
-            if not hasattr(self, 'text_renderer'):
-                from text_renderer import CachedTextRenderer
-                self.text_renderer = CachedTextRenderer()
+            text_renderer = self.text_renderer
+            if not text_renderer:
+                logger.warning("[Colors] TextRenderer not available for multipliers")
+                return overlay
             
             colors_info = [
                 ("black", self.multipliers["black"]),
@@ -187,10 +238,9 @@ class ColorsPlugin(BaseGamePlugin):
                 text = f"x{multiplier}"
                 color = self.history_colors[color_key]
                 
-                text_img = self.text_renderer.render_text_to_image(
+                text_img = text_renderer.render_text(
                     text=text,
-                    font_path="DejaVuSans-Bold.ttf",
-                    font_size=24,
+                    font_size=18,
                     color=color + (255,),
                     stroke_width=1,
                     stroke_color=(0, 0, 0, 255),
@@ -227,7 +277,7 @@ class ColorsPlugin(BaseGamePlugin):
             
         except Exception as e:
             logger.error(f"[Colors] Error creating multipliers overlay: {e}")
-            return None
+            return None    
         
     def get_color_at_position(self, position):
         if 0 <= position < len(self.color_order):
@@ -420,8 +470,6 @@ class ColorsPlugin(BaseGamePlugin):
 
         new_balance = balance_before + net_win
 
-        print(f"DEBUG: balance_before={balance_before}, amount={amount}, win={win}, net_win={net_win}, new_balance={new_balance}")
-
         try:
             self.update_user_balance(user_id, new_balance)
         except Exception as e:
@@ -456,15 +504,12 @@ class ColorsPlugin(BaseGamePlugin):
             user=user,
             user_info_before=user_info_before,
             user_info_after=user_info_after,
-            game_type="colors",
             animated=animated,
             frame_duration=60,
             last_frame_multiplier=30,
             custom_overlay_kwargs={
-                'frame_width': 400,
                 'result_color': result_color,
                 'result_position': result_position,
-                'animated': animated
             },
             show_win_text=True,
             font_scale=0.8,
