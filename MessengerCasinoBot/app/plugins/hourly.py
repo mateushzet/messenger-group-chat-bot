@@ -1,39 +1,32 @@
 import os
 import random
-import time
 from datetime import datetime, timedelta
 from base_game_plugin import BaseGamePlugin
 from logger import logger
-from PIL import Image, ImageDraw, ImageFont
 
 class HourlyPlugin(BaseGamePlugin):
     def __init__(self):
-        results_folder = self.get_app_path("temp")
         super().__init__(
-            game_name="hourly",
-            results_folder=results_folder,
+            game_name="hourly"
         )
         
         self.hourly_anim_folder = self.get_asset_path("reward/hourly")
-        error_folder = self.get_asset_path("errors")
-        self.error_folder = error_folder
-
-        os.makedirs(self.results_folder, exist_ok=True)
         
         self.min_reward = 10
         self.max_reward = 100
         self.avg_target = 30
-        
-        self.new_balance_frames = 20
 
-    def _calculate_probabilities(self):
-        rewards = list(range(self.min_reward, self.max_reward + 1, 10))
+    def _calculate_probabilities(self, max_reward=None):
+        if max_reward is None:
+            max_reward = self.max_reward
+        
+        rewards = list(range(self.min_reward, max_reward + 1, 10))
         avg = self.avg_target
         
         probs = []
         for reward in rewards:
             distance = abs(reward - avg)
-            prob = max(0.05, 0.3 * (1 - distance / (self.max_reward - self.min_reward)))
+            prob = max(0.05, 0.3 * (1 - distance / max((max_reward - self.min_reward),10)))
             probs.append(prob)
         
         total = sum(probs)
@@ -41,8 +34,11 @@ class HourlyPlugin(BaseGamePlugin):
         
         return list(zip(rewards, normalized_probs))
 
-    def _get_random_reward(self, user_id=None):
-        rewards, probs = zip(*self._calculate_probabilities())
+    def _get_random_reward(self, max_reward=None):
+        if max_reward is None:
+            max_reward = self.max_reward
+            
+        rewards, probs = zip(*self._calculate_probabilities(max_reward))
         return random.choices(rewards, weights=probs, k=1)[0]
 
     def _get_hourly_animation_path(self, reward_amount):
@@ -84,37 +80,39 @@ class HourlyPlugin(BaseGamePlugin):
         if last_hourly:
             last_claim_time = datetime.fromisoformat(last_hourly)
             if last_claim_time >= current_hour:
-                next_hour = current_hour + timedelta(hours=1)
-                wait_time = next_hour - now
-                wait_minutes = int(wait_time.total_seconds() / 60)
-                return False, f"Wait {wait_minutes} min"
+                return False, ""
         
         current_minute = now.minute
         if current_minute > 1:
-            next_full_hour = current_hour + timedelta(hours=1)
-            time_to_next = next_full_hour - now
-            minutes_to_next = int(time_to_next.total_seconds() / 60)
-            return False, f"Available in {minutes_to_next} min"
+            return False, ""
         
         return True, "Available"
+
+    def _update_claim_time(self, user_id, claim_time):
+        self.cache.update_user(user_id, last_hourly_claim=claim_time.isoformat())
+        
+        user = self.cache.get_user(user_id)
+        if user:
+            user["last_hourly_claim"] = claim_time.isoformat()
 
     def _claim_hourly_reward(self, user_id):
         user = self.cache.get_user(user_id)
         if not user:
-            return None, "User not found"
+            return None
         
-        reward_amount = self._get_random_reward(user_id)
+        reward_amount = self._get_random_reward()
+        
         logger.info(f"[Hourly] Hourly reward for user {user_id}: {reward_amount} coins")
+        
+        current_time = datetime.now()
+        
+        self._update_claim_time(user_id, current_time)
         
         self.cache.update_balance(user_id, reward_amount)
         
-        now = datetime.now().isoformat()
-        self.cache.update_user(user_id, last_hourly_claim=now)
-        
         user["balance"] = user.get("balance", 0) + reward_amount
-        user["last_hourly_claim"] = now
         
-        return reward_amount, None
+        return reward_amount
 
     def execute_game(self, command_name, args, file_queue, cache=None, sender=None, avatar_url=None):
         self.cache = cache
@@ -131,21 +129,15 @@ class HourlyPlugin(BaseGamePlugin):
         
         can_claim, message = self._can_claim_hourly(user_id)
 
-        can_claim = True
-
         if not can_claim:
-            self.send_message_image(sender, file_queue, f"Hourly reward not available!\n{message}\n Hourly reward can only be claimed once at full hour.", "Hourly Reward", cache, user_id)
+            self.send_message_image(sender, file_queue, f"Hourly reward not available!\n Hourly reward can only be claimed once at full hour.", "Hourly Reward", cache, user_id)
             return ""
 
         balance_before = user.get("balance", 0)
         
-        reward_amount = self._get_random_reward(user_id)
+        reward_amount = self._claim_hourly_reward(user_id)
+        
         logger.info(f"[Hourly] Hourly reward for {nickname}: {reward_amount}, balance before: {balance_before}")
-        
-        self.cache.update_balance(user_id, reward_amount)
-        
-        now = datetime.now().isoformat()
-        self.cache.update_user(user_id, last_hourly_claim=now)
         
         user = self.cache.get_user(user_id)
         balance_after = user["balance"]
@@ -180,8 +172,8 @@ class HourlyPlugin(BaseGamePlugin):
             user_info_before, 
             user_info_after,
             animated=True,
-            game_type="hourly",
-            avatar_size=80,
+            avatar_size=48,
+            font_scale=0.7,
             show_bet_amount=False,
             frame_duration=60,
             last_frame_multiplier=30.0,
@@ -199,13 +191,15 @@ class HourlyPlugin(BaseGamePlugin):
         next_hour = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
         next_time = next_hour.strftime("%H:%M")
         
-        return f"Hourly Reward! +{reward_amount} coins, Next: {next_time}"
+        message = f"Hourly Reward! +{reward_amount} coins\nNext: {next_time}"
+        
+        return message
 
 def register():
     plugin = HourlyPlugin()
     return {
         "name": "hourly",
-        "aliases": ["/hourly", "/h"],
+        "aliases": ["/hourly", "/h", "/hour"],
         "description": "Claim hourly reward at full hour ±1 minute\nHourly can only be claimed once per hour",
         "execute": plugin.execute_game
     }
