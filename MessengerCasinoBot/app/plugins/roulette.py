@@ -21,7 +21,7 @@ class RoulettePlugin(BaseGamePlugin):
             "green": (0, 177, 64)
         }
         
-        self.max_history = 13
+        self.max_history = 11
     
     def get_custom_overlay(self, **kwargs) -> Optional[Dict[str, Any]]:
         try:

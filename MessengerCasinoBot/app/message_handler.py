@@ -9,9 +9,9 @@ from collections import deque
 
 last_message_time = None
 
-recent_messages = deque(maxlen=20)
-MESSAGES_THRESHOLD = 2
-TIME_WINDOW = 8
+recent_messages = deque(maxlen=10)
+MESSAGES_THRESHOLD = 1
+TIME_WINDOW = 0.6
 
 BASE_DIR = os.path.dirname(__file__)
 TEMP_DIR = os.path.join(BASE_DIR, "temp")

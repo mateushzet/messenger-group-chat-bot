@@ -133,7 +133,7 @@ class TextRenderer:
             self._initialized = True
     
     def _load_default_fonts(self):
-        font_sizes = [12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56, 64]
+        font_sizes = [8, 9, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56, 64]
         
         for size in font_sizes:
             try:
