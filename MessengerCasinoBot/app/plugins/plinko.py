@@ -4,7 +4,6 @@ import time
 from PIL import Image, ImageDraw, ImageSequence
 from base_game_plugin import BaseGamePlugin
 from logger import logger
-import math
 
 class PlinkoPlugin(BaseGamePlugin):
     def __init__(self):
@@ -15,32 +14,32 @@ class PlinkoPlugin(BaseGamePlugin):
         self.buckets_count = 15
         self.risk_levels = {
             'low': {
-                'multipliers': [20.0, 4.0, 1.6, 1.3, 1.2, 1.1, 1.0, 0.5, 1.0, 1.1, 1.2, 1.3, 1.6, 4.0, 20.0],
+                'multipliers': [20.0, 4.0, 1.5, 1.3, 1.2, 1.1, 0.9, 0.7, 0.9, 1.1, 1.2, 1.3, 1.5, 4.0, 20.0],
                 'description': 'Low risk - balanced multipliers',
                 'stripe_color': 'low'
             },
             'medium': {
-                'multipliers': [60.0, 12.0, 5.6, 3.2, 1.6, 1.1, 0.7, 0.2, 0.7, 1.1, 1.6, 3.2, 5.6, 12.0, 60.0],
+                'multipliers': [60.0, 12.0, 5.6, 3.2, 1.6, 1.3, 0.4, 0.2, 0.4, 1.3, 1.6, 3.2, 5.6, 12.0, 60.0],
                 'description': 'Medium risk - higher variance',
                 'stripe_color': 'medium'
             },
             'high': {
-                'multipliers': [420.0, 50.0, 14.0, 5.3, 2.1, 0.5, 0.2, 0.0, 0.2, 0.5, 2.1, 5.3, 14.0, 50.0, 420.0],
+                'multipliers': [420.0, 50.0, 13.0, 5.0, 2.0, 0.5, 0.2, 0.0, 0.2, 0.5, 2.0, 5.0, 13.0, 50.0, 420.0],
                 'description': 'High risk - extreme multipliers',
                 'stripe_color': 'high'
             },
             'l': {
-                'multipliers': [20.0, 4.0, 1.6, 1.3, 1.2, 1.1, 1.0, 0.5, 1.0, 1.1, 1.2, 1.3, 1.6, 4.0, 20.0],
+                'multipliers': [20.0, 4.0, 1.5, 1.3, 1.2, 1.1, 0.9, 0.7, 0.9, 1.1, 1.2, 1.3, 1.5, 4.0, 20.0],
                 'description': 'Low risk - balanced multipliers',
                 'stripe_color': 'low'
             },
             'm': {
-                'multipliers': [60.0, 12.0, 5.6, 3.2, 1.6, 1.1, 0.7, 0.2, 0.7, 1.1, 1.6, 3.2, 5.6, 12.0, 60.0],
+                'multipliers': [60.0, 12.0, 5.6, 3.2, 1.6, 1.3, 0.4, 0.2, 0.4, 1.3, 1.6, 3.2, 5.6, 12.0, 60.0],
                 'description': 'Medium risk - higher variance',
                 'stripe_color': 'medium'
             },
             'h': {
-                'multipliers': [420.0, 50.0, 14.0, 5.3, 2.1, 0.5, 0.2, 0.0, 0.2, 0.5, 2.1, 5.3, 14.0, 50.0, 420.0],
+                'multipliers': [420.0, 50.0, 13.0, 5.0, 2.0, 0.5, 0.2, 0.0, 0.2, 0.5, 2.0, 5.0, 13.0, 50.0, 420.0],
                 'description': 'High risk - extreme multipliers',
                 'stripe_color': 'high'
             }
@@ -69,14 +68,32 @@ class PlinkoPlugin(BaseGamePlugin):
         self.max_balls = 5
         
     def _calculate_fixed_probabilities(self):
-        n = 14
-        probabilities = []
-        total_paths = 2 ** n
+        probabilities_percent = [
+            0.015,
+            0.03,
+            0.65,
+            3.4,
+            6.8,
+            11.90,
+            17.50,
+            19.41,
+            17.50,
+            11.90,
+            6.8,
+            3.4,
+            0.65,
+            0.03,
+            0.015,
+        ]
         
-        for k in range(15):
-            comb_count = math.comb(n, k)
-            probability = comb_count / total_paths
-            probabilities.append(probability)
+        probabilities = [p / 100.0 for p in probabilities_percent]
+        
+        total = sum(probabilities)
+        logger.info(f"[Plinko] Probabilities sum: {total:.6f} ({total*100:.4f}%)")
+        
+        logger.info(f"[Plinko] Hardcoded probabilities in percentages:")
+        for i, prob in enumerate(probabilities_percent):
+            logger.info(f"[Plinko] Bucket {i}: {prob:.6f}% (1 in {int(100/prob):,})")
         
         return probabilities
     
@@ -226,7 +243,7 @@ class PlinkoPlugin(BaseGamePlugin):
                 highlight_current=True if result_buckets else False
             )
             
-            overlay_y_position = frame_height - 40 - 40
+            overlay_y_position = frame_height - 40 - 56
             
             return {
                 'before': {
@@ -395,6 +412,19 @@ class PlinkoPlugin(BaseGamePlugin):
             weights=self.fixed_probabilities,
             k=ball_count
         )
+        
+        if ball_count > 1:
+            bucket_counts = {}
+            for bucket in buckets:
+                bucket_counts[bucket] = bucket_counts.get(bucket, 0) + 1
+            
+            prob_percent = [p * 100 for p in self.fixed_probabilities]
+            logger.info(f"[Plinko] Probability distribution (in %):")
+            for i, prob in enumerate(prob_percent):
+                logger.info(f"[Plinko] Bucket {i}: {prob:.4f}%")
+            
+            logger.info(f"[Plinko] Drew {ball_count} balls: {bucket_counts}")
+        
         return buckets
     
     def execute_game(self, command_name, args, file_queue, cache=None, sender=None, avatar_url=None):
@@ -522,10 +552,11 @@ class PlinkoPlugin(BaseGamePlugin):
                 'ball_count': ball_count
             },
             show_win_text=True,
-            font_scale=0.1,
+            font_scale=0.6,
             win_text_scale=0.7,
-            avatar_size=50,
+            avatar_size=65,
             win_text_height=150,
+            overlay_position = 'top'
         )
         
         if error or not result_path:
@@ -559,9 +590,18 @@ class PlinkoPlugin(BaseGamePlugin):
         return None
     
     def _get_help_message(self):
+        prob_percent = [p * 100 for p in self.fixed_probabilities]
+        
+        prob_summary = "\n".join([
+            f"Bucket {i}: {prob_percent[i]:.4f}% chance"
+            for i in [0, 1, 2, 6, 7, 8, 12, 13, 14]
+        ])
+        
         return (
             f"PLINKO GAME (max {self.max_balls} balls)\n"
             "Drop multiple balls at once for bigger wins!\n\n"
+            "Probability Distribution (selected buckets):\n"
+            f"{prob_summary}\n\n"
             "Commands:\n"
             f"/plinko <amount> low [balls=1-{self.max_balls}] - Low risk\n"
             f"/plinko <amount> medium [balls=1-{self.max_balls}] - Medium risk\n"
@@ -593,7 +633,11 @@ class PlinkoPlugin(BaseGamePlugin):
             bucket = buckets[i]
             multiplier = multipliers[i]
             win = individual_wins[i]
-            ball_summary.append(f"Ball {ball_num}: Position {bucket+1}/15 ×{multiplier:.1f} = ${win}")
+            
+            prob_percent = self.fixed_probabilities[bucket] * 100
+            chance_text = f" ({prob_percent:.4f}% chance)"
+            
+            ball_summary.append(f"Ball {ball_num}: Position {bucket+1}/15 ×{multiplier:.1f} = ${win}{chance_text}")
         
         ball_summary_text = "\n".join(ball_summary)
         
@@ -614,12 +658,16 @@ class PlinkoPlugin(BaseGamePlugin):
 
 def register():
     plugin = PlinkoPlugin()
-    logger.info("[Plinko] Plinko plugin registered")
+    logger.info("[Plinko] Plinko plugin registered with percentage-based probabilities")
     return {
         "name": "plinko",
         "aliases": ["/p"],
         "description": (
             f"PLINKO GAME - Drop multiple balls at once! (max {plugin.max_balls} balls)\n\n"
+            "Probability Distribution:\n"
+            "• Middle buckets (7-8): ~20.95% chance each\n"
+            "• Outer buckets (0,14): ~0.0061% chance each\n"
+            "• Complete mathematical binomial distribution\n\n"
             "Usage: /plinko <amount> <risk_level> [balls=1-5] [x]\n\n"
             "Available risk levels:\n"
             "- low (l) - Balanced multipliers (1.0-20.0x)\n"

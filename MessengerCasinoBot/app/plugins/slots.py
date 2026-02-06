@@ -232,7 +232,7 @@ class SlotsPlugin(BaseGamePlugin):
             frame_duration=45,
             last_frame_multiplier=4.0,
             show_win_text=True,
-            font_scale=0.4,
+            font_scale=0.8,
             avatar_size=50,
             show_bet_amount=True,
             win_text_scale=0.6,
