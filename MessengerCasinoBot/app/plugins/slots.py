@@ -11,22 +11,22 @@ class SlotsPlugin(BaseGamePlugin):
         )
         
         self.MULTIPLIER_CHANCES = {
-            0.0: 42.0,
-            0.5: 25.0,
+            0.0: 40.0,
+            0.5: 28.3,
             1.0: 2.8,
-            1.5: 7.5,
-            2.0: 6.5,
+            1.5: 7.6,
+            2.0: 7.3,
             2.5: 4.0,
-            3.0: 3.2,
+            3.0: 3.0,
             3.5: 2.3,
             4.0: 1.6,
-            4.5: 1.1,
-            5.0: 0.9,
-            5.5: 0.6,
+            4.5: 1.0,
+            5.0: 0.6,
+            5.5: 0.5,
             6.0: 0.4,
             6.5: 0.3,
-            7.0: 0.3,
-            8.0: 0.2,
+            7.0: 0.2,
+            8.0: 0.1,
         }
         
         self.PREGENERATED_ANIMATIONS_FOLDER = os.path.join(self.get_asset_path("slots"), "precomputed_animations")

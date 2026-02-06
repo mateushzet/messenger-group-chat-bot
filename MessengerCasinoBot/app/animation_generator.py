@@ -22,6 +22,7 @@ class GenerationOptions:
     custom_overlay_kwargs: Optional[Dict] = None
     final_frames_start_index: int = -1
     win_text_scale: int = -1
+    overlay_position: str = 'bottom'
     
     @classmethod
     def from_kwargs(cls, **kwargs) -> 'GenerationOptions':
@@ -404,14 +405,15 @@ class AnimationGenerator:
             colors['win_text'] = (200, 200, 200, 255)
         
         return colors
-                    
+            
     def _create_user_overlay(self, user_info: UserInfo, avatar_img: Image.Image, 
-                        options: GenerationOptions, frame_width: int) -> Dict:
+                            options: GenerationOptions, frame_width: int) -> Dict:
         if not avatar_img:
             return None
         
         avatar_size = options.avatar_size
         font_scale = options.font_scale
+        overlay_position = options.overlay_position
         
         level = getattr(user_info, 'level', 1)
         level_progress = getattr(user_info, 'level_progress', 0.0)
@@ -430,18 +432,10 @@ class AnimationGenerator:
         balance_icon = self.text_renderer.icon_cache.get('balance')
         icon_size = 20
         
-        username_font_size = int(18 * font_scale)
         balance_font_size = int(20 * font_scale)
         bet_font_size = int(20 * font_scale)
-        level_font_size = int(18 * font_scale)
         
-        username_text = self.text_renderer.render_text(
-            text=user_info.username,
-            font_size=username_font_size,
-            color=text_color,
-            stroke_width=max(2, int(2 * font_scale)),
-            stroke_color=(0, 0, 0, 255)
-        )
+        level_font_size = max(12, int(avatar_size * 0.2))
         
         balance_text = self.text_renderer.render_text(
             text=f"{user_info.balance:.0f}", 
@@ -477,39 +471,23 @@ class AnimationGenerator:
         icon_text_spacing = int(8 * font_scale)
         vertical_spacing = int(8 * font_scale)
         
-        text_margin_left = int(5 * font_scale)
-        bottom_margin = int(5 * font_scale)
+        text_margin_left = int(2 * font_scale)
+        text_margin_right = int(2 * font_scale)
         
-        overlay_height = avatar_size + int(30 * font_scale)
-        
-        text_heights = []
-        total_text_height = 0
-        
-        if bet_text_img:
-            bet_height = max(icon_size, bet_text_img.height)
-            text_heights.append(('bet', bet_height))
-            total_text_height += bet_height
-        
+        # Oblicz wysokość elementów
+        max_text_height = 0
         if balance_text:
-            balance_height = max(icon_size, balance_text.height)
-            text_heights.append(('balance', balance_height))
-            total_text_height += balance_height
+            max_text_height = max(max_text_height, max(icon_size, balance_text.height))
+        if bet_text_img and options.show_bet_amount:
+            max_text_height = max(max_text_height, max(icon_size, bet_text_img.height))
         
-        if username_text:
-            text_heights.append(('username', username_text.height))
-            total_text_height += username_text.height
-        
-        if len(text_heights) > 1:
-            total_text_height += (len(text_heights) - 1) * vertical_spacing
-        
-        text_area_needed = total_text_height + int(15 * font_scale)
-        overlay_height = max(overlay_height, text_area_needed)
+        overlay_height = max(avatar_size, max_text_height)
         
         overlay = Image.new('RGBA', (frame_width, overlay_height), (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
         
-        avatar_x = frame_width - avatar_size
-        avatar_y = overlay_height - avatar_size
+        avatar_x = frame_width - avatar_size - text_margin_right
+        avatar_y = 0
         
         avatar_mask = Image.new('L', (avatar_size, avatar_size), 0)
         mask_draw = ImageDraw.Draw(avatar_mask)
@@ -518,80 +496,111 @@ class AnimationGenerator:
         avatar_resized = avatar_img.resize((avatar_size, avatar_size), Image.Resampling.LANCZOS)
         avatar_rounded = Image.new('RGBA', (avatar_size, avatar_size), (0, 0, 0, 0))
         avatar_rounded.paste(avatar_resized, (0, 0), avatar_mask)
-        overlay.paste(avatar_rounded, (avatar_x, avatar_y), avatar_mask)
+        
+        progress_layer = Image.new('RGBA', (avatar_size, avatar_size), (0, 0, 0, 0))
+        progress_draw = ImageDraw.Draw(progress_layer)
+        
+        progress_bar_height = int(6 * font_scale)
+        progress_bar_y = avatar_size - progress_bar_height - 1
+        progress_bar_width = avatar_size - 15
+        progress_bar_x = (avatar_size - progress_bar_width) // 2
+        
+        progress_draw.rectangle(
+            [progress_bar_x, progress_bar_y, 
+            progress_bar_x + progress_bar_width, progress_bar_y + progress_bar_height],
+            fill=(40, 40, 60, 220)
+        )
+        
+        filled_width = int(progress_bar_width * level_progress)
+        if filled_width > 0:
+            progress_draw.rectangle(
+                [progress_bar_x, progress_bar_y, 
+                progress_bar_x + filled_width, progress_bar_y + progress_bar_height],
+                fill=(80, 160, 255, 220)
+            )
+        
+        progress_draw.rectangle(
+            [progress_bar_x, progress_bar_y, 
+            progress_bar_x + progress_bar_width, progress_bar_y + progress_bar_height],
+            outline=(255, 255, 255, 180),
+            width=1
+        )
+        
+        avatar_with_progress = Image.alpha_composite(avatar_rounded, progress_layer)
+        overlay.paste(avatar_with_progress, (avatar_x, avatar_y), avatar_mask)
         
         level_margin_right = int(5 * font_scale)
         level_margin_top = int(5 * font_scale)
         level_x = avatar_x + avatar_size - level_text_img.width - level_margin_right
         level_y = avatar_y + level_margin_top
+        
         overlay.alpha_composite(level_text_img, (level_x, level_y))
         
-        progress_bar_width = avatar_size - int(15 * font_scale)
-        progress_bar_height = int(6 * font_scale)
-        progress_bar_x = avatar_x + (avatar_size - progress_bar_width) // 2
-        progress_bar_y = avatar_y + avatar_size - progress_bar_height - int(8 * font_scale)
-        
-        draw.rectangle(
-            [progress_bar_x, progress_bar_y, 
-            progress_bar_x + progress_bar_width, progress_bar_y + progress_bar_height],
-            fill=(255, 255, 255, 200)
-        )
-        
-        bg_x = progress_bar_x + int(1 * font_scale)
-        bg_y = progress_bar_y + int(1 * font_scale)
-        bg_width = progress_bar_width - int(2 * font_scale)
-        bg_height = progress_bar_height - int(2 * font_scale)
-        
-        if bg_width > 0 and bg_height > 0:
-            draw.rectangle(
-                [bg_x, bg_y, bg_x + bg_width, bg_y + bg_height],
-                fill=(40, 40, 60, 220)
-            )
-            
-            filled_width = int(bg_width * level_progress)
-            if filled_width > 0:
-                draw.rectangle(
-                    [bg_x, bg_y, bg_x + filled_width, bg_y + bg_height],
-                    fill=(80, 160, 255, 220)
-                )
-        
         text_x = text_margin_left
-        current_y = overlay_height - bottom_margin
         
-        if username_text:
-            username_y = current_y - username_text.height
-            overlay.alpha_composite(username_text, (text_x, username_y))
-            current_y = username_y - vertical_spacing
+        if overlay_position == 'top':
+            current_y = 0
+            
+            if balance_text:
+                element_height = max(icon_size, balance_text.height)
+                
+                if balance_icon:
+                    icon_y = current_y + (element_height - icon_size) // 2
+                    overlay.alpha_composite(balance_icon, (text_x, icon_y))
+                    balance_text_x = text_x + icon_size + icon_text_spacing
+                else:
+                    balance_text_x = text_x
+                
+                text_y = current_y + (element_height - balance_text.height) // 2
+                overlay.alpha_composite(balance_text, (balance_text_x, text_y))
+                
+                current_y += element_height + vertical_spacing
+            
+            if bet_text_img and options.show_bet_amount:
+                element_height = max(icon_size, bet_text_img.height)
+                
+                if bet_icon:
+                    icon_y = current_y + (element_height - icon_size) // 2
+                    overlay.alpha_composite(bet_icon, (text_x, icon_y))
+                    bet_text_x = text_x + icon_size + icon_text_spacing
+                else:
+                    bet_text_x = text_x
+                
+                text_y = current_y + (element_height - bet_text_img.height) // 2
+                overlay.alpha_composite(bet_text_img, (bet_text_x, text_y))
         
-        if balance_text:
-            element_height = max(icon_size, balance_text.height)
-            balance_y = current_y - element_height
+        else:
+            current_y = overlay_height
             
-            if balance_icon:
-                icon_y = balance_y + (element_height - icon_size) // 2
-                overlay.alpha_composite(balance_icon, (text_x, icon_y))
-                balance_text_x = text_x + icon_size + icon_text_spacing
-            else:
-                balance_text_x = text_x
+            if balance_text:
+                element_height = max(icon_size, balance_text.height)
+                balance_y = current_y - element_height
+                
+                if balance_icon:
+                    icon_y = balance_y + (element_height - icon_size) // 2
+                    overlay.alpha_composite(balance_icon, (text_x, icon_y))
+                    balance_text_x = text_x + icon_size + icon_text_spacing
+                else:
+                    balance_text_x = text_x
+                
+                text_y = balance_y + (element_height - balance_text.height) // 2
+                overlay.alpha_composite(balance_text, (balance_text_x, text_y))
+                
+                current_y = balance_y - vertical_spacing
             
-            text_y = balance_y + (element_height - balance_text.height) // 2
-            overlay.alpha_composite(balance_text, (balance_text_x, text_y))
-            
-            current_y = balance_y - vertical_spacing
-        
-        if bet_text_img and options.show_bet_amount:
-            element_height = max(icon_size, bet_text_img.height)
-            bet_y = current_y - element_height
-            
-            if bet_icon:
-                icon_y = bet_y + (element_height - icon_size) // 2
-                overlay.alpha_composite(bet_icon, (text_x, icon_y))
-                bet_text_x = text_x + icon_size + icon_text_spacing
-            else:
-                bet_text_x = text_x
-            
-            text_y = bet_y + (element_height - bet_text_img.height) // 2
-            overlay.alpha_composite(bet_text_img, (bet_text_x, text_y))
+            if bet_text_img and options.show_bet_amount:
+                element_height = max(icon_size, bet_text_img.height)
+                bet_y = current_y - element_height
+                
+                if bet_icon:
+                    icon_y = bet_y + (element_height - icon_size) // 2
+                    overlay.alpha_composite(bet_icon, (text_x, icon_y))
+                    bet_text_x = text_x + icon_size + icon_text_spacing
+                else:
+                    bet_text_x = text_x
+                
+                text_y = bet_y + (element_height - bet_text_img.height) // 2
+                overlay.alpha_composite(bet_text_img, (bet_text_x, text_y))
         
         return {
             'image': overlay,
@@ -605,9 +614,10 @@ class AnimationGenerator:
                 'avatar_size': avatar_size,
                 'overlay_height': overlay_height,
                 'show_bet_amount': options.show_bet_amount,
-                'frame_width': frame_width
+                'frame_width': frame_width,
+                'overlay_position': overlay_position
             }
-        }
+        }                
 
     def _create_win_text(self, request: GenerationRequest, colors: Dict,
                         options: GenerationOptions) -> Optional[Image.Image]:
@@ -670,12 +680,15 @@ class AnimationGenerator:
                 overlay_img = overlay_img.resize((new_width, new_height), Image.Resampling.LANCZOS)
             
             overlay_x = 0 
-            overlay_y = result.height - overlay_img.height
+            
+            if options.overlay_position == 'top':
+                overlay_y = 0
+            else:
+                overlay_y = result.height - overlay_img.height
             
             result.alpha_composite(overlay_img, (overlay_x, overlay_y))
         
         return result
-
     def _save_animation(self, frames: List[Image.Image], output_path: str,
                     options: GenerationOptions) -> bool:
         if not frames:
