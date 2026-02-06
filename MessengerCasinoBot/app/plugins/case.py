@@ -1194,7 +1194,7 @@ class CasePlugin(BaseGamePlugin):
             animated=animated,
             frame_duration=70,
             show_win_text=False,
-            last_frame_multiplier=80
+            last_frame_multiplier=30
         )
         
         if error:

@@ -120,7 +120,8 @@ class BaseGamePlugin:
     def generate_static(self, image_path: str, avatar_path: str, bg_path: str,
                        user_info: Dict, custom_overlay_kwargs: Optional[Dict] = None,
                        show_bet_amount: bool = True, show_win_text: bool = True,
-                       font_scale: float = 1.0, avatar_size: int = 85) -> str:
+                       font_scale: float = 1.0, avatar_size: int = 85,
+                       win_text_scale: float = 1.0) -> str:
         try:
             user_info_data = {
                 **user_info,
@@ -135,7 +136,8 @@ class BaseGamePlugin:
                 font_scale=font_scale,
                 show_win_text=show_win_text,
                 show_bet_amount=show_bet_amount,
-                custom_overlay_kwargs=custom_overlay_kwargs
+                custom_overlay_kwargs=custom_overlay_kwargs,
+                win_text_scale=win_text_scale
             )
             
             request = GenerationRequest(
@@ -161,7 +163,8 @@ class BaseGamePlugin:
     def apply_user_overlay(self, base_image_path: str, user_id: str, sender: str,
                         total_bet: int, win_amount: int, balance: int,
                         user: Dict, show_win_text: bool = True, font_scale: float = 1.0, 
-                        avatar_size: int = 85, show_bet_amount: bool = True) -> Tuple[Optional[str], Optional[str]]:
+                        avatar_size: int = 85, show_bet_amount: bool = True,
+                        win_text_scale: float = 1.0) -> Tuple[Optional[str], Optional[str]]:
         try:
             user_info = self.create_user_info(sender, total_bet, win_amount, balance, user)
             
@@ -183,7 +186,8 @@ class BaseGamePlugin:
                 show_bet_amount=show_bet_amount,
                 show_win_text=show_win_text,
                 font_scale=font_scale,
-                avatar_size=avatar_size
+                avatar_size=avatar_size,
+                win_text_scale=win_text_scale
             )
             
             return final_path, None
