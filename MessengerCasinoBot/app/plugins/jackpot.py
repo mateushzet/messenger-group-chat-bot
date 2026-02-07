@@ -295,14 +295,14 @@ class JackpotPlugin(BaseGamePlugin):
         try:
             width = 700
             avatar_size = 50
-            player_height = 60
+            player_height = 70
             margin = 25
             section_spacing = 15
             
             player_count = len(jackpot_info.get('players', []))
-            header_height = 180
+            header_height = 190
             players_height = player_count * player_height
-            footer_height = 60
+            footer_height = 70
             total_height = header_height + players_height + footer_height + section_spacing * 3 - 40
             
             img = Image.new('RGB', (width, total_height), color=self.colors['bg_dark'])
