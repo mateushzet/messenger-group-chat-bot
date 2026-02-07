@@ -79,13 +79,13 @@ class RoulettePlugin(BaseGamePlugin):
                     'image': overlay_before,
                     'position': (0, overlay_y_position),
                     'type': 'before',
-                    'per_frame': False
+                    'per_frame': True
                 },
                 'after': {
                     'image': overlay_after,
                     'position': (0, overlay_y_position),
                     'type': 'after',
-                    'per_frame': False
+                    'per_frame': True
                 }
             }
             
