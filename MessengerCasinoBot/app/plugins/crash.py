@@ -698,7 +698,7 @@ class CrashPlugin(BaseGamePlugin):
                 user_info_after=user_info_after,
                 animated=True,
                 frame_duration=50,
-                last_frame_multiplier=40,
+                last_frame_multiplier=50,
                 custom_overlay_kwargs=custom_overlay_kwargs,
                 show_win_text=False,
                 font_scale=0.8,

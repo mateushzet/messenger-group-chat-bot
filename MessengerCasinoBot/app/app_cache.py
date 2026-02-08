@@ -3,7 +3,6 @@ import threading
 import time
 import os
 from datetime import datetime, timedelta
-from collections import deque
 from logger import logger
 from message_handler import get_last_message_time
 
@@ -19,7 +18,8 @@ class AppCache:
         self.games = {}
         self.settings = {}
         
-        self.market_items = deque(maxlen=9)
+        self.market_items = []
+        self.auctions = []
         
         self.active_math_challenge = None
 
@@ -31,7 +31,9 @@ class AppCache:
 
     def _load_backup(self):
         if not os.path.exists(self.backup_file):
+            logger.info(f"[AppCache] No backup file found at {self.backup_file}")
             return
+        
         try:
             with open(self.backup_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -54,29 +56,58 @@ class AppCache:
                     
                     if "is_admin" not in user_data:
                         user_data["is_admin"] = False
+                    
+                    if "backgrounds" not in user_data:
+                        user_data["backgrounds"] = ["default-bg.png"]
+                    
+                    if "avatars" not in user_data:
+                        user_data["avatars"] = ["default-avatar.png"]
+                    
+                    if "purchase_history" not in user_data:
+                        user_data["purchase_history"] = []
                 
                 self.games = data.get("games", {})
                 self.settings = data.get("settings", {})
                 
                 market_data = data.get("market_items", [])
+                self.auctions = data.get("auctions", [])
                 
                 converted_items = []
                 for item in market_data:
                     if isinstance(item, dict):
-                        if "file" in item and "type" not in item:
+                        if "type" in item and "file" in item:
+                            if "id" not in item:
+                                item["id"] = f"market_{len(converted_items)}"
+                            if "listed_at" not in item:
+                                item["listed_at"] = time.time()
+                            if "status" not in item:
+                                item["status"] = "for_sale"
+                            
+                            converted_items.append(item)
+                        elif "file" in item and "type" not in item:
                             converted_items.append({
                                 "type": "background",
-                                "file": item.get("file", "")
+                                "file": item.get("file", ""),
+                                "price": item.get("price", 100),
+                                "seller_id": item.get("seller_id"),
+                                "seller_name": item.get("seller_name", "Unknown"),
+                                "listed_at": item.get("listed_at", time.time()),
+                                "status": "for_sale",
+                                "id": f"market_{len(converted_items)}"
                             })
-                        elif "type" in item and "file" in item:
-                            converted_items.append(item)
                     elif isinstance(item, str):
                         converted_items.append({
                             "type": "background",
-                            "file": item
+                            "file": item,
+                            "price": 100,
+                            "seller_id": None,
+                            "seller_name": "Unknown",
+                            "listed_at": time.time(),
+                            "status": "for_sale",
+                            "id": f"market_{len(converted_items)}"
                         })
                 
-                self.market_items = deque(converted_items, maxlen=9)
+                self.market_items = converted_items
                 
                 if "ranking_leader_record" not in self.settings:
                     old_money_record = self.settings.get("money_leader_record")
@@ -84,11 +115,10 @@ class AppCache:
                         self.settings["ranking_leader_record"] = old_money_record
                 
                 self.active_math_challenge = data.get("active_math_challenge")
-                
                 if self.active_math_challenge is None:
                     self.active_math_challenge = None
                 
-            logger.info(f"[AppCache] Cache loaded successfully")
+                logger.info(f"[AppCache] Cache loaded: {len(self.users)} users, {len(self.market_items)} market items, {len(self.auctions)} auctions")
 
         except Exception as e:
             logger.critical(f"[AppCache] Cache load error: {e}", exc_info=True)
@@ -124,13 +154,14 @@ class AppCache:
                     "users": self.users,
                     "games": self.games,
                     "settings": self.settings,
-                    "market_items": list(self.market_items)
+                    "market_items": self.market_items,
+                    "auctions": self.auctions,
                 }
                 
                 with open(backup_path, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
                 
-                logger.info(f"[AppCache] Daily save completed")
+                logger.info(f"[AppCache] Daily backup saved: {len(self.market_items)} market items, {len(self.auctions)} auctions")
 
                 self._cleanup_old_backups()
                 
@@ -161,39 +192,82 @@ class AppCache:
                     "users": self.users,
                     "games": self.games,
                     "settings": self.settings,
-                    "market_items": list(self.market_items),
+                    "market_items": self.market_items,
+                    "auctions": self.auctions,
                     "active_math_challenge": self.active_math_challenge
                 }
                 with open(self.backup_file, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
 
-                logger.info(f"[AppCache] Autosave completed")
+                logger.info(f"[AppCache] Autosave completed: {len(self.market_items)} market items, {len(self.auctions)} auctions")
             except Exception as e:
-                logger.critical(f"Cache save error: {e}",exc_info=True)
-
-    def add_market_item(self, item_type, filename):
+                logger.critical(f"Cache save error: {e}", exc_info=True)
+    
+    def add_market_item(self, item):
         with self.lock:
-            item = {
-                "type": item_type,
-                "file": filename
-            }
-            self.market_items.appendleft(item)
-            return item
-
-    def remove_market_item(self, filename):
+            if "id" not in item:
+                item["id"] = f"market_{len(self.market_items)}_{int(time.time())}"
+            
+            if "listed_at" not in item:
+                item["listed_at"] = time.time()
+            
+            if "status" not in item:
+                item["status"] = "for_sale"
+            
+            self.market_items.append(item)
+            return True
+    
+    def remove_market_item(self, item_file):
         with self.lock:
-            for item in list(self.market_items):
-                if item.get("file") == filename:
-                    self.market_items.remove(item)
+            for i, item in enumerate(self.market_items):
+                if item.get("file") == item_file:
+                    del self.market_items[i]
+                    return True
+            return False
+    
+    def get_market_items(self):
+        return self.market_items.copy()
+    
+    def add_auction(self, auction):
+        with self.lock:
+            if "id" not in auction:
+                auction["id"] = f"auction_{len(self.auctions)}_{int(time.time())}"
+            
+            if "created_at" not in auction:
+                auction["created_at"] = time.time()
+            
+            if "status" not in auction:
+                auction["status"] = "active"
+            
+            if "bids" not in auction:
+                auction["bids"] = []
+            
+            self.auctions.append(auction)
+            logger.info(f"[AppCache] Auction added: {auction.get('type')} {auction.get('file')} by {auction.get('seller_name', 'Unknown')}")
+            return True
+    
+    def update_auction(self, index, auction):
+        with self.lock:
+            if 0 <= index < len(self.auctions):
+                self.auctions[index] = auction
+                return True
+            return False
+    
+    def get_auctions(self):
+        return self.auctions.copy()
+    
+    def remove_auction(self, auction_id):
+        with self.lock:
+            for i, auction in enumerate(self.auctions):
+                if auction.get("id") == auction_id:
+                    del self.auctions[i]
                     return True
             return False
 
-    def get_market_items(self):
-        return list(self.market_items)
-
+    
     def get_user(self, user_id):
         return self.users.get(str(user_id))
-
+    
     def set_user(self, user_id, name, balance=0, level=1, level_progress=0.0,
                  avatar="default-avatar.png", background="default-bg.png", 
                  avatar_url=None, is_admin=False, **kwargs):
@@ -207,6 +281,8 @@ class AppCache:
                 "background": background,
                 "avatar_url": avatar_url,
                 "is_admin": is_admin,
+                "backgrounds": kwargs.get("backgrounds", ["default-bg.png"]),
+                "avatars": kwargs.get("avatars", ["default-avatar.png"]),
                 **kwargs
             }
 
@@ -245,8 +321,10 @@ class AppCache:
                     "backgrounds": ["default-bg.png"],
                     "avatars": ["default-avatar.png"]
                 }
-            self.users[uid]["balance"] += delta
-            return self.users[uid]["balance"]
+            
+            new_balance = self.users[uid]["balance"] + delta
+            self.users[uid]["balance"] = new_balance
+            return new_balance
 
     def get_avatar_path(self, user_id):
         user = self.get_user(user_id)
@@ -259,7 +337,6 @@ class AppCache:
         if user and user.get("background"):
             return self._resolve_relative_path(os.path.join("assets", "backgrounds", user["background"]))
         return self._resolve_relative_path(os.path.join("assets", "backgrounds", "default-bg.png"))
-
 
     def get_setting(self, key, default=None):
         with self.lock:
@@ -280,7 +357,6 @@ class AppCache:
             return backup_path
         
     def add_experience(self, user_id, win_amount, sender, file_queue):
-        logger.info(f"[AppCache] add_experience called with user_id={user_id}, win_amount={win_amount}")
 
         with self.lock:
             uid = str(user_id)
@@ -303,7 +379,6 @@ class AppCache:
             user = self.users[uid]
 
             if win_amount >= 0:
-                logger.info(f"[AppCache] win_amount >= 0, no XP change. {user['level']}, progress {user['level_progress']}")
                 return user["level"], user["level_progress"]
 
             loose_amount = abs(win_amount)
@@ -312,7 +387,6 @@ class AppCache:
             progress_increase = round(loose_amount / (multiplier * level), 2)
 
             if progress_increase == 0:
-                logger.info(f"[AppCache] progress_increase is 0, no XP change. {user['level']}, progress {user['level_progress']}")
                 return user["level"], user["level_progress"]
 
             progress_to_add = progress_increase / 100.0
@@ -333,10 +407,7 @@ class AppCache:
             user["level"] = new_level
             user["level_progress"] = new_progress
 
-            logger.info(f"[AppCache] Expirence succsessfully added. {user['level']}, progress {user['level_progress']}")
-
             if level_changed:
-
                 try:
                     from plugins.avatar import AvatarPlugin
 
