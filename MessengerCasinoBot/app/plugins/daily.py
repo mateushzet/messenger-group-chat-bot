@@ -236,14 +236,8 @@ class DailyImageGenerator:
         
         if reward < 50:
             return int(round(reward / 5) * 5)
-        elif reward < 100:
-            return int(round(reward / 10) * 10)
-        elif reward < 250:
-            return int(round(reward / 25) * 25)
-        elif reward < 500:
-            return int(round(reward / 50) * 50)
         else:
-            return int(round(reward / 100) * 100)
+            return int(round(reward / 10) * 10)
 
 class DailyPlugin(BaseGamePlugin):
     def __init__(self):
@@ -296,14 +290,8 @@ class DailyPlugin(BaseGamePlugin):
         
         if amount < 50:
             return int(round(amount / 5) * 5)
-        elif amount < 100:
-            return int(round(amount / 10) * 10)
-        elif amount < 250:
-            return int(round(amount / 25) * 25)
-        elif amount < 500:
-            return int(round(amount / 50) * 50)
         else:
-            return int(round(amount / 100) * 100)
+            return int(round(amount / 10) * 10)
     
     def _calculate_reward_for_day(self, day: int, level: int) -> int:
         if day < 1 or day > 7:

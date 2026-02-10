@@ -534,15 +534,7 @@ class AvatarPlugin(BaseGamePlugin):
         if avatar_file not in user_avatars:
             return False, "You don't own this avatar"
         
-        if user["balance"] < self.auction_listing_fee:
-            return False, f"Need {self.auction_listing_fee} coins listing fee"
-        
-        self.cache.update_balance(user_id, -self.auction_listing_fee)
-        
         success = self.remove_user_avatar(user_id, avatar_file)
-        if not success:
-            self.cache.update_balance(user_id, self.auction_listing_fee)
-            return False, "Failed to remove avatar from collection"
         
         market_item = {
             "type": "avatar",

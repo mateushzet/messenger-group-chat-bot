@@ -11,7 +11,7 @@ last_message_time = None
 
 recent_messages = deque(maxlen=10)
 MESSAGES_THRESHOLD = 1
-TIME_WINDOW = 0.6
+TIME_WINDOW = 0.7
 
 BASE_DIR = os.path.dirname(__file__)
 TEMP_DIR = os.path.join(BASE_DIR, "temp")

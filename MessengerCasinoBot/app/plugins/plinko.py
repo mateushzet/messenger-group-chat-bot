@@ -50,17 +50,17 @@ class PlinkoPlugin(BaseGamePlugin):
         self.bucket_file_ranges = {
             0: (1, 1),
             1: (1, 2),
-            2: (1, 11),
-            3: (1, 44),
-            4: (1, 122),
-            5: (1, 244),
-            6: (1, 367),
-            7: (1, 419),
-            8: (1, 367),
-            9: (1, 244),
-            10: (1, 122),
-            11: (1, 44),
-            12: (1, 11),
+            2: (1, 9),
+            3: (1, 26),
+            4: (1, 42),
+            5: (1, 91),
+            6: (1, 100),
+            7: (1, 100),
+            8: (1, 100),
+            9: (1, 91),
+            10: (1, 42),
+            11: (1, 26),
+            12: (1, 9),
             13: (1, 2),
             14: (1, 1),
         }
@@ -354,7 +354,7 @@ class PlinkoPlugin(BaseGamePlugin):
                             stroke_color=(0, 0, 0, 255)
                         )
                         counter_x = x + current_bar_width - counter_image.width - 2
-                        counter_y = y + 2
+                        counter_y = y - 5
                         overlay.alpha_composite(counter_image, (counter_x, counter_y))
                     
                     text_color = (255, 255, 100, 255)

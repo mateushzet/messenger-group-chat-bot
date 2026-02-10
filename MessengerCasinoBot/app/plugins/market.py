@@ -360,9 +360,9 @@ class BackgroundMarketPlugin(BaseGamePlugin):
             return self._create_empty_market_image(output_path, title, no_items_msg, show_type)
         
         ITEM_WIDTH = 160
-        ITEM_HEIGHT = 330
+        ITEM_HEIGHT = 300
         MARGIN = 8
-        ITEMS_PER_ROW = 4
+        ITEMS_PER_ROW = 5
         
         num_items = len(items)
         rows = (num_items + ITEMS_PER_ROW - 1) // ITEMS_PER_ROW
