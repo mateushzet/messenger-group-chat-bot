@@ -121,7 +121,7 @@ class BaseGamePlugin:
                        user_info: Dict, custom_overlay_kwargs: Optional[Dict] = None,
                        show_bet_amount: bool = True, show_win_text: bool = True,
                        font_scale: float = 1.0, avatar_size: int = 85,
-                       win_text_scale: float = 1.0) -> str:
+                       win_text_scale: float = 1.0, win_text_height: int = -1) -> str:
         try:
             user_info_data = {
                 **user_info,
@@ -137,7 +137,8 @@ class BaseGamePlugin:
                 show_win_text=show_win_text,
                 show_bet_amount=show_bet_amount,
                 custom_overlay_kwargs=custom_overlay_kwargs,
-                win_text_scale=win_text_scale
+                win_text_scale=win_text_scale,
+                win_text_height=win_text_height
             )
             
             request = GenerationRequest(
@@ -164,7 +165,7 @@ class BaseGamePlugin:
                         total_bet: int, win_amount: int, balance: int,
                         user: Dict, show_win_text: bool = True, font_scale: float = 1.0, 
                         avatar_size: int = 85, show_bet_amount: bool = True,
-                        win_text_scale: float = 1.0) -> Tuple[Optional[str], Optional[str]]:
+                        win_text_scale: float = 1.0, win_text_height: int = -1) -> Tuple[Optional[str], Optional[str]]:
         try:
             user_info = self.create_user_info(sender, total_bet, win_amount, balance, user)
             
@@ -187,7 +188,8 @@ class BaseGamePlugin:
                 show_win_text=show_win_text,
                 font_scale=font_scale,
                 avatar_size=avatar_size,
-                win_text_scale=win_text_scale
+                win_text_scale=win_text_scale,
+                win_text_height=win_text_height
             )
             
             return final_path, None

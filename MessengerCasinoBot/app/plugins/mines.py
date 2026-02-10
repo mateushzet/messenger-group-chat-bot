@@ -525,7 +525,8 @@ class MinesPlugin(BaseGamePlugin):
             img_path = os.path.join(self.results_folder, f"mines_{user_id}.webp")
             game.get_game_state_image(img_path, self.elements_folder)
             
-            overlay_path, error = self.apply_user_overlay(img_path, user_id, sender, bet, 0, new_balance, user, show_win_text=False, font_scale=self.font_scale, avatar_size=self.avatar_size)
+            overlay_path, error = self.apply_user_overlay(img_path, user_id, sender, bet, 0, new_balance, user, show_win_text=False, 
+                                                          font_scale=self.font_scale, avatar_size=self.avatar_size, win_text_height=200)
             if overlay_path:
                 file_queue.put(overlay_path)
             else:
@@ -575,7 +576,8 @@ class MinesPlugin(BaseGamePlugin):
             img_path = os.path.join(self.results_folder, f"mines_{user_id}_cashout.webp")
             game.get_game_state_image(img_path, self.elements_folder, "WIN", net_win)
             
-            overlay_path, error = self.apply_user_overlay(img_path, user_id, sender, bet, net_win, new_balance, user, show_win_text=True, font_scale=self.font_scale, avatar_size=self.avatar_size)
+            overlay_path, error = self.apply_user_overlay(img_path, user_id, sender, bet, net_win, new_balance, user, show_win_text=True, 
+                                                          font_scale=self.font_scale, avatar_size=self.avatar_size, win_text_height=200)
             if overlay_path:
                 file_queue.put(overlay_path)
             
@@ -652,7 +654,8 @@ class MinesPlugin(BaseGamePlugin):
                     img_path = os.path.join(self.results_folder, f"mines_{user_id}_win.webp")
                     game.get_game_state_image(img_path, self.elements_folder, "WIN", net_win)
                     
-                    overlay_path, error = self.apply_user_overlay(img_path, user_id, sender, bet, net_win, new_balance, user, show_win_text=True, font_scale=self.font_scale, avatar_size=self.avatar_size)
+                    overlay_path, error = self.apply_user_overlay(img_path, user_id, sender, bet, net_win, new_balance, user, show_win_text=True, 
+                                                                  font_scale=self.font_scale, avatar_size=self.avatar_size, win_text_height=200)
                     if overlay_path:
                         file_queue.put(overlay_path)
                     
@@ -682,7 +685,8 @@ class MinesPlugin(BaseGamePlugin):
                     img_path = os.path.join(self.results_folder, f"mines_{user_id}_lost.webp")
                     game.get_game_state_image(img_path, self.elements_folder, "LOST", bet)
                     
-                    overlay_path, error = self.apply_user_overlay(img_path, user_id, sender, bet, -bet, balance_before, user, show_win_text=True, font_scale=self.font_scale, avatar_size=self.avatar_size)
+                    overlay_path, error = self.apply_user_overlay(img_path, user_id, sender, bet, -bet, balance_before, user, show_win_text=True, 
+                                                                  font_scale=self.font_scale, avatar_size=self.avatar_size, win_text_height=200)
                     if overlay_path:
                         file_queue.put(overlay_path)
                     
@@ -713,8 +717,8 @@ class MinesPlugin(BaseGamePlugin):
                             mines_left -= 1
                 
                 
-                overlay_path, error = self.apply_user_overlay(img_path, user_id, sender, bet, net_payout, balance_before, user,
-                                                          show_win_text=False, font_scale=self.font_scale, avatar_size=self.avatar_size)
+                overlay_path, error = self.apply_user_overlay(img_path, user_id, sender, bet, net_payout, balance_before, user, show_win_text=False, 
+                                                              font_scale=self.font_scale, avatar_size=self.avatar_size, win_text_height=200)
                 if overlay_path:
                     file_queue.put(overlay_path)
                 
