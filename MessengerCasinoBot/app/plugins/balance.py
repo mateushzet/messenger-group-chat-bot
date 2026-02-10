@@ -116,9 +116,7 @@ class BalancePlugin(BaseGamePlugin):
             text_img = self.text_renderer.render_text(
                 text=text,
                 font_size=14,
-                color=(255, 255, 255, 255),
-                stroke_width=1,
-                stroke_color=(0, 0, 0, 255)
+                color=(255, 255, 255, 255)
             )
             text_x = x + (width - text_img.width) // 2
             text_y = y + (height - text_img.height) // 2
