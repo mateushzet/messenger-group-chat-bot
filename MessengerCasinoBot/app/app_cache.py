@@ -357,7 +357,6 @@ class AppCache:
             return backup_path
         
     def add_experience(self, user_id, win_amount, sender, file_queue):
-
         with self.lock:
             uid = str(user_id)
 
@@ -384,25 +383,31 @@ class AppCache:
             loose_amount = abs(win_amount)
             level = user["level"]
             multiplier = 2 + 2 * (level // 20)
+            
             progress_increase = round(loose_amount / (multiplier * level), 2)
-
+            
             if progress_increase == 0:
                 return user["level"], user["level_progress"]
-
+            
             progress_to_add = progress_increase / 100.0
-
+            
             new_progress = user["level_progress"] + progress_to_add
-
+            
             level_changed = False
             new_level = user["level"]
-
-            while new_progress >= 1.0:
+            
+            if new_progress >= 1.0:
                 new_level += 1
-                new_progress -= 1.0
-                if new_progress < 0.1:
-                    new_progress = 0.1
                 level_changed = True
-                logger.info(f"[AppCache] Level up! New level: {new_level}, new_progress: {new_progress}")
+                
+                excess_progress = new_progress - 1.0
+                
+                new_progress = min(excess_progress, 0.99)
+                
+                logger.info(f"[AppCache] Level up! New level: {new_level}, excess progress: {excess_progress}, new progress: {new_progress}")
+            else:
+                new_progress = min(new_progress, 0.999)
+                logger.info(f"[AppCache] Progress increased to {new_progress}")
 
             user["level"] = new_level
             user["level_progress"] = new_progress

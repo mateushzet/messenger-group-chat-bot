@@ -329,7 +329,7 @@ class LottoPlugin(BaseGamePlugin):
                 user_info_before=user_info_before,
                 user_info_after=user_info_after,
                 animated=animated,
-                frame_duration=65,
+                frame_duration=60,
                 last_frame_multiplier=20,
                 show_win_text=True,
                 font_scale=0.8,
