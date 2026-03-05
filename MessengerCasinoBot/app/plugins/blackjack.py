@@ -293,7 +293,7 @@ class BlackjackTableGenerator:
             win_amount = 0
             
             if game_status in ["player_blackjack"]:
-                win_amount = int(bet * 2.5) - BaseException
+                win_amount = int(bet * 2.5) - bet
             elif game_status in ["player_win", "dealer_bust"]:
                 win_amount = bet
             elif game_status in ["player_bust", "dealer_win"]:

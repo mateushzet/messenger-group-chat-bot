@@ -166,7 +166,7 @@ class CasePlugin(BaseGamePlugin):
         super().__init__(
             game_name="case"
         )
-        self.case_prices = [10, 100, 1000]
+        self.case_prices = [10, 50, 100, 500, 1000, 2500, 5000, 10000]
         self.case_animations = {}
         self.battle_manager = CaseBattle(self)
 
@@ -722,7 +722,7 @@ class CasePlugin(BaseGamePlugin):
                 sender, file_queue,
                 "Invalid command!\n\n" \
                 "Usage: /case battle start <price>\n" \
-                "Prices: 10, 100, 1000",
+                "Prices: 10, 50, 100, 500, 1000, 2500, 5000, 10000",
                 "Case Battle - Error", cache, None
             )
             return ""
@@ -733,7 +733,7 @@ class CasePlugin(BaseGamePlugin):
             self.send_message_image(
                 sender, file_queue,
                 "Invalid case price!\n\n" \
-                "Use: 10, 100, or 1000",
+                "Use: 10, 50, 100, 500, 1000, 2500, 5000, 10000",
                 "Case Battle - Error", cache, None
             )
             return ""
@@ -744,8 +744,12 @@ class CasePlugin(BaseGamePlugin):
                 f"Invalid case price!\n\n" \
                 f"Available prices:\n" \
                 f"• $10 case\n" \
+                f"• $50 case\n" \
                 f"• $100 case\n" \
                 f"• $1000 case",
+                f"• $2500 case\n" \
+                f"• $5000 case\n" \
+                f"• $10000 case\n" \
                 "Case Battle - Error", cache, None
             )
             return ""
@@ -1110,23 +1114,37 @@ class CasePlugin(BaseGamePlugin):
             args = args[:-1]
 
         if len(args) == 0:
-            self.send_message_image(sender, file_queue, 
-                                  "🎮 CASE GAME 🎮\n\n" \
-                                  "Single Player:\n" \
-                                  "/case 10 - $10 case\n" \
-                                  "/case 100 - $100 case\n" \
-                                  "/case 1000 - $1000 case\n\n" \
-                                  "Case Battle (PVP):\n" \
-                                  "/case battle help",
-                                  "Case Game", cache, None)
-            return ""
+            case_ranges = {
+                10: "1-47",
+                50: "1-180", 
+                100: "5-348",
+                500: "66-4902",
+                1000: "70-15149",
+                2500: "223-9494",
+                5000: "304-44375",
+                10000: "1-434232"
+            }
+            
+            image_path = self._generate_case_showcase_image(case_ranges)
+            
+            if image_path and os.path.exists(image_path):
+                file_queue.put(image_path)
+                return "Showing all available cases with prize ranges"
+            else:
+                message = "AVAILABLE CASES\n\n"
+                for price, price_range in case_ranges.items():
+                    message += f"${price} case: {price_range}\n"
+                message += "\nSingle Player:\n/case <price> - Open case\n\nCase Battle:\n/case battle help"
+                
+                self.send_message_image(sender, file_queue, message, "Case Game", cache, None)
+                return ""
         
         try:
             case_price = int(args[0])
         except ValueError:
             self.send_message_image(sender, file_queue, 
                                   "Invalid case price!\n\n" \
-                                  "Use: /case 10, /case 100, or /case 1000",
+                                  "Use: /case 10, /case 50, /case 100, /case 500, /case 1000, /case 2500, /case 5000, /case 10000",
                                   "Case - Error", cache, None)
             return ""
         
@@ -1216,13 +1234,117 @@ class CasePlugin(BaseGamePlugin):
         logger.info(f"[Case] CASE: {sender} opened ${case_price} case | Win: ${win_amount} | Net: {result_status}")
         
         return ""
+        
+    def _generate_case_showcase_image(self, case_ranges):
+        try:
+            from PIL import Image, ImageDraw, ImageFont
+            
+            IMAGE_WIDTH = 800
+            ITEMS_PER_ROW = 2
+            ITEM_WIDTH = 380
+            ITEM_HEIGHT = 150
+            ITEM_MARGIN = 20
+            CASE_ICON_SIZE = 100
+            
+            num_cases = len(case_ranges)
+            rows = (num_cases + ITEMS_PER_ROW - 1) // ITEMS_PER_ROW
+            
+            header_height = 80
+            footer_height = 50
+            grid_height = rows * (ITEM_HEIGHT + ITEM_MARGIN)
+            total_height = header_height + grid_height + footer_height
+            
+            bg_color = tuple(self.colors['bg_dark'][:3])
+            bg = Image.new('RGB', (IMAGE_WIDTH, total_height), bg_color)
+            draw = ImageDraw.Draw(bg)
+            
+            try:
+                font_large = ImageFont.truetype("DejaVuSans-Bold.ttf", 32)
+                font_medium = ImageFont.truetype("DejaVuSans.ttf", 18)
+            except:
+                font_large = ImageFont.load_default()
+                font_medium = ImageFont.load_default()
+            
+            title = "AVAILABLE CASES"
+            title_bbox = draw.textbbox((0, 0), title, font=font_large)
+            title_x = (IMAGE_WIDTH - (title_bbox[2] - title_bbox[0])) // 2
+            draw.text((title_x, 25), title, font=font_large, fill=self.colors['text_primary'][:3])
+            
+            grid_start_y = header_height
+            grid_width = ITEMS_PER_ROW * (ITEM_WIDTH + ITEM_MARGIN) - ITEM_MARGIN
+            grid_start_x = (IMAGE_WIDTH - grid_width) // 2
+            
+            for i, (price, price_range) in enumerate(case_ranges.items()):
+                row = i // ITEMS_PER_ROW
+                col = i % ITEMS_PER_ROW
+                
+                item_x = grid_start_x + col * (ITEM_WIDTH + ITEM_MARGIN)
+                item_y = grid_start_y + row * (ITEM_HEIGHT + ITEM_MARGIN)
+                
+                draw.rectangle(
+                    [item_x, item_y, item_x + ITEM_WIDTH, item_y + ITEM_HEIGHT],
+                    fill=self.colors['bg_medium'][:3],
+                    outline=self.colors['border'][:3],
+                    width=2
+                )
+                
+                icon = self._get_simple_case_icon(price, CASE_ICON_SIZE)
+                if icon:
+                    icon_x = item_x + 20
+                    icon_y = item_y + (ITEM_HEIGHT - CASE_ICON_SIZE) // 2
+                    bg.paste(icon, (icon_x, icon_y), icon)
+                
+                if '-' in price_range:
+                    low, high = price_range.split('-')
+                    try:
+                        low_num = int(low.strip())
+                        high_num = int(high.strip())
+                        formatted_range = f"{low_num:,} - {high_num:,}".replace(',', '.')
+                    except:
+                        formatted_range = price_range
+                else:
+                    formatted_range = price_range
+                
+                price_text = f"${price} CASE"
+                price_bbox = draw.textbbox((0, 0), price_text, font=font_medium)
+                price_x = item_x + CASE_ICON_SIZE + 40
+                price_y = item_y + 30
+                draw.text((price_x, price_y), price_text, font=font_medium, fill=self.colors['text_highlight'][:3])
+                
+                range_text = f"Prize range: {formatted_range}"
+                range_y = price_y + 30
+                draw.text((price_x, range_y), range_text, font=font_medium, fill=self.colors['text_secondary'][:3])
+                
+                cmd_text = f"/case {price}"
+                cmd_y = range_y + 30
+                draw.text((price_x, cmd_y), cmd_text, font=font_medium, fill=self.colors['success'][:3])
+            
+            footer_text = "Open case: /case <price>   |   Battle: /case battle help"
+            footer_bbox = draw.textbbox((0, 0), footer_text, font=font_medium)
+            footer_x = (IMAGE_WIDTH - (footer_bbox[2] - footer_bbox[0])) // 2
+            footer_y = total_height - 35
+            draw.text((footer_x, footer_y), footer_text, font=font_medium, fill=self.colors['text_secondary'][:3])
+            
+            temp_dir = self.get_app_path("temp", "case_showcase")
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            timestamp = int(time.time())
+            output_path = os.path.join(temp_dir, f"case_showcase_{timestamp}.png")
+            
+            bg.save(output_path, format='PNG', optimize=True, quality=95)
+            
+            return output_path
+            
+        except Exception as e:
+            logger.error(f"[Case] Error generating case showcase image: {e}", exc_info=True)
+            return None
 
 def register():
     plugin = CasePlugin()
     logger.info("[Case] Case plugin registered")
     return {
         "name": "case",
-        "description": "Open mystery cases: /case 10, /case 100, /case 1000\nCase Battle PVP: /case battle help",
+        "description": "Open mystery cases: /case 10, /case 50, /case 100, /case 500, /case 1000, /case 2500, /case 5000, /case 10000,\nCase Battle PVP: /case battle help",
         "aliases": ["/cs"],
         "execute": plugin.execute_game
     }
