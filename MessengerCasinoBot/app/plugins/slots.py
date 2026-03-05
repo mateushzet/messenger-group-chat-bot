@@ -13,9 +13,9 @@ class SlotsPlugin(BaseGamePlugin):
         self.MULTIPLIER_CHANCES = {
             0.0: 34.8,
             0.5: 28.5,
-            1.0: 2.0,
+            1.0: 1.0,
             1.5: 13.0,
-            2.0: 8.0,
+            2.0: 9.0,
             2.5: 4.0,
             3.0: 3.0,
             3.5: 2.0,
