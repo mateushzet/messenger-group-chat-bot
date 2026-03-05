@@ -32,8 +32,8 @@ class BackgroundShopPlugin(BaseGamePlugin):
         
         self.price_ranges = {
             "cheap": (100, 500),
-            "medium": (400, 1500),
-            "expensive": (1000, 5000)
+            "medium": (300, 1500),
+            "expensive": (500, 3000)
         }
         
         self.daily_offers = {}
