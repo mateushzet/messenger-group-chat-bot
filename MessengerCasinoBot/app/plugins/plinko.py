@@ -19,12 +19,12 @@ class PlinkoPlugin(BaseGamePlugin):
                 'stripe_color': 'low'
             },
             'medium': {
-                'multipliers': [60.0, 12.0, 5.6, 3.2, 1.6, 1.3, 0.4, 0.2, 0.4, 1.3, 1.6, 3.2, 5.6, 12.0, 60.0],
+                'multipliers': [60.0, 9.0, 5.0, 3.0, 1.5, 1.3, 0.4, 0.2, 0.4, 1.3, 1.5, 3.0, 5.0, 9.0, 60.0],
                 'description': 'Medium risk - higher variance',
                 'stripe_color': 'medium'
             },
             'high': {
-                'multipliers': [420.0, 50.0, 13.0, 5.0, 2.0, 0.5, 0.2, 0.0, 0.2, 0.5, 2.0, 5.0, 13.0, 50.0, 420.0],
+                'multipliers': [420.0, 17.0, 9.0, 5.0, 2.0, 0.4, 0.2, 0.0, 0.2, 0.4, 2.0, 5.0, 9.0, 17.0, 420.0],
                 'description': 'High risk - extreme multipliers',
                 'stripe_color': 'high'
             },
@@ -34,12 +34,12 @@ class PlinkoPlugin(BaseGamePlugin):
                 'stripe_color': 'low'
             },
             'm': {
-                'multipliers': [60.0, 12.0, 5.6, 3.2, 1.6, 1.3, 0.4, 0.2, 0.4, 1.3, 1.6, 3.2, 5.6, 12.0, 60.0],
+                'multipliers': [60.0, 9.0, 5.0, 3.0, 1.5, 1.3, 0.4, 0.2, 0.4, 1.3, 1.5, 3.0, 5.0, 9.0, 60.0],
                 'description': 'Medium risk - higher variance',
                 'stripe_color': 'medium'
             },
             'h': {
-                'multipliers': [420.0, 50.0, 13.0, 5.0, 2.0, 0.5, 0.2, 0.0, 0.2, 0.5, 2.0, 5.0, 13.0, 50.0, 420.0],
+                'multipliers': [420.0, 17.0, 9.0, 5.0, 2.0, 0.4, 0.2, 0.0, 0.2, 0.4, 2.0, 5.0, 9.0, 17.0, 420.0],
                 'description': 'High risk - extreme multipliers',
                 'stripe_color': 'high'
             }
@@ -69,21 +69,21 @@ class PlinkoPlugin(BaseGamePlugin):
         
     def _calculate_fixed_probabilities(self):
         probabilities_percent = [
-            0.015,
-            0.03,
-            0.65,
-            3.4,
-            6.8,
-            11.90,
-            17.50,
-            19.41,
-            17.50,
-            11.90,
-            6.8,
-            3.4,
-            0.65,
-            0.03,
-            0.015,
+            0.0190,
+            0.0950,
+            0.9503,
+            3.8011,
+            6.6520,
+            10.4531,
+            16.1548,
+            23.7571,
+            16.1548,
+            10.4531,
+            6.6520,
+            3.8011,
+            0.9503,
+            0.0950,
+            0.0190,
         ]
         
         probabilities = [p / 100.0 for p in probabilities_percent]
@@ -513,8 +513,7 @@ class PlinkoPlugin(BaseGamePlugin):
         user_info_before = self.create_user_info(sender, total_bet, 0, balance_before, user.copy())
         
         try:
-            exp_amount = net_win if net_win > 0 else -total_bet
-            newLevel, newLevelProgress = self.cache.add_experience(user_id, exp_amount, sender, file_queue)
+            newLevel, newLevelProgress = self.cache.add_experience(user_id, net_win, sender, file_queue)
             user["level"] = newLevel
             user["level_progress"] = newLevelProgress
         except Exception as e:
