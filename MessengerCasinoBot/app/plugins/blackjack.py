@@ -3,6 +3,8 @@ import random
 from PIL import Image, ImageDraw
 from base_game_plugin import BaseGamePlugin
 from logger import logger
+import time
+import json
 
 class BlackjackTableGenerator:
     def __init__(self, text_renderer=None):
@@ -65,16 +67,21 @@ class BlackjackTableGenerator:
         
         return mapping
     
-    def _calculate_table_width(self, player_cards, dealer_cards):
+    def _calculate_table_width(self, player_cards, dealer_cards, is_split=False, split_hands=None):
         BASE_WIDTH = 500
         CARD_WIDTH = 112
         VISIBLE_WIDTH = 80
         CARD_OVERLAP = 40
         MIN_MARGIN = 15
         
-        max_player_cards = len(player_cards)
-        max_dealer_cards = len(dealer_cards)
-        max_cards = max(max_player_cards, max_dealer_cards)
+        if is_split and split_hands:
+            max_cards = 0
+            for hand in split_hands:
+                max_cards = max(max_cards, len(hand))
+        else:
+            max_player_cards = len(player_cards)
+            max_dealer_cards = len(dealer_cards)
+            max_cards = max(max_player_cards, max_dealer_cards)
         
         if max_cards == 0:
             return BASE_WIDTH
@@ -85,6 +92,9 @@ class BlackjackTableGenerator:
             cards_width = VISIBLE_WIDTH + (max_cards - 1) * (VISIBLE_WIDTH - CARD_OVERLAP)
         
         required_width = cards_width + MIN_MARGIN * 2
+        
+        if is_split and split_hands:
+            required_width += 200
         
         final_width = max(BASE_WIDTH, required_width)
         
@@ -104,8 +114,12 @@ class BlackjackTableGenerator:
     def generate_table_image(self, game_state, output_path, user_background_path=None, font_scale=1.0):
         player_cards = game_state.get('player_cards', [])
         dealer_cards = game_state.get('dealer_cards', [])
+        is_split = game_state.get('is_split', False)
+        split_hands = game_state.get('split_hands', [])
+        split_points = game_state.get('split_points', [])
+        current_hand = game_state.get('current_hand', 0)
         
-        TABLE_WIDTH = self._calculate_table_width(player_cards, dealer_cards)
+        TABLE_WIDTH = self._calculate_table_width(player_cards, dealer_cards, is_split, split_hands)
         TABLE_HEIGHT = 400
                 
         COLORS = {
@@ -132,9 +146,7 @@ class BlackjackTableGenerator:
         if user_background_path and os.path.exists(user_background_path):
             try:
                 user_bg = Image.open(user_background_path).convert('RGBA')
-                
                 user_bg_resized = user_bg.resize((TABLE_WIDTH, TABLE_HEIGHT))
-                
                 table_img = Image.new('RGBA', (TABLE_WIDTH, TABLE_HEIGHT), (0, 0, 0, 0))
                 table_img.paste(user_bg_resized, (0, 0))
             except Exception as e:
@@ -142,7 +154,6 @@ class BlackjackTableGenerator:
                 table_img = Image.new('RGBA', (TABLE_WIDTH, TABLE_HEIGHT), (*COLORS['table_bg'], 255))
         else:
             table_img = Image.new('RGBA', (TABLE_WIDTH, TABLE_HEIGHT), (*COLORS['table_bg'], 255))
-            logger.warning("[BlackJack] Using default table background")
         
         draw = ImageDraw.Draw(table_img)
         
@@ -256,9 +267,6 @@ class BlackjackTableGenerator:
         player_label_y = player_y + 15
         
         player_label_text = "PLAYER"
-        player_points = game_state.get('player_points', 0)
-        player_points_text = f"{player_points}"
-        player_points_color = COLORS['text_danger'] if player_points > 21 else COLORS['text_primary']
         
         if self.text_renderer:
             player_label_img = self.text_renderer.render_text(
@@ -267,20 +275,88 @@ class BlackjackTableGenerator:
                 color=COLORS['text_semitransparent']
             )
             table_img.alpha_composite(player_label_img, (player_label_x, player_label_y))
-            
-            player_points_img = self.text_renderer.render_text(
-                text=player_points_text,
-                font_size=points_font_size,
-                color=player_points_color,
-                stroke_width=int(2 * font_scale),
-                stroke_color=(0, 0, 0, 255)
-            )
-            
-            player_points_x = TABLE_WIDTH - 20 - player_points_img.width
-            table_img.alpha_composite(player_points_img, (player_points_x, player_label_y))
         
         self._draw_cards(table_img, dealer_cards, TABLE_WIDTH // 2, dealer_y + 50)
-        self._draw_cards(table_img, player_cards, TABLE_WIDTH // 2, player_y + 50)
+        
+        if is_split and split_hands:
+            left_center_x = TABLE_WIDTH // 2 - 120
+            left_hand = split_hands[0] if len(split_hands) > 0 else []
+            self._draw_cards(table_img, left_hand, left_center_x, player_y + 50)
+            
+            if split_points and len(split_points) > 0:
+                points_color = COLORS['text_danger'] if split_points[0] > 21 else COLORS['text_primary']
+                points_text = f"{split_points[0]}"
+                if self.text_renderer:
+                    points_img = self.text_renderer.render_text(
+                        text=points_text,
+                        font_size=points_font_size,
+                        color=points_color,
+                        stroke_width=int(2 * font_scale),
+                        stroke_color=(0, 0, 0, 255)
+                    )
+                    points_x = left_center_x - points_img.width // 2
+                    points_y = player_y + 15
+                    table_img.alpha_composite(points_img, (points_x, points_y))
+                    
+                    hand_num_img = self.text_renderer.render_text(
+                        text="Hand 1",
+                        font_size=14,
+                        color=(255, 215, 0) if current_hand == 0 and game_status == "player_turn" else (180, 180, 180),
+                        stroke_width=1,
+                        stroke_color=(0, 0, 0, 255)
+                    )
+                    num_x = left_center_x - hand_num_img.width // 2
+                    num_y = player_y - 25
+                    table_img.alpha_composite(hand_num_img, (num_x, num_y))
+            
+            right_center_x = TABLE_WIDTH // 2 + 120
+            right_hand = split_hands[1] if len(split_hands) > 1 else []
+            self._draw_cards(table_img, right_hand, right_center_x, player_y + 50)
+            
+            if split_points and len(split_points) > 1:
+                points_color = COLORS['text_danger'] if split_points[1] > 21 else COLORS['text_primary']
+                points_text = f"{split_points[1]}"
+                if self.text_renderer:
+                    points_img = self.text_renderer.render_text(
+                        text=points_text,
+                        font_size=points_font_size,
+                        color=points_color,
+                        stroke_width=int(2 * font_scale),
+                        stroke_color=(0, 0, 0, 255)
+                    )
+                    points_x = right_center_x - points_img.width // 2
+                    points_y = player_y + 15
+                    table_img.alpha_composite(points_img, (points_x, points_y))
+                    
+                    hand_num_img = self.text_renderer.render_text(
+                        text="Hand 2",
+                        font_size=14,
+                        color=(255, 215, 0) if current_hand == 1 and game_status == "player_turn" else (180, 180, 180),
+                        stroke_width=1,
+                        stroke_color=(0, 0, 0, 255)
+                    )
+                    num_x = right_center_x - hand_num_img.width // 2
+                    num_y = player_y - 25
+                    table_img.alpha_composite(hand_num_img, (num_x, num_y))
+                    
+        else:
+            self._draw_cards(table_img, player_cards, TABLE_WIDTH // 2, player_y + 50)
+            
+            player_points = game_state.get('player_points', 0)
+            player_points_color = COLORS['text_danger'] if player_points > 21 else COLORS['text_primary']
+            player_points_text = f"{player_points}"
+            
+            if self.text_renderer:
+                player_points_img = self.text_renderer.render_text(
+                    text=player_points_text,
+                    font_size=points_font_size,
+                    color=player_points_color,
+                    stroke_width=int(2 * font_scale),
+                    stroke_color=(0, 0, 0, 255)
+                )
+                
+                player_points_x = TABLE_WIDTH - 20 - player_points_img.width
+                table_img.alpha_composite(player_points_img, (player_points_x, player_label_y))
         
         if game_status == 'player_turn':
             buttons_center_y = dealer_y + 100 + (player_y - (dealer_y + 100)) // 2
@@ -290,16 +366,7 @@ class BlackjackTableGenerator:
             result_center_y = dealer_y + 100 + (player_y - (dealer_y + 100)) // 2
             
             bet = game_state.get('bet', 0)
-            win_amount = 0
-            
-            if game_status in ["player_blackjack"]:
-                win_amount = int(bet * 2.5) - bet
-            elif game_status in ["player_win", "dealer_bust"]:
-                win_amount = bet
-            elif game_status in ["player_bust", "dealer_win"]:
-                win_amount = -bet
-            elif game_status == "push":
-                win_amount = 0
+            win_amount = game_state.get('win_amount', 0)
             
             if win_amount > 0:
                 result_text = f"WIN: +{win_amount}$"
@@ -347,7 +414,6 @@ class BlackjackTableGenerator:
         CARD_OVERLAP = 40
         
         if not cards:
-            logger.warning("[BlackJack] No cards to draw")
             return
                     
         if len(cards) == 1:
@@ -371,8 +437,6 @@ class BlackjackTableGenerator:
             if card_img:
                 card_img_resized = card_img.resize((CARD_WIDTH, CARD_HEIGHT))
                 table_img.alpha_composite(card_img_resized, (int(card_x), int(center_y - CARD_HEIGHT // 2)))
-            else:
-                logger.warning(f"[BlackJack] Missing image for card: {card}")
     
     def _draw_buttons_horizontal(self, table_img, center_x, center_y, game_state):
         button_width = 80
@@ -384,11 +448,20 @@ class BlackjackTableGenerator:
         buttons.append('stand')
         
         player_cards = game_state.get('player_cards', [])
-        if len(player_cards) == 2:
-            buttons.append('double')
+        is_split = game_state.get('is_split', False)
+        split_hands = game_state.get('split_hands', [])
+        current_hand = game_state.get('current_hand', 0)
         
-        if len(player_cards) == 2 and player_cards[0][0] == player_cards[1][0]:
-            buttons.append('split')
+        if not is_split:
+            if len(player_cards) == 2:
+                buttons.append('double')
+            if len(player_cards) == 2 and player_cards[0][0] == player_cards[1][0]:
+                buttons.append('split')
+        else:
+            if current_hand < len(split_hands):
+                current_hand_cards = split_hands[current_hand]
+                if len(current_hand_cards) == 2:
+                    buttons.append('double')
                 
         total_width = len(buttons) * button_width + (len(buttons) - 1) * button_spacing
         start_x = center_x - total_width // 2
@@ -400,8 +473,7 @@ class BlackjackTableGenerator:
                 button_x = start_x + i * (button_width + button_spacing)
                 button_y = center_y - button_height // 2
                 table_img.alpha_composite(button_img_resized, (int(button_x), int(button_y)))
-            else:
-                logger.warning(f"[BlackJack] Missing image for button: {button}")
+
 
 class BlackjackGame:
     def __init__(self, user_id, sender_name, bet, num_decks=4):
@@ -416,6 +488,14 @@ class BlackjackGame:
         self.user_id = user_id
         self.sender_name = sender_name
         self.num_decks = num_decks
+        
+        self.split_hands = []
+        self.is_split = False
+        self.current_hand_index = 0
+        self.hand_bets = []
+        self.hand_status = []
+        self.hand_points = []
+        
         self.initialize_deck()
     
     def initialize_deck(self):
@@ -434,6 +514,10 @@ class BlackjackGame:
         self.dealer_cards = [self.deck.pop(), self.deck.pop()]
         
         self.calculate_points()
+        
+        self.hand_bets = [self.bet]
+        self.hand_status = ["active"]
+        self.hand_points = [self.player_points]
                 
         if self.player_points == 21:
             self.game_status = "player_blackjack"
@@ -476,98 +560,289 @@ class BlackjackGame:
     def hit(self):
         if self.game_status != "player_turn":
             return False
-            
+        
+        current_status = self._get_current_hand_status()
+        if current_status != "active":
+            return False
+        
         new_card = self.deck.pop()
-        self.player_cards.append(new_card)
-        self.calculate_points()
-                
-        if self.player_points > 21:
-            self.game_status = "player_bust"
-            self.message = "Bust!"
-            return True
-        elif self.player_points == 21:
-            return self.stand()
-            
+        current_cards = self._get_current_hand_cards()
+        current_cards.append(new_card)
+        
+        new_points = self._calculate_hand_points(current_cards)
+        self._set_current_hand_points(new_points)
+        
+        if new_points > 21:
+            self._set_current_hand_status("bust")
+            hand_num = self.current_hand_index + 1 if self.is_split else 1
+            self.message = f"Bust! Hand {hand_num} busted!"
+            self._next_hand()
+        elif new_points == 21:
+            self._set_current_hand_status("stand")
+            hand_num = self.current_hand_index + 1 if self.is_split else 1
+            self.message = f"Hand {hand_num} reached 21!"
+            self._next_hand()
+        else:
+            hand_num = self.current_hand_index + 1 if self.is_split else 1
+            self.message = f"Hand {hand_num}: {new_points} points"
+        
         return True
     
     def stand(self):
         if self.game_status != "player_turn":
             return False
-            
+        
+        current_status = self._get_current_hand_status()
+        if current_status != "active":
+            return False
+        
+        self._set_current_hand_status("stand")
+        current_points = self._get_current_hand_points()
+        hand_num = self.current_hand_index + 1 if self.is_split else 1
+        self.message = f"Hand {hand_num} stands with {current_points} points"
+        self._next_hand()
+        
+        return True
+    
+    def double(self):
+        if self.game_status != "player_turn":
+            return False
+        
+        current_cards = self._get_current_hand_cards()
+        if len(current_cards) != 2:
+            return False
+        
+        current_status = self._get_current_hand_status()
+        if current_status != "active":
+            return False
+        
+        if not self.is_split:
+            self.bet *= 2
+            self.hand_bets[0] = self.bet
+        else:
+            self.hand_bets[self.current_hand_index] *= 2
+        
+        new_card = self.deck.pop()
+        current_cards.append(new_card)
+        new_points = self._calculate_hand_points(current_cards)
+        self._set_current_hand_points(new_points)
+        
+        hand_num = self.current_hand_index + 1 if self.is_split else 1
+        
+        if new_points > 21:
+            self._set_current_hand_status("bust")
+            self.message = f"Hand {hand_num} busted after double!"
+        else:
+            self._set_current_hand_status("stand")
+            self.message = f"Hand {hand_num} doubled and stands with {new_points} points!"
+        
+        self._next_hand()
+        return True
+    
+    def split(self):
+        if (self.game_status != "player_turn" or len(self.player_cards) != 2 or 
+            self.player_cards[0][0] != self.player_cards[1][0] or self.is_split):
+            return False
+        
+        card1 = self.player_cards[0]
+        card2 = self.player_cards[1]
+        
+        hand1 = [card1]
+        hand2 = [card2]
+        
+        hand1.append(self.deck.pop())
+        hand2.append(self.deck.pop())
+        
+        self.split_hands = [hand1, hand2]
+        self.is_split = True
+        self.current_hand_index = 0
+        
+        self.hand_bets = [self.bet, self.bet]
+        self.hand_status = ["active", "active"]
+        
+        self.hand_points = [
+            self._calculate_hand_points(hand1),
+            self._calculate_hand_points(hand2)
+        ]
+        
+        self.player_cards = []
+        self.player_points = 0
+        
+        for i, points in enumerate(self.hand_points):
+            if points == 21:
+                self.hand_status[i] = "stand"
+        
+        self.message = f"Split! Now playing hand 1 of 2"
+        
+        if all(status != "active" for status in self.hand_status):
+            self._next_hand()
+        
+        return True
+    
+    def _get_current_hand_cards(self):
+        if not self.is_split:
+            return self.player_cards
+        else:
+            return self.split_hands[self.current_hand_index]
+    
+    def _get_current_hand_points(self):
+        if not self.is_split:
+            return self.player_points
+        else:
+            return self.hand_points[self.current_hand_index]
+    
+    def _set_current_hand_points(self, points):
+        if not self.is_split:
+            self.player_points = points
+        else:
+            self.hand_points[self.current_hand_index] = points
+    
+    def _get_current_hand_status(self):
+        if not self.is_split:
+            return self.game_status if self.game_status != "player_turn" else "active"
+        else:
+            return self.hand_status[self.current_hand_index]
+    
+    def _set_current_hand_status(self, status):
+        if not self.is_split:
+            self.game_status = status
+        else:
+            self.hand_status[self.current_hand_index] = status
+    
+    def _next_hand(self):
+        if not self.is_split:
+            self._dealer_turn()
+            return
+        
+        self.current_hand_index += 1
+        
+        if self.current_hand_index >= len(self.split_hands):
+            self._dealer_turn()
+        else:
+            if self.hand_status[self.current_hand_index] == "active":
+                self.message = f"Playing split hand {self.current_hand_index + 1} of {len(self.split_hands)}"
+            else:
+                self._next_hand()
+    
+    def _dealer_turn(self):
         self.game_status = "dealer_turn"
         self.message = "Dealer's turn"
         
         self.calculate_points()
         
-        dealer_hits = 0
         while self.dealer_points < 17:
             new_card = self.deck.pop()
             self.dealer_cards.append(new_card)
             self.calculate_points()
-            dealer_hits += 1
-                
-        if self.dealer_points > 21:
-            self.game_status = "dealer_bust"
-            self.message = "Dealer busts! You win!"
-        elif self.dealer_points > self.player_points:
-            self.game_status = "dealer_win"
-            self.message = "Dealer wins!"
-        elif self.player_points > self.dealer_points:
-            self.game_status = "player_win"
-            self.message = "You win!"
+        
+        self.game_status = "finished"
+        
+        if not self.is_split:
+            if self.player_points > 21:
+                self.message = "Bust! You lose!"
+            elif self.dealer_points > 21:
+                self.message = "Dealer busts! You win!"
+            elif self.player_points > self.dealer_points:
+                self.message = "You win!"
+            elif self.player_points < self.dealer_points:
+                self.message = "Dealer wins!"
+            else:
+                self.message = "Push! It's a tie."
         else:
-            self.game_status = "push"
-            self.message = "Push! It's a tie."
-        
-        return True
-    
-    def double(self):
-        if self.game_status != "player_turn" or len(self.player_cards) != 2:
-            return False
-                    
-        self.bet *= 2
-        
-        new_card = self.deck.pop()
-        self.player_cards.append(new_card)
-        self.calculate_points()
-                
-        if self.player_points > 21:
-            self.game_status = "player_bust"
-            self.message = "Bust after double!"
-            return True
-        
-        return self.stand()
-    
-    def split(self):
-        if (self.game_status != "player_turn" or len(self.player_cards) != 2 or 
-            self.player_cards[0][0] != self.player_cards[1][0]):
-            return False
+            win_count = 0
+            lose_count = 0
+            push_count = 0
+            bust_count = 0
             
-        logger.warning("[BlackJack] Split requested but not implemented yet")
-        return False
+            for i, points in enumerate(self.hand_points):
+                if points > 21:
+                    bust_count += 1
+                elif self.dealer_points > 21 or points > self.dealer_points:
+                    win_count += 1
+                elif points < self.dealer_points:
+                    lose_count += 1
+                else:
+                    push_count += 1
+            
+            self.message = f"{win_count} win, {lose_count} lose, {push_count} push, {bust_count} bust"
+    
+    def calculate_win_amount(self):
+        if self.game_status != "finished":
+            return 0
+        
+        if not self.is_split:
+            if self.player_points > 21:
+                return 0
+            elif self.dealer_points > 21 or self.player_points > self.dealer_points:
+                if self.player_points == 21 and len(self.player_cards) == 2:
+                    return int(self.bet * 2.5)
+                else:
+                    return self.bet * 2
+            elif self.player_points == self.dealer_points:
+                return self.bet
+            else:
+                return 0
+        else:
+            total_win = 0
+            for i, points in enumerate(self.hand_points):
+                bet = self.hand_bets[i]
+                if points > 21:
+                    continue
+                elif self.dealer_points > 21 or points > self.dealer_points:
+                    if points == 21 and len(self.split_hands[i]) == 2:
+                        total_win += int(bet * 2.5)
+                    else:
+                        total_win += bet * 2
+                elif points == self.dealer_points:
+                    total_win += bet
+            return total_win
     
     def get_game_state(self):
         display_dealer_cards = self.dealer_cards.copy()
         if self.game_status == "player_turn" and len(display_dealer_cards) > 1:
             display_dealer_cards[1] = '?'
         
-        game_state = {
-            'player_cards': self.player_cards,
-            'dealer_cards': display_dealer_cards,
-            'player_points': self.player_points,
-            'dealer_points': self.dealer_points if self.game_status != "player_turn" else self._calculate_hand_points([display_dealer_cards[0]]),
-            'game_status': self.game_status,
-            'message': self.message,
-            'bet': self.bet
-        }
+        if self.is_split:
+            all_cards = []
+            for hand in self.split_hands:
+                all_cards.extend(hand)
+            
+            current_points = self.hand_points[self.current_hand_index] if self.current_hand_index < len(self.hand_points) else 0
+            
+            game_state = {
+                'player_cards': all_cards,
+                'dealer_cards': display_dealer_cards,
+                'player_points': current_points,
+                'dealer_points': self.dealer_points if self.game_status != "player_turn" else self._calculate_hand_points([display_dealer_cards[0]]),
+                'game_status': self.game_status,
+                'message': self.message,
+                'bet': self.bet,
+                'is_split': True,
+                'split_hands': self.split_hands,
+                'split_points': self.hand_points,
+                'split_status': self.hand_status,
+                'current_hand': self.current_hand_index,
+                'win_amount': self.calculate_win_amount() if self.game_status == "finished" else 0
+            }
+        else:
+            game_state = {
+                'player_cards': self.player_cards,
+                'dealer_cards': display_dealer_cards,
+                'player_points': self.player_points,
+                'dealer_points': self.dealer_points if self.game_status != "player_turn" else self._calculate_hand_points([display_dealer_cards[0]]),
+                'game_status': self.game_status,
+                'message': self.message,
+                'bet': self.bet,
+                'is_split': False,
+                'win_amount': self.calculate_win_amount() if self.game_status == "finished" else 0
+            }
         
         return game_state
 
+
 class BlackjackPlugin(BaseGamePlugin):
     def __init__(self):
-        super().__init__(
-            game_name="blackjack"
-        )
+        super().__init__(game_name="blackjack")
         self.active_games = {}
         self.elements_folder = self.get_asset_path("blackjack", "board_elements")
         self.table_generator = BlackjackTableGenerator(self.text_renderer)
@@ -576,68 +851,131 @@ class BlackjackPlugin(BaseGamePlugin):
             self.table_generator.load_elements(self.elements_folder, self.elements_folder)
         except Exception as e:
             logger.error(f"[BlackJack] Failed to load blackjack elements: {e}")
-        
-    def get_user_background_path(self, user_id, user):
-        if not user:
-            logger.warning(f"[BlackJack] No user data for user_id: {user_id}")
-            return None
-        
-        background_path = self.cache.get_background_path(user_id)
 
-        if os.path.exists(background_path):
-            return background_path
-        else:
-            logger.warning(f"[BlackJack] Background file not found: {background_path}")
+    def load_game_state(self, user_id):
+        user_id = str(user_id)
         
-        user_backgrounds_dir = self.get_asset_path("users", "backgrounds")
-        if os.path.exists(user_backgrounds_dir):
-            user_bg_path = os.path.join(user_backgrounds_dir, f"{user_id}.png")
-            if os.path.exists(user_bg_path):
-                return user_bg_path
-            
-            for ext in ['.jpg', '.jpeg', '.webp', '.gif']:
-                user_bg_path = os.path.join(user_backgrounds_dir, f"{user_id}{ext}")
-                if os.path.exists(user_bg_path):
-                    return user_bg_path
+        if user_id in self.active_games:
+            return self.active_games[user_id]
+        
+        if hasattr(self, 'cache') and self.cache:
+            game_data = self.cache.get_game_state(user_id, self.game_name)
+            if game_data:
+                game = self._deserialize_game(user_id, game_data)
+                if game:
+                    self.active_games[user_id] = game
+                    return game
         
         return None
+    
+    def save_game_state(self, user_id, game):
+        user_id = str(user_id)
+        if hasattr(self, 'cache') and self.cache:
+            game_data = self._serialize_game(game)
+            if game_data:
+                self.cache.save_game_state(user_id, self.game_name, game_data)
+    
+    def _serialize_game(self, game):
+        try:
+            return {
+                'player_cards': game.player_cards,
+                'dealer_cards': game.dealer_cards,
+                'player_points': game.player_points,
+                'dealer_points': game.dealer_points,
+                'game_status': game.game_status,
+                'bet': game.bet,
+                'message': game.message,
+                'is_split': game.is_split,
+                'split_hands': game.split_hands,
+                'hand_bets': game.hand_bets,
+                'hand_status': game.hand_status,
+                'hand_points': game.hand_points,
+                'current_hand_index': game.current_hand_index,
+                'deck': game.deck
+            }
+        except Exception as e:
+            logger.error(f"[BlackJack] Error serializing game: {e}")
+            return None
+    
+    def _deserialize_game(self, user_id, data):
+        try:
+            game = BlackjackGame(user_id, data.get('sender_name', 'Player'), data.get('bet', 0))
+            
+            game.player_cards = data.get('player_cards', [])
+            game.dealer_cards = data.get('dealer_cards', [])
+            game.player_points = data.get('player_points', 0)
+            game.dealer_points = data.get('dealer_points', 0)
+            game.game_status = data.get('game_status', 'player_turn')
+            game.bet = data.get('bet', 0)
+            game.message = data.get('message', 'Your turn')
+            game.is_split = data.get('is_split', False)
+            game.split_hands = data.get('split_hands', [])
+            game.hand_bets = data.get('hand_bets', [])
+            game.hand_status = data.get('hand_status', [])
+            game.hand_points = data.get('hand_points', [])
+            game.current_hand_index = data.get('current_hand_index', 0)
+            game.deck = data.get('deck', [])
+            
+            return game
+        except Exception as e:
+            logger.error(f"[BlackJack] Error deserializing game: {e}")
+            return None
+
+    def get_user_background_path(self, user_id, user):
+        if not user:
+            return None
+        
+        if hasattr(self, 'cache') and self.cache:
+            background_path = self.cache.get_background_path(user_id)
+            if os.path.exists(background_path):
+                return background_path
+        
+        return None
+    
+    def _send_game_image(self, user_id, user, sender, game, file_queue, win_amount=0, final_balance=None):
+        img_path = os.path.join(self.results_folder, f"blackjack_{user_id}_{int(time.time())}.png")
+        user_background_path = self.get_user_background_path(user_id, user)
+        
+        self.table_generator.generate_table_image(game.get_game_state(), img_path, user_background_path, font_scale=0.9)
+        
+        if final_balance is None:
+            final_balance = user["balance"] if user else 0
+        
+        overlay_path, error = self.apply_user_overlay(
+            img_path, user_id, sender, game.bet, win_amount, final_balance, user,
+            show_win_text=False, font_scale=0.9, avatar_size=60
+        )
+        
+        if overlay_path:
+            file_queue.put(overlay_path)
+            return True
+        return False
 
     def execute_game(self, command_name, args, file_queue, cache=None, sender=None, avatar_url=None):
+        import time
         
         self.cache = cache
         
         if len(args) == 0:
             user_id, user, error = self.validate_user(cache, sender, avatar_url)
             if error:
-                return "Blackjack Commands: /bj start <bet>, /bj hit, /bj stand, /bj double"
+                self.send_message_image(sender, file_queue, 
+                    "No active game. Use /bj start <bet> to start a new game!", 
+                    "Blackjack", cache, user_id)
+                return ""
             
-            if user_id in self.active_games:
-                game = self.active_games[user_id]
-                
-                img_path = os.path.join(self.results_folder, f"blackjack_{user_id}_status.png")
-                
-                user_background_path = self.get_user_background_path(user_id, user)
-                
-                self.table_generator.generate_table_image(game.get_game_state(), img_path, user_background_path, font_scale=0.9)
-                
-                user = self.cache.get_user(user_id)
-                if user:
-                    current_balance = user["balance"]
-                else:
-                    current_balance = 0
-                
-                overlay_path, error = self.apply_user_overlay(
-                    img_path, user_id, sender, game.bet, 0, current_balance, user,
-                    show_win_text=False, font_scale=0.9, avatar_size=60
-                )
-                
-                if overlay_path:
-                    file_queue.put(overlay_path)
-                    return f"Your current blackjack game:\nBet: {game.bet}\nYour cards: {', '.join(game.player_cards)} ({game.player_points} points)\nDealer shows: {game.dealer_cards[0]}"
-                else:
-                    return f"Your current blackjack game:\nBet: {game.bet}\nYour cards: {', '.join(game.player_cards)} ({game.player_points} points)\nDealer shows: {game.dealer_cards[0]}"
+            game = self.load_game_state(user_id)
+            if not game:
+                game = self.active_games.get(user_id)
+            
+            if game:
+                self._send_game_image(user_id, user, sender, game, file_queue, 0, user["balance"])
+                return f"Your current blackjack game:\nBet: {game.bet}"
             else:
-                return "Blackjack Commands: /bj start <bet>, /bj hit, /bj stand, /bj double"
+                self.send_message_image(sender, file_queue, 
+                    "No active game. Use /bj start <bet> to start a new game!", 
+                    "Blackjack", cache, user_id)
+                return ""
 
         cmd = args[0].lower()
 
@@ -648,7 +986,7 @@ class BlackjackPlugin(BaseGamePlugin):
             
             try:
                 bet = int(args[1])
-            except ValueError as e:
+            except ValueError:
                 self.send_message_image(sender, file_queue, "Bet must be a number", "Blackjack Error", cache, None)
                 return ""
             
@@ -661,18 +999,21 @@ class BlackjackPlugin(BaseGamePlugin):
                 self.send_message_image(sender, file_queue, error, "Blackjack Error", cache, None)
                 return ""
             
-            if user_id in self.active_games:
-                self.send_message_image(sender, file_queue, "You already have an active game!", "Blackjack Error", cache, user_id)
+            existing_game = self.load_game_state(user_id)
+            if existing_game or user_id in self.active_games:
+                self.send_message_image(sender, file_queue, "You already have an active game! Use /bj to see status.", 
+                                    "Blackjack Error", cache, user_id)
                 return ""
             
             balance_before = user["balance"]
             
             if bet > balance_before:
-                self.send_message_image(sender, file_queue, f"Insufficient funds! \nYou have: {balance_before}", 
-                                      "Blackjack Error", cache, user_id)
+                self.send_message_image(sender, file_queue, f"Insufficient funds! You have: {balance_before}", 
+                                    "Blackjack Error", cache, user_id)
                 return ""
             
             game = BlackjackGame(user_id, sender, bet, num_decks=4)
+            game.sender_name = sender
             game.deal_initial_cards()
             self.active_games[user_id] = game
             
@@ -686,9 +1027,7 @@ class BlackjackPlugin(BaseGamePlugin):
             final_balance = new_balance
             
             if is_game_finished:
-                win_amount = self._calculate_win_amount(game)
-                logger.info(f"[BlackJack] Game finished immediately with status: {game.game_status}, win amount: {win_amount}")
-                
+                win_amount = game.calculate_win_amount()
                 if win_amount > 0:
                     final_balance = new_balance + win_amount
                     self.update_user_balance(user_id, final_balance)
@@ -698,42 +1037,66 @@ class BlackjackPlugin(BaseGamePlugin):
                 user["level_progress"] = newLevelProgress
                 
                 self.active_games.pop(user_id, None)
-                        
-            img_path = os.path.join(self.results_folder, f"blackjack_{user_id}.png")
-            
-            user_background_path = self.get_user_background_path(user_id, user)
-            
-            self.table_generator.generate_table_image(game.get_game_state(), img_path, user_background_path, font_scale=0.9)
-            
-            overlay_path, error = self.apply_user_overlay(img_path, user_id, sender, bet, win_amount, final_balance, user,
-                                                          show_win_text=False, font_scale=0.9, avatar_size=60)
-            if overlay_path:
-                file_queue.put(overlay_path)
             else:
-                logger.warning(f"[BlackJack] Failed to create overlay for {sender}")
+                self.save_game_state(user_id, game)
+            
+            self._send_game_image(user_id, user, sender, game, file_queue, win_amount, final_balance)
             
             if is_game_finished:
                 if game.game_status == "player_blackjack":
-                    return f"**BLACKJACK!**\nYou won {win_amount} ({bet} × 2.5)!\nYour cards: {', '.join(game.player_cards)}"
+                    return f"**BLACKJACK!**\nYou won {win_amount} ({bet} × 2.5)!"
                 else:
-                    return f"**Push!** Both have Blackjack!\nYour bet of {bet} is returned.\nYour cards: {', '.join(game.player_cards)}"
+                    return f"**Push!** Both have Blackjack!\nYour bet of {bet} is returned."
             else:
-                return f"Blackjack started! Bet: {bet}\nYour cards: {', '.join(game.player_cards)} ({game.player_points} points)"
+                return f"Blackjack started! Bet: {bet}"
 
-        elif cmd in ["hit", "h", "stand", "s", "double", "d"]:
-            
+        elif cmd in ["split", "sp"]:
             user_id, user, error = self.validate_user(cache, sender, avatar_url)
             if error:
-                logger.warning(f"[BlackJack] User validation failed for {sender}: {error}")
                 self.send_message_image(sender, file_queue, error, "Blackjack Error", cache, user_id)
                 return ""
-                        
-            if user_id not in self.active_games:
-                self.send_message_image(sender, file_queue, "No active game. \nUse /bj start <bet>", 
-                                      "Blackjack Error", cache, user_id)
+            
+            game = self.active_games.get(user_id)
+            if not game:
+                game = self.load_game_state(user_id)
+                if game:
+                    self.active_games[user_id] = game
+            
+            if not game:
+                self.send_message_image(sender, file_queue, "No active game. Use /bj start <bet>", 
+                                    "Blackjack Error", cache, user_id)
                 return ""
             
-            game = self.active_games[user_id]
+            success = game.split()
+            
+            if not success:
+                self.send_message_image(sender, file_queue, "Cannot split this hand!", "Blackjack Error", cache, user_id)
+                return ""
+            
+            self.save_game_state(user_id, game)
+            
+            user = self.cache.get_user(user_id)
+            self._send_game_image(user_id, user, sender, game, file_queue)
+            
+            return "Split successful! Now playing hand 1."
+
+        elif cmd in ["hit", "h", "stand", "s", "double", "d"]:
+            user_id, user, error = self.validate_user(cache, sender, avatar_url)
+            if error:
+                self.send_message_image(sender, file_queue, error, "Blackjack Error", cache, user_id)
+                return ""
+            
+            game = self.active_games.get(user_id)
+            if not game:
+                game = self.load_game_state(user_id)
+                if game:
+                    self.active_games[user_id] = game
+            
+            if not game:
+                self.send_message_image(sender, file_queue, "No active game. Use /bj start <bet>", 
+                                    "Blackjack Error", cache, user_id)
+                return ""
+            
             action_completed = False
             action_msg = ""
                         
@@ -741,11 +1104,6 @@ class BlackjackPlugin(BaseGamePlugin):
                 action_completed = game.hit()
                 action_msg = "Hit"
                 
-                if game.game_status != "player_turn":
-                    win_amount = self._calculate_win_amount(game)
-                    
-                    self.active_games.pop(user_id, None)
-            
             elif cmd == "stand" or cmd == "s":
                 action_completed = game.stand()
                 action_msg = "Stand"
@@ -753,92 +1111,71 @@ class BlackjackPlugin(BaseGamePlugin):
             elif cmd == "double" or cmd == "d":
                 user = self.cache.get_user(user_id)
                 if not user:
-                    logger.error(f"[BlackJack] User {sender} (id: {user_id}) not found in cache")
                     self.active_games.pop(user_id, None)
+                    if hasattr(self, 'cache') and self.cache:
+                        self.cache.save_game_state(user_id, self.game_name, None)
                     self.send_message_image(sender, file_queue, "User not found. Please start a new game.", 
-                                          "Blackjack Error", cache, user_id)
+                                        "Blackjack Error", cache, user_id)
                     return ""
                 
-                current_balance = user["balance"]
-                if current_balance < game.bet:
-                    self.send_message_image(sender, file_queue, f"Not enough funds to double! \n Need additional: {game.bet}", 
-                                          "Blackjack Error", cache, user_id)
+                if not game.is_split:
+                    additional_bet = game.bet
+                else:
+                    if game.current_hand_index < len(game.hand_bets):
+                        additional_bet = game.hand_bets[game.current_hand_index]
+                    else:
+                        additional_bet = game.bet
+                
+                if user["balance"] < additional_bet:
+                    self.send_message_image(sender, file_queue, f"Not enough funds to double! Need: {additional_bet}", 
+                                        "Blackjack Error", cache, user_id)
                     return ""
                 
                 action_completed = game.double()
                 if action_completed:
-                    new_balance = current_balance - game.bet
+                    new_balance = user["balance"] - additional_bet
                     self.update_user_balance(user_id, new_balance)
+                    user["balance"] = new_balance
                 action_msg = "Double"
             
-            img_path = os.path.join(self.results_folder, f"blackjack_{user_id}_{cmd}.png")
+            if not action_completed:
+                self.send_message_image(sender, file_queue, "Cannot perform this action now!", "Blackjack Error", cache, user_id)
+                return ""
             
+            self.save_game_state(user_id, game)
+            
+            is_game_finished = game.game_status == "finished"
             win_amount = 0
-            if game.game_status not in ["player_turn", "dealer_turn"]:
-                win_amount = self._calculate_win_amount(game)
-                
-                user = self.cache.get_user(user_id)
-                if not user:
-                    logger.error(f"[BlackJack] User {sender} (id: {user_id}) not found in cache")
-                    self.active_games.pop(user_id, None)
-                    self.send_message_image(sender, file_queue, "User not found. Please start a new game.", 
-                                          "Blackjack Error", cache, user_id)
-                    return ""
-                
-                current_balance = user["balance"]
-                final_balance = current_balance
-                
-                if win_amount > 0:
-                    final_balance = current_balance + win_amount
-                    self.update_user_balance(user_id, final_balance)
-                    logger.info(f"[BlackJack] {sender} won {win_amount} from blackjack, new balance: {final_balance}")
-                
-                newLevel, newLevelProgress = self.cache.add_experience(user_id, win_amount, sender, file_queue)
-                user["level"] = newLevel
-                user["level_progress"] = newLevelProgress
-                
-                self.active_games.pop(user_id, None)
-            else:
+            final_balance = user["balance"] if user else 0
+            
+            if is_game_finished:
+                win_amount = game.calculate_win_amount()
                 user = self.cache.get_user(user_id)
                 if user:
-                    final_balance = user["balance"]
-                else:
-                    final_balance = 0
-
+                    final_balance = user["balance"] + win_amount
+                    self.update_user_balance(user_id, final_balance)
+                    
+                    new_level, new_progress = self.cache.add_experience(user_id, win_amount, sender, file_queue)
+                    user["level"] = new_level
+                    user["level_progress"] = new_progress
+                
+                self.active_games.pop(user_id, None)
+                if hasattr(self, 'cache') and self.cache:
+                    self.cache.save_game_state(user_id, self.game_name, None)
+            
             user = self.cache.get_user(user_id)
-            user_background_path = self.get_user_background_path(user_id, user)
+            self._send_game_image(user_id, user, sender, game, file_queue, win_amount, final_balance)
             
-            self.table_generator.generate_table_image(game.get_game_state(), img_path, user_background_path, font_scale=0.9)
-            
-            overlay_path, error = self.apply_user_overlay(img_path, user_id, sender, game.bet, win_amount if 'win_amount' in locals() else 0, final_balance, user,
-                                                                      show_win_text=False, font_scale=0.9, avatar_size=60)
-            if overlay_path:
-                file_queue.put(overlay_path)
-            
-            return f"{action_msg}! {game.message}\nYour cards: {', '.join(game.player_cards)} ({game.player_points} points)"
+            if is_game_finished:
+                return f"{action_msg}! {game.message}\nTotal win: {win_amount}$"
+            else:
+                return f"{action_msg}! {game.message}"
 
         else:
-            self.send_message_image(sender, file_queue, "Unknown command. Use: \n/bj start <bet> \n/bj hit \n/bj stand \n/bj double", 
-                                  "Blackjack Error", cache, user_id)
+            self.send_message_image(sender, file_queue, "Unknown command. Use: /bj start <bet>, /bj hit, /bj stand, /bj double, /bj split", 
+                                "Blackjack Error", cache, user_id)
             return ""
 
-    def _calculate_win_amount(self, game):
-        
-        if game.game_status in ["player_bust", "dealer_win"]:
-            net_result = -game.bet
-            return net_result
-        elif game.game_status == "player_blackjack":
-            net_result = int(game.bet * 2.5)
-            return net_result
-        elif game.game_status in ["player_win", "dealer_bust"]:
-            net_result = 2 * game.bet
-            return net_result
-        elif game.game_status == "push":
-            net_result = game.bet
-            return net_result
-        
-        return 0
-    
 def register():
     logger.info("[BlackJack] Registering Blackjack plugin")
     plugin = BlackjackPlugin()

@@ -17,5 +17,6 @@ backups/*
 *.log
 *.jpg
 *.ttf
+*.json
 
 test*
