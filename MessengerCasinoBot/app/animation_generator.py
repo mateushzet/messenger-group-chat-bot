@@ -267,7 +267,7 @@ class AnimationGenerator:
             colors = self._calculate_colors(request)
             
             win_text_img = None
-            if options.show_win_text and request.win_amount != 0:
+            if options.show_win_text:
                 win_text_img = self._create_win_text(request, colors, options)
             
             user_overlay_before = self._create_user_overlay(
@@ -635,12 +635,18 @@ class AnimationGenerator:
                 'overlay_position': overlay_position
             }
         }
+    
     def _create_win_text(self, request: GenerationRequest, colors: Dict,
                         options: GenerationOptions) -> Optional[Image.Image]:
-        if request.win_amount > 0:
+        if request.win_amount == 0:
+            text = "DRAW"
+            text_color = (180, 180, 180, 255)
+        elif request.win_amount > 0:
             text = f"WIN! ${request.win_amount:.0f}"
+            text_color = colors['win_text']
         else:
             text = f"LOSE! ${abs(request.win_amount):.0f}"
+            text_color = colors['win_text']
         
         if options.win_text_scale != -1:
             font_size = int(48 * options.win_text_scale)
@@ -650,7 +656,7 @@ class AnimationGenerator:
         return self.text_renderer.render_text(
             text=text,
             font_size=font_size,
-            color=colors['win_text'],
+            color=text_color,
             stroke_width=2,
             stroke_color=(0, 0, 0, 255),
             shadow=True,

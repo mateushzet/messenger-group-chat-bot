@@ -67,6 +67,7 @@ class AppCache:
                         user_data["purchase_history"] = []
                 
                 self.games = data.get("games", {})
+                
                 self.settings = data.get("settings", {})
                 
                 market_data = data.get("market_items", [])
@@ -118,7 +119,7 @@ class AppCache:
                 if self.active_math_challenge is None:
                     self.active_math_challenge = None
                 
-                logger.info(f"[AppCache] Cache loaded: {len(self.users)} users, {len(self.market_items)} market items, {len(self.auctions)} auctions")
+                logger.info(f"[AppCache] Cache loaded: {len(self.users)} users, {len(self.games)} game states, {len(self.market_items)} market items, {len(self.auctions)} auctions")
 
         except Exception as e:
             logger.critical(f"[AppCache] Cache load error: {e}", exc_info=True)
@@ -199,9 +200,45 @@ class AppCache:
                 with open(self.backup_file, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=2)
 
-                logger.info(f"[AppCache] Autosave completed: {len(self.market_items)} market items, {len(self.auctions)} auctions")
+                logger.info(f"[AppCache] Autosave completed: {len(self.games)} game states, {len(self.market_items)} market items, {len(self.auctions)} auctions")
             except Exception as e:
                 logger.critical(f"Cache save error: {e}", exc_info=True)
+    
+    def get_game_state(self, user_id, game_name):
+        with self.lock:
+            user_id = str(user_id)
+            if user_id in self.games and game_name in self.games[user_id]:
+                return self.games[user_id][game_name]
+            return None
+    
+    def save_game_state(self, user_id, game_name, game_state):
+        with self.lock:
+            user_id = str(user_id)
+            if user_id not in self.games:
+                self.games[user_id] = {}
+            
+            self.games[user_id][game_name] = game_state
+            logger.info(f"[AppCache] Game state saved for user {user_id}, game: {game_name}")
+            return True
+    
+    def delete_game_state(self, user_id, game_name):
+        with self.lock:
+            user_id = str(user_id)
+            if user_id in self.games and game_name in self.games[user_id]:
+                del self.games[user_id][game_name]
+                logger.info(f"[AppCache] Game state deleted for user {user_id}, game: {game_name}")
+                return True
+            return False
+    
+    def get_all_game_states(self, game_name=None):
+        with self.lock:
+            if game_name:
+                result = {}
+                for user_id, games in self.games.items():
+                    if game_name in games:
+                        result[user_id] = games[game_name]
+                return result
+            return self.games.copy()
     
     def add_market_item(self, item):
         with self.lock:

@@ -18,4 +18,4 @@ backups/*
 *.jpg
 *.ttf
 
-test.py
+test*
