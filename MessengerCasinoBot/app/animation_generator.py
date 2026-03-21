@@ -639,7 +639,7 @@ class AnimationGenerator:
     def _create_win_text(self, request: GenerationRequest, colors: Dict,
                         options: GenerationOptions) -> Optional[Image.Image]:
         if request.win_amount == 0:
-            text = "DRAW"
+            text = "BREAK EVEN"
             text_color = (180, 180, 180, 255)
         elif request.win_amount > 0:
             text = f"WIN! ${request.win_amount:.0f}"
