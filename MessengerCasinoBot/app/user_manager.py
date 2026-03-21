@@ -120,27 +120,50 @@ class UserManager:
             if existing_user:
                 return True, "User exists"
             
-            existing_users_with_same_name = self.find_users_by_name(name, avatar_filename)
+            existing_users_with_same_name = self.find_users_by_name(name)
             
             if existing_users_with_same_name and len(existing_users_with_same_name) > 0:
+                user_to_update = None
                 users_info = []
+                
                 for user_id, user_data in existing_users_with_same_name:
-                    avatar = user_data.get('avatar', 'unknown') if user_data else 'unknown'
-                    balance = user_data.get('balance', 0) if user_data else 0
+                    avatar = user_data.get('avatar', 'unknown')
+                    avatar_url_field = user_data.get('avatar_url', 'unknown')
+                    balance = user_data.get('balance', 0)
                     
                     users_info.append(f"- ID: {user_id} (avatar: {avatar}, balance: {balance})")
+                    
+                    if avatar == "TO_BE_UPDATED" or avatar_url_field == "TO_BE_UPDATED":
+                        user_to_update = (user_id, user_data)
+                        logger.info(f"[UserManager] Found user {user_id} marked for avatar update")
                 
-                users_list = "\n".join(users_info)
-
-                logger.warning(f"[UserManager] Different avatar detected for user '{name}'. Existing users with same name: {users_list}")
-                return False, f"Different avatar detected for user '{name}'. Existing users with same name: {users_list}"
+                if user_to_update:
+                    user_id, user_data = user_to_update
+                    logger.info(f"[UserManager] Updating avatar for user '{name}' (ID: {user_id}) from TO_BE_UPDATED to {avatar_url}")
+                    
+                    new_avatar_filename = self.download_avatar(avatar_url)
+                    if not new_avatar_filename:
+                        return False, f"Failed to download new avatar for user {name}"
+                    
+                    self.cache.update_user(
+                        user_id,
+                        avatar_url=new_avatar_filename,
+                        avatar=new_avatar_filename
+                    )
+                    
+                    logger.info(f"[UserManager] Avatar updated successfully for user '{name}'")
+                    return True, f"Avatar updated for existing user: {name}"
+                else:
+                    users_list = "\n".join(users_info)
+                    logger.warning(f"[UserManager] Different avatar detected for user '{name}'. Existing users with same name: {users_list}")
+                    return False, f"Different avatar detected for user '{name}'. Existing users with same name: {users_list}"
             else:
                 return self._create_new_user(name, avatar_url, is_admin)
                 
         except Exception as e:
             logger.error(f"[UserManager] Error creating user {name}: {e}", exc_info=True)
             return False, f"Error: {str(e)}"
-
+        
     def get_user_avatar_path(self, user_id):
         user = self.cache.get_user(user_id) if self.cache else None
         if user and user.get("avatar"):
@@ -181,7 +204,17 @@ class UserManager:
         except Exception as e:
             logger.error(f"[UserManager] Error creating user {name}: {e}",exc_info=True)
             return False, f"Error: {str(e)}"
+
+    def admin_mark_avatar_for_update(self, user_id):
         
+        if user_id not in self.cache.users:
+            logger.warning(f"[UserManager] User not found: {user_id}")
+            return False, f"User not found: {user_id}"
+        
+        self.cache.update_user(user_id, avatar_url="TO_BE_UPDATED")
+        logger.info(f"[UserManager] User ID: {user_id} marked for avatar update")
+        return True, f"User {user_id} marked for avatar update"
+
     def set_user_admin(self, name, avatar_url, is_admin=True):
         user_id, user_data = self.find_user_by_name_avatar(name, avatar_url)
         

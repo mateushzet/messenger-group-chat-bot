@@ -28,14 +28,16 @@ class AdminPlugin(BaseGamePlugin):
         if len(args) < 1:
             self.send_message_image(sender, file_queue, 
                             "Available Admin Commands:\n\n" \
-                            "1. setAvatar <old_url> <new_url> <name_or_id>\n" \
-                            "2. addUser <avatar_url> <name> [is_admin]\n" \
-                            "3. userInfo <name_or_id>\n" \
-                            "4. makeAdmin <avatar_url> <name_or_id>\n" \
-                            "5. removeAdmin <avatar_url> <name_or_id>\n" \
-                            "6. addMoney <amount> <name_or_id>\n" \
-                            "7. kill\n" \
-                            "8. restart\n\n" \
+                            "1. setAvatar <old_url> <new_url> <name_or_id> - Change user avatar\n" \
+                            "2. addUser <avatar_url> <name> [is_admin] - Add new user\n" \
+                            "3. userInfo <name_or_id> - Show user details\n" \
+                            "4. makeAdmin <avatar_url> <name_or_id> - Grant admin privileges\n" \
+                            "5. removeAdmin <avatar_url> <name_or_id> - Remove admin privileges\n" \
+                            "6. addMoney <amount> <name_or_id> - Add coins to user\n" \
+                            "7. listUsers - List all users (detailed)\n" \
+                            "8. resetAvatar <user_id> - Mark user avatar for update\n" \
+                            "9. kill - Stop the bot\n" \
+                            "10. restart - Restart the bot\n\n" \
                             "Admin access only",
                             "Admin Commands", cache, None)
             return ""
@@ -267,7 +269,37 @@ class AdminPlugin(BaseGamePlugin):
                     logger.error(f"[Admin] Restart command not processed successfully", exc_info=True)
                     pass
                 return ""
+            elif subcommand == "resetavatar":
+                if len(args) < 2:
+                    self.send_message_image(sender, file_queue, 
+                                    "Usage: /admin resetavatar <user_id>\n\n" \
+                                    "Examples:\n" \
+                                    "/admin resetavatar 123",
+                                    "Admin - Mark Avatar for Update", cache, None)
+                    return ""
                 
+                user_id = args[1]
+                
+                if not user_id.isdigit():
+                    self.send_message_image(sender, file_queue, 
+                                    "Invalid user ID!\n\nPlease provide a numeric user ID.",
+                                    "Admin - Error", cache, None)
+                    return ""
+                
+                success, message = user_manager.admin_mark_avatar_for_update(user_id)
+                if success:
+                    logger.info(f"[Admin] User {user_id} marked for avatar update by {sender}")
+                    self.send_message_image(sender, file_queue, f"SUCCESS: {message}", "Admin - Avatar Marked", cache, None)
+                else:
+                    logger.error(f"[Admin] Failed to mark user {user_id} for avatar update")
+                    self.send_message_image(sender, file_queue, f"ERROR: {message}", "Admin - Error", cache, None)
+                return ""
+            
+            elif subcommand == "listusers":
+                users_text = self.list_users(cache)
+                self.send_message_image(sender, file_queue, users_text, "Admin - User List", cache, None)
+                return ""
+            
             else:
                 self.send_message_image(sender, file_queue, 
                                 f"Unknown command: {subcommand}\n\n" \
@@ -447,6 +479,8 @@ def register():
                     "/admin makeAdmin <avatar_url> <name_or_id> - Grant admin privileges\n" \
                     "/admin removeAdmin <avatar_url> <name_or_id> - Remove admin privileges\n" \
                     "/admin addMoney <amount> <name_or_id> - Add coins to user\n" \
+                    "/admin listUsers - List all users (detailed)\n" \
+                    "/admin resetAvatar <user_id> - Mark user avatar for update\n" \
                     "/admin kill - Stop the bot\n" \
                     "/admin restart - Restart the bot",
         "execute": plugin.execute
