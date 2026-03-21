@@ -22,7 +22,7 @@ class BackgroundShopPlugin(BaseGamePlugin):
         self.quick_sell_prices = {
             "cheap": 100,
             "medium": 300,
-            "expensive": 900
+            "expensive": 800
         }
         
         self.crafting_requirements = {
@@ -33,7 +33,7 @@ class BackgroundShopPlugin(BaseGamePlugin):
         self.price_ranges = {
             "cheap": (100, 500),
             "medium": (300, 1500),
-            "expensive": (500, 3000)
+            "expensive": (800, 3000)
         }
         
         self.daily_offers = {}
@@ -60,11 +60,11 @@ class BackgroundShopPlugin(BaseGamePlugin):
         if "cheap" in filename_lower:
             return random.randint(100, 500)
         elif "medium" in filename_lower:
-            return random.randint(400, 1500)
+            return random.randint(300, 1500)
         elif "expensive" in filename_lower or "premium" in filename_lower:
-            return random.randint(1000, 5000)
+            return random.randint(800, 3000)
         else:
-            return random.randint(400, 5000)
+            return random.randint(800, 3000)
 
     def _get_category_by_filename(self, filename):
         filename_lower = filename.lower()

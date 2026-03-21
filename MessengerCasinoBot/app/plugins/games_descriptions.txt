@@ -1,0 +1,1003 @@
+AVATAR:
+name: Avatar Collection System
+command: /avatar
+aliases: /ava
+description: Earn avatars by leveling up, trade on the marketplace, or craft new ones by combining existing avatars. You can set any unlocked avatar as your profile picture.
+
+AVATAR_HOW_TO_PLAY:
+- Earn new avatars automatically when you level up
+- View collection: /avatar or /avatar list
+- Set active avatar: /avatar set <number>
+- Quick sell unwanted avatars for 100 coins: /avatar sell <number>
+- List on market: /avatar sellprice <number> <price> (50-10,000 coins)
+- Create auctions: /avatar auction <number> <start_price> <min_bid> <hours>
+- Browse marketplace: /market
+
+AVATAR_GAME_MECHANICS:
+- Each level up grants one random avatar from 825+ unique avatars
+- Default avatar cannot be sold or crafted
+- Active avatar cannot be traded until changed
+- Crafting: combine 3 avatars → 1 random new avatar (lose the 3 used)
+- Market fees: 5 coins for listing, 5 coins for auction creation
+- Quick sell gives instant 100 coins but destroys the avatar
+
+AVATAR_CRAFTING_SYSTEM:
+- /avatar craft <id1> <id2> <id3> (spaces or commas)
+- Cannot use default or active avatars
+- All 3 avatars must be different
+- Result is guaranteed new avatar you don't own
+
+AVATAR_MARKET_INTEGRATION:
+- Player-to-player trading system
+- Fixed price listings (50-10,000 coins) and auctions
+- View active listings: /market
+- Buy items: /market buy <id>
+
+BACKGROUND_SHOP:
+name: Background Collection System
+command: /background
+aliases: /bg
+description: Personalize your casino interface with unique backgrounds! Collect, and trade visual backgrounds that appear behind your game results. Daily personalized offers and three rarity tiers: cheap (common), medium (rare), and expensive (epic).
+
+BACKGROUND_HOW_TO_PLAY:
+- Check daily shop: /bg shop (refreshes daily)
+- View collection: /bg list or /bg list [page]
+- Purchase from shop: /bg buy <1-9>
+- Set active background: /bg set <number> or /bg set default
+- Quick sell: /bg quicksell <number> for instant coins
+- List on market: /bg sellprice <number> <price>
+- Create auctions: /bg auction <number> <start_price> <min_bid> <hours>
+
+BACKGROUND_GAME_MECHANICS:
+- Three rarities: cheap (100-500), medium (300-1500), expensive (800-3000)
+- Daily shop offers are PERSONALIZED per player
+- Quick sell values: cheap=100, medium=300, expensive=800
+- Market prices: 50-10,000 coins
+- Auction duration: 1-168 hours, fee: 5 coins
+- Default background always available and cannot be sold
+
+BACKGROUND_CRAFTING_SYSTEM:
+- /bg craft <num1> <num2> <num3> to upgrade
+- 3 cheap → 1 random medium
+- 3 medium → 1 random expensive
+- All 3 must be same rarity
+- Cannot use default or active background
+- Result is guaranteed random background of target rarity
+
+BACKGROUND_SHOP_SYSTEM:
+- Daily offers refresh at midnight
+- 3 categories (cheap, medium, expensive) with 3 items each
+- Each player gets different personalized offers
+- Purchased backgrounds automatically activated
+- Shop shows owned items (✓ OWNED)
+
+BACKGROUND_MARKET_INTEGRATION:
+- List for fixed prices (50-10,000 coins) or create auctions
+- Cancel your listings: /market cancel <id>
+- Browse all player listings: /market
+- Buy from market: /market buy <id>
+
+BACKGROUND_TIPS:
+- Check daily shop every day
+- Collect cheap backgrounds for crafting
+- Rare crafted backgrounds sell for higher prices
+- Active background appears on ALL game messages
+
+BALANCE:
+name: Balance & Stats System
+command: /balance
+aliases: /money, /level, /bal, /stats
+description: Check your current casino stats including coin balance, level, and progress towards next level. Displays a personalized stats card with your username, avatar, current balance, level, and experience progress bar.
+
+BALANCE_HOW_TO_USE:
+- Type /balance, /bal, /money, /level, or /stats
+
+BALANCE_STATS_TRACKED:
+- Balance: Total coins you own
+- Level: Your current player level
+- Progress: Percentage to next level
+
+BALANCE_TIPS:
+- You can earn exp after every coins lose in game
+
+BLACKJACK:
+name: Blackjack Card Game
+command: /blackjack
+aliases: /bj
+description: Classic casino card game where players compete against the dealer to get as close to 21 as possible without going over. Features hit, stand, double down, and split options with a visual table interface.
+
+BLACKJACK_HOW_TO_PLAY:
+- Start: /bj start <bet>
+- You and dealer get 2 cards (dealer's second card hidden)
+- Goal: Get closer to 21 than dealer without exceeding
+- Face cards (J,Q,K) = 10 points
+- Aces = 1 or 11 points (automatically optimized)
+- Number cards = face value
+
+BLACKJACK_GAME_ACTIONS:
+- /bj hit - Take another card
+- /bj stand - Keep hand, dealer plays
+- /bj double - Double bet, one more card (first turn only)
+- /bj split - Split matching cards (coming soon)
+- /bj alone - Show current game status
+
+BLACKJACK_GAME_SEQUENCE:
+1. Place bet, receive initial cards
+2. Check for Blackjack (21 with 2 cards) - automatic win 2.5×
+3. Player decisions: hit, stand, double, or split
+4. Dealer reveals hidden card and must hit until ≥17
+5. Compare hands to determine winner
+
+BLACKJACK_RULES:
+- Dealer stands on all 17s
+- Blackjack pays 2.5× bet
+- Normal win pays 2× bet
+- Push (tie) returns original bet
+- Player bust (over 21) loses immediately
+- Dealer bust pays all remaining players
+- Double down only with 2 cards
+
+BLACKJACK_EXAMPLES:
+- /bj start 100 - Start game with 100 bet
+- /bj hit - Take another card
+- /bj stand - Let dealer play
+- /bj double - Double on good hand
+
+CASE_SYSTEM:
+name: Mystery Cases & Case Battles
+command: /case
+aliases: /cs
+description: Open mystery cases for random cash prizes or challenge other players in case battles! Choose from various case prices with different prize ranges. Case Battles add competitive PvP where winners take both prizes!
+
+CASE_HOW_TO_PLAY_SINGLE_PLAYER:
+- Type /case <price> to open a case
+- Available: 10, 50, 100, 500, 1000, 2500, 5000, 10000 coins
+- Each case guarantees a random prize within its range
+- Prize instantly added to balance
+
+CASE_PRIZE_RANGES:
+- 10 case: 1 - 47 coins
+- 50 case: 1 - 180 coins
+- 100 case: 5 - 348 coins
+- 500 case: 66 - 4,902 coins
+- 1000 case: 70 - 15,149 coins
+- 2500 case: 223 - 9,494 coins
+- 5000 case: 304 - 44,375 coins
+- 10000 case: 1 - 434,232 coins
+
+CASE_BATTLE_PVP_MODE:
+Both players open same value case, higher prize wins BOTH!
+
+CASE_BATTLE_COMMANDS:
+- /case battle list - Show active battles
+- /case battle start <price> - Create battle
+- /case battle accept <id> - Join battle
+- /case battle cancel <id> - Cancel pending battle
+
+CASE_BATTLE_RULES:
+1. Both pay case price to join
+2. Each opens random case of same value
+3. Higher prize wins BOTH amounts
+4. Loser gets NOTHING
+5. If tied, each keeps their own prize
+6. Winner takes ALL - total pot = both prizes combined
+
+CASE_BATTLE_EXAMPLE:
+Both bet 1000. Player A wins 500, Player B wins 2500. Player B wins total 3000, Player A loses 1000.
+
+CASE_EXAMPLES:
+- /case 100 - Open 100 coin case
+- /case 1000 x - Static image
+- /case battle list - View active battles
+- /case battle start 1000 - Create battle
+- /case battle accept 5 - Join battle #5
+
+COLORS_WHEEL:
+name: Colors Wheel Game
+command: /colors
+aliases: /c
+description: Spin the color wheel and bet on colors with different multipliers! The wheel has 54 positions with four colors: Black (most common), Red, Blue, and the rare Gold (jackpot). Features history bar and live multiplier display.
+
+COLORS_HOW_TO_PLAY:
+- Two betting modes:
+  * Single: /colors <amount> <color> - Bet all on one color
+  * Multiple: /colors <black> <red> <blue> <gold> - Split bet
+- Wheel spins and stops at random position (0-53)
+- Win if your chosen color matches result
+- Winnings = bet × color multiplier
+- Add "x" to skip animation: /colors 100 red x
+
+COLORS_AND_MULTIPLIERS:
+- Black (×2) - 28 positions (most common)
+- Red (×3) - 12 positions
+- Blue (×5) - 10 positions
+- Gold (×50) - 4 positions (jackpot)
+
+COLORS_BETTING_EXAMPLES:
+- Single: /colors 100 red
+- Multiple: /colors 50 20 10 5 (black, red, blue, gold)
+- No animation: /colors 100 blue x
+
+COLORS_PAYOUT_CALCULATION:
+- Single bet: Win = bet × multiplier if color matches
+- Multiple bet: Win = sum of (bet per color × multiplier) only for winning color
+- Example: Bet 50/20/10/5 (total 85), result Gold → win 5×50 = 250, profit +165
+
+COLORS_EXAMPLES:
+- /colors 50 black - Bet on black (×2)
+- /colors 100 gold - Go for jackpot (×50)
+- /colors 30 30 20 20 - Cover all colors
+
+CRASH_GAME:
+name: Crash Game
+command: /crash
+aliases: /cr
+description: High-risk multiplier game where you cash out before the multiplier crashes! Multiplier climbs from 1.0x upward - longer wait = higher payout, but crash anytime means losing your bet. Features split betting and history sidebar.
+
+CRASH_HOW_TO_PLAY:
+- Place bet and choose cashout multiplier(s)
+- Multiplier starts at 1.0x and increases
+- Cash out BEFORE it crashes to win bet × multiplier
+- If it crashes before cashout = you lose
+- Add "x" for static image: /crash 100 2.5 x
+
+CRASH_BASIC_BETTING:
+- Format: /crash <bet> <cashout_multiplier>
+- Example: /crash 100 2.5 - Bet 100, cashout at 2.5x
+- If crash at 3.0x: win 250 (profit +150)
+- If crash at 2.0x: lose 100
+
+CRASH_SPLIT_BET_MODE:
+- Format: /crash <bet> <mult1>,<mult2>
+- Example: /crash 100 1.5,3.0 - Split 100 into two bets
+- Half (50) cashout at 1.5x, half (50) at 3.0x
+- Rules:
+  * Crash before 1.5x = lose all (0)
+  * Crash between 1.5x-3.0x = win first half only (50×1.5=75)
+  * Crash after 3.0x = win both (50×1.5 + 50×3.0 = 225)
+
+CRASH_MULTIPLIER_RANGE:
+- Minimum: 1.00x (guaranteed)
+- Maximum: 100.00x (rare)
+
+CRASH_EXAMPLES:
+- /crash 100 2.5 - Standard bet
+- /crash 100 1.5,3.0 - Split bet
+- /crash 50 5.0 x - Static image
+- /crash 25 1.2,10.0 - Safety + lottery
+
+DAILY_REWARDS:
+name: Daily Reward System
+command: /daily
+aliases: /d
+description: Claim your daily bonus coins and build streaks for bigger rewards! Longer streak = higher bonus. Rewards scale with player level - higher level = bigger payouts. Perfect for consistent daily income.
+
+DAILY_HOW_TO_CLAIM:
+- Type /daily or /d to claim
+- Each claim advances streak (up to 7 days)
+- Streak resets if you miss a day
+- Rewards increase with streak length
+- Available once per day (resets at midnight)
+
+DAILY_STREAK_SYSTEM:
+- Day 1: Base reward (10-100+ coins)
+- Day 2: 20-120+ coins
+- Day 3: 30-140+ coins
+- Day 4: 40-160+ coins
+- Day 5: 50-180+ coins
+- Day 6: 75-200+ coins
+- Day 7: 100-250+ coins (MAX STREAK)
+- After Day 7, streak stays at 7
+
+DAILY_LEVEL_BASED_SCALING:
+- Level 1-50: 1.0× to 2.0× multiplier
+- Level 51-100: 2.0× to 4.0× multiplier
+- Level 100+: 4.0×+ (scales continuously)
+
+DAILY_STREAK_RULES:
+- Continue: Claim yesterday AND today = streak continues
+- Reset: Missed a day = streak resets to Day 1
+- First time: Start at Day 1
+- Max streak: Stay at Day 7
+
+DICE_POKER:
+name: Dice Poker Game
+command: /dice
+aliases: /d, /dices
+description: Classic dice poker where you compete against the croupier! Roll 5 dice, make the best poker hand, and use one strategic reroll to improve. Croupier also gets one reroll. Features hand rankings and animated dice rolling.
+
+DICE_HOW_TO_PLAY:
+- Start: /dice start <bet> (minimum 10)
+- You and croupier each roll 5 dice
+- Choose which dice to reroll (max 1 reroll)
+- Croupier then rerolls strategically to beat you
+- Best poker hand wins!
+
+DICE_COMMANDS:
+- Start game: /dice start <bet> or /dice s <bet>
+- Reroll formats (any works):
+  * /dice 1,2,3 - Comma-separated
+  * /dice 1 2 3 - Space-separated
+  * /dice 123 - Concatenated digits
+- Stand: /dice stand, /dice wait, or /dice pass
+- Check status: /dice alone
+- Static image: add "x" at end: /dice start 100 x
+
+DICE_HAND_RANKINGS:
+1. Five of a Kind - All dice same number
+2. Four of a Kind - Four dice same number
+3. Full House - Three of one, two of another
+4. Straight - Five consecutive numbers (1-5 or 2-6)
+5. Three of a Kind - Three dice same number
+6. Two Pair - Two different pairs
+7. One Pair - One pair
+8. High Card - Highest single die
+
+DICE_GAME_SEQUENCE:
+1. Initial Roll: Both roll 5 dice
+2. Player Turn: Choose dice to reroll (or stand)
+3. Croupier Turn: Automatically rerolls strategically
+4. Resolution: Winner determined
+
+DICE_EXAMPLES:
+- /dice start 100 - New game
+- /dice 1 3 5 - Reroll dice #1, #3, #5
+- /dice 2,4 - Reroll dice #2 and #4
+- /dice 124 - Reroll dice #1, #2, #4
+- /dice stand - Stop rerolling
+
+DAILY_GIFT_SYSTEM:
+name: Daily Gift System
+command: /gift
+aliases: /dailygift
+description: Send a free daily gift of 50 coins to another player! One gift per day to any player, promoting community interaction. Features visual confirmation with avatars and updated balances.
+
+GIFT_HOW_TO_USE:
+- Type /gift <player_name> to send daily gift
+- Find players by name or user ID
+- One gift per day per sender
+- Amount: 50 coins (fixed)
+- Recipient receives instantly
+- Sender pays nothing - it's FREE!
+
+GIFT_COMMANDS:
+- /gift - Check gift status
+- /gift <name> - Send by name
+- /gift <user_id> - Send using ID
+- /gift @name - @ symbol ignored
+
+GIFT_RULES:
+- Daily limit: 1 gift per sender per day
+- No self-gifting
+- Free: No cost to sender
+- Fixed amount: 50 coins
+- Resets daily: New gift at midnight
+
+GIFT_EXAMPLES:
+- /gift - Check if can send today
+- /gift John - Send to John
+- /gift 123456 - Send to user ID 123456
+- /gift @John - Same as "John"
+
+HELP_SYSTEM:
+name: Help System
+command: /help
+aliases: /commands
+description: Comprehensive help system showing all available casino commands and detailed explanations. Learn how to play games, understand commands, and discover all casino features.
+
+HELP_HOW_TO_USE:
+- /help - List all available commands
+- /help <command> - Detailed help for specific command
+- Examples: /help blackjack, /help crash, /help dice
+
+HELP_COMMAND_FORMATS:
+- Use full name: /help blackjack
+- Use with slash: /help /bj
+- Case-insensitive: /help BLACKJACK
+- Exact names only (no partial matching)
+
+HELP_EXAMPLES:
+- /help - Show all commands
+- /help blackjack - Detailed Blackjack guide
+- /help crash - Crash game rules
+- /help dice - Dice poker hand rankings
+
+HOURLY_REWARD:
+name: Hourly Reward System
+command: /hourly
+aliases: /h, /hour
+description: Claim free coin reward every hour on the hour! Reward varies randomly each time - perfect for steady daily income with minimal effort.
+
+HOURLY_HOW_TO_CLAIM:
+- Type /hourly at start of each hour
+- Claim window: First 2 minutes of each hour (:00 to :01)
+- One claim per hour maximum
+- Reward: 10-100 coins random
+- Average reward: ~30 coins
+
+HOURLY_CLAIM_WINDOW:
+- Available: HH:00 to HH:01 (first 2 minutes)
+- Example: 14:00:00 to 14:01:59
+- Cannot claim: Outside window or if already claimed
+- Resets: At start of each new hour
+
+HOURLY_REWARD_SYSTEM:
+- Range: 10-100 coins (10-coin steps)
+- Average: ~30 coins (weighted)
+- Probability: Higher near average, lower for extremes
+
+JACKPOT:
+name: Jackpot Game
+command: /jackpot
+aliases: /jp
+description: Progressive jackpot where players pool bets and one lucky winner takes the entire pot! Bigger bet = higher chance. Features countdown timer, extensions, and spinning avatar animation revealing winner.
+
+JACKPOT_HOW_TO_PLAY:
+- Join current jackpot: /jackpot bet <amount>
+- Minimum bet: $1 (whole dollars only)
+- First player starts jackpot (waiting)
+- Second player triggers 10-minute countdown
+- Keep betting to increase chances
+- When timer reaches zero, winner takes ALL!
+
+JACKPOT_RULES:
+- Minimum players: 2 to start countdown
+- Initial timer: 10 minutes after 2nd player joins
+- Timer extension: Join in last 30 seconds → +1 minute
+- Winner selection: Weighted random by bet amount
+- Payout: Winner gets ENTIRE pot (100% of bets)
+- No house cut - all coins to winner!
+
+JACKPOT_COMMANDS:
+- /jackpot or /jp - Show current jackpot
+- /jackpot bet <amount> - Join or increase bet
+- /jackpot help - Detailed info
+
+JACKPOT_WIN_PROBABILITY:
+- Your chance = (Your bet ÷ Total pot) × 100%
+- Example: Bet 100 in 1000 pot = 10% chance
+- Higher bet = proportionally higher chance
+
+JACKPOT_EXAMPLES:
+- /jackpot - Check current jackpot
+- /jp bet 100 - Join with 100 bet
+- /jackpot bet 50 - Add 50 to existing bet
+
+LOTTO_GAME:
+name: Lotto Game
+command: /lotto
+aliases: /l
+description: Lottery-style game where you match numbers for massive multipliers! Draw 6 numbers from 49 - more matches = bigger payout. Huge jackpot potential with 100,000× multiplier for matching all 6. Play single or batch multiple games.
+
+LOTTO_HOW_TO_PLAY:
+- Bet: /lotto <amount>
+- System draws 6 winning numbers from 1-49
+- Your numbers automatically generated
+- Count matches and win multiplier × bet
+
+LOTTO_MATCH_MULTIPLIERS:
+- 0-1 matches: ×0 (no win)
+- 2 matches: ×2 (double)
+- 3 matches: ×20 (nice profit)
+- 4 matches: ×350 (big win!)
+- 5 matches: ×10,000 (jackpot!)
+- 6 matches: ×100,000 (MEGA JACKPOT!)
+
+LOTTO_PROBABILITIES:
+- 0 matches: 43.5%
+- 1 match: 41.3%
+- 2 matches: 13.2%
+- 3 matches: 1.8%
+- 4 matches: 0.1% (1 in 1,000)
+- 5 matches: 0.002% (1 in 50,000)
+- 6 matches: 0.000007% (1 in 14 million)
+
+LOTTO_COMMAND_FORMATS:
+- Single animated: /lotto 100
+- Single static: /lotto 100 x
+- Multiple static: /lotto 50 x5 (5 games × 50)
+- Max multiple: 10 games at once
+
+LOTTO_MULTI_GAME_FEATURE:
+- Play up to 10 games simultaneously
+- Total bet = bet amount × number of games
+- Games stacked vertically
+- Each game independent
+- Example: /lotto 10 x5 = 5 games × 10 = 50 total
+
+LOTTO_PAYOUT_EXAMPLES:
+- Bet 100, 2 matches = win 200 (profit +100)
+- Bet 50, 4 matches = win 17,500 (profit +17,450)
+- Bet 10, 6 matches = win 1,000,000 (profit +999,990)
+
+LOTTO_EXAMPLES:
+- /lotto 100 - One game animated
+- /lotto 50 x - One game static
+- /lotto 20 x5 - Five games ×20
+- /lotto 10 x10 - Ten games ×10
+
+PLAYER_MARKET:
+name: Player Market System
+command: /market
+aliases: /market
+description: Complete trading system where players buy, sell, and auction avatars and backgrounds. Features direct fixed-price sales and competitive auctions with timer extensions. Central hub for player-to-player economy.
+
+MARKET_OVERVIEW:
+1. Direct Market - Fixed-price items, buy instantly
+2. Active Auctions - Bidding wars, highest bidder wins
+
+MARKET_COMMANDS:
+- /market - View direct sale items
+- /market auctions - View active auctions
+- /market buy <number> - Buy from direct market
+- /market bid <number> <amount> - Bid on auction
+- /market cancel <number> - Cancel your listing
+- /market info - Market statistics
+
+MARKET_DIRECT_MARKET:
+- Fixed price items
+- First come, first served
+- Instant purchase and delivery
+- Price range: 50-10,000 coins
+- Listing fee: 5 coins
+- Shows: type, number, filename, seller, price
+
+MARKET_AUCTION_SYSTEM:
+- Start price: 50-10,000 coins
+- Minimum bid increment: 10-1,000
+- Duration: 1-168 hours (1-7 days)
+- Listing fee: 5 coins
+- Features:
+  * 5-minute extension on last-minute bids
+  * Coins held until win, refund if outbid
+  * Winner pays final bid
+- Shows: current price, min bid, highest bidder, time left
+
+MARKET_BIDDING_RULES:
+- Minimum bid = current price + min_bid
+- Must have balance available
+- Outbid players automatically refunded
+- Timer extends 5 min if bid in last 5 min
+
+MARKET_SELLING_ITEMS:
+Backgrounds (/bg):
+- /bg quicksell <number> - Instant 100-900
+- /bg sellprice <number> <price> - List on market
+- /bg auction <number> <start> <min> <hours> - Create auction
+
+Avatars (/avatar):
+- /avatar quicksell <number> - Instant 100
+- /avatar sellprice <number> <price> - List on market
+- /avatar auction <number> <start> <min> <hours> - Create auction
+
+MARKET_EXAMPLES:
+- /market - View direct sales
+- /market auctions - View auctions
+- /market buy 3 - Buy item #3
+- /market bid 2 1500 - Bid 1500 on auction #2
+- /market cancel 1 - Cancel your listing #1
+
+MATH_CHALLENGE:
+name: Math Challenge
+command: /answer
+aliases: /a, /answer
+description: Random math challenges appear once per hour! Solve simple arithmetic problems for coin rewards. First correct answer wins - be quick!
+
+MATH_HOW_IT_WORKS:
+- Math challenge appears randomly each hour
+- Image shows math question (e.g., "5 + 3 - 2 + 1 = ?")
+- First to answer correctly wins reward
+- Use /a <number> to submit answer
+- Reward: 10-100 coins
+- New challenge after each solve
+
+MATH_REWARD_SYSTEM:
+- Range: 10-100 coins (10-coin steps)
+- Average: ~30 coins
+- First only: Only first correct wins
+- No consolation: Second place gets nothing
+
+MATH_TIMING:
+- Challenges appear randomly within each hour
+- Completely random - keeps players on toes
+- After solve: next scheduled random time next hour
+- If unsolved: expires at end of hour
+
+MATH_COMMANDS:
+- /a <number> - Submit answer (when active)
+- /answer <number> - Same
+
+MINES_GAME:
+name: Minesweeper Game
+command: /mines
+aliases: /m
+description: Reveal tiles hoping to avoid mines while multipliers increase with each safe tile. Risk vs reward - cash out early for smaller profits or push luck for massive multipliers. 5×5 grid with 1-24 hidden mines.
+
+MINES_HOW_TO_PLAY:
+- Start: /mines start <bet> <bombs> (bombs 1-24)
+- Reveal tiles one by one: /mines <tile> (1-25)
+- Each safe tile increases multiplier
+- Cashout anytime: /mines cashout
+- Hit mine = lose entire bet
+- Reveal all safe = automatic cashout (max win)
+
+MINES_COMMANDS:
+- /mines start <bet> <bombs> - New game
+- /mines <tile> - Reveal single tile
+- /mines <tile1>,<tile2>,<tile3> - Reveal multiple
+- /mines cashout - End game, collect winnings
+- /mines alone - Show help
+
+MINES_MULTIPLIER_SYSTEM:
+- Starts at 0.99× (≈1×)
+- Increases with each safe tile
+- Displayed in dynamic bar:
+  * Green = current multiplier
+  * Gray = upcoming multipliers
+- Grows exponentially with risk
+
+MINES_PROBABILITY_EXAMPLE:
+- First tile safe: 80%
+- After 10 safe: 60% chance
+- After 15 safe: 33% chance
+- Risk increases with each safe tile
+
+MINES_PAYOUT_CALCULATION:
+- Win = bet × current multiplier
+- Net profit = win - bet
+- Example: Bet 100, multiplier 3.5× = win 350 (profit +250)
+
+MINES_MULTI_TILE_REVEAL:
+- Reveal multiple at once: /mines 1,2,3,4,5
+- Processed in order given
+- If any tile is mine, game ends immediately
+- Useful for fast play
+
+MINES_EXAMPLES:
+- /mines start 100 5 - Bet 100, 5 mines
+- /mines 13 - Reveal center tile
+- /mines 1,2,3,4,5 - Reveal first row
+- /mines cashout - Take winnings
+
+PLINKO_GAME:
+name: Plinko Game
+command: /plinko
+aliases: /p
+description: Balls bounce through pegs and land in multiplier buckets. Choose risk level and drop 1-5 balls simultaneously for massive payouts! Mathematically accurate binomial distribution.
+
+PLINKO_HOW_TO_PLAY:
+- Drop balls: /plinko <amount> <risk> [balls] [x]
+- Balls bounce through 12 rows of pegs
+- Land in 1 of 15 buckets at bottom
+- Each bucket has multiplier based on risk
+- Win = bet × bucket multiplier
+- Multiple balls = combined winnings
+
+PLINKO_RISK_LEVELS:
+
+LOW RISK (Balanced)
+- Bucket multipliers: 20.0, 4.0, 1.5, 1.3, 1.2, 1.1, 0.9, 0.7, 0.9, 1.1, 1.2, 1.3, 1.5, 4.0, 20.0
+- Max win: 20×
+- Best for: Conservative players
+
+MEDIUM RISK (Higher variance)
+- Multipliers: 60.0, 9.0, 5.0, 3.0, 1.5, 1.3, 0.4, 0.2, 0.4, 1.3, 1.5, 3.0, 5.0, 9.0, 60.0
+- Max win: 60×
+- Best for: Balanced risk/reward
+
+HIGH RISK (Extreme)
+- Multipliers: 420.0, 17.0, 9.0, 5.0, 2.0, 0.4, 0.2, 0.0, 0.2, 0.4, 2.0, 5.0, 9.0, 17.0, 420.0
+- Max win: 420× (JACKPOT!)
+- Best for: Life-changing wins
+
+PLINKO_PROBABILITY_DISTRIBUTION:
+- Buckets 0 & 14: 0.019% (1 in 5,263) - Extremely rare
+- Buckets 1 & 13: 0.095% (1 in 1,053)
+- Buckets 2 & 12: 0.95% (1 in 105)
+- Buckets 3 & 11: 3.80% (1 in 26)
+- Buckets 4 & 10: 6.65% (1 in 15)
+- Buckets 5 & 9: 10.45% (1 in 9.6)
+- Buckets 6 & 8: 16.15% (1 in 6.2)
+- Bucket 7 (center): 23.76% (1 in 4.2)
+
+PLINKO_COMMANDS:
+- /plinko <amount> <risk> - Single ball (animated)
+- /plinko <amount> <risk> <balls> - Multiple balls (1-5)
+- /plinko <amount> <risk> x - Static image
+- /plinko <amount> <risk> <balls> x - Static multi-ball
+
+PLINKO_MULTI_BALL_FEATURE:
+- Drop 1-5 balls simultaneously
+- Each ball independent
+- Total bet = bet amount × balls
+- Total win = sum of individual wins
+
+PLINKO_EXAMPLES:
+- /plinko 100 high - One ball chasing 420×
+- /plinko 50 medium 3 - Three balls, balanced
+- /plinko 25 low 5 x - Five balls, low risk, static
+
+PLINKO_NOTE: True Galton board - mathematically exact binomial distribution. Good luck!
+
+RANKING_SYSTEM:
+name: Player Rankings
+command: /ranking
+aliases: /rank
+description: Leaderboard showing top players by balance or level. Includes avatars, stats, position tracking, and leader duration for #1 spot.
+
+RANKING_HOW_TO_USE:
+- /rank or /ranking - Balance ranking (default)
+- /rank balance - Rank by coin balance
+- /rank level - Rank by level and progress
+- Shows top 10 players with full details
+- Your position shown if outside top 10
+
+RANKING_TYPES:
+
+BALANCE RANKING
+- Sorted by total coins (highest first)
+
+LEVEL RANKING
+- Sorted by level (highest first)
+
+RANKING_LEADER_DURATION:
+- Tracks how long #1 has held top spot
+- Formats: "45S", "45M 30S", "12H 30M", "3D 12H"
+- Resets when new player takes #1
+
+ROULETTE_GAME:
+name: Roulette Game
+command: /roulette
+aliases: /r
+description: Classic European roulette with numbers 0-36. Bet on numbers, colors, odds/evens, high/low, dozens, or columns. Features history bar showing last 11 results.
+
+ROULETTE_HOW_TO_PLAY:
+- Place bets: /roulette <amount> <bet_type>
+- Wheel spins, ball lands on random 0-36
+- Win if bet type matches result
+- Add "x" for static: /roulette 100 17 x
+
+ROULETTE_BET_TYPES_AND_PAYOUTS:
+
+Straight Up (Single Number)
+- Any number 0-36
+- Payout: 36× bet
+- Example: /roulette 100 17
+
+Color Bets
+- red - All red numbers
+- black - All black numbers
+- green - Number 0 only
+- Payout: Red/Black = 2×, Green = 36×
+
+Even/Odd
+- even - Even numbers 2-36
+- odd - Odd numbers 1-35
+- Payout: 2× (0 loses)
+
+High/Low
+- low - Numbers 1-18
+- high - Numbers 19-36
+- Payout: 2× (0 loses)
+
+Dozens
+- 1to12 - Numbers 1-12
+- 13to24 - Numbers 13-24
+- 25to36 - Numbers 25-36
+- Payout: 3×
+
+Columns
+- 1st - First column: 1,4,7,10,13,16,19,22,25,28,31,34
+- 2nd - Second column: 2,5,8,11,14,17,20,23,26,29,32,35
+- 3rd - Third column: 3,6,9,12,15,18,21,24,27,30,33,36
+- Payout: 3×
+
+ROULETTE_WHEEL_LAYOUT:
+- Red (18): 1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36
+- Black (18): 2,4,6,8,10,11,13,15,17,20,22,24,26,28,29,31,33,35
+- Green (1): 0
+- Total: 37 numbers
+
+ROULETTE_HISTORY_BAR:
+- Last 11 results as colored circles
+- 🔴 Red, ⚫ Black, 🟢 Green 0
+- Numbers inside circles
+- Current result highlighted
+
+ROULETTE_PROBABILITY:
+- Straight up: 1 in 37 (2.70%)
+- Red/Black/Even/Odd/High/Low: 18 in 37 (48.65%)
+- Dozens/Columns: 12 in 37 (32.43%)
+- Green (0): 1 in 37 (2.70%)
+
+ROULETTE_HOUSE_EDGE: 2.70% (European roulette)
+
+ROULETTE_EXAMPLES:
+- /roulette 100 17 - Straight up on lucky number
+- /roulette 50 red - Even money on red
+- /roulette 25 high - Bet on 19-36
+- /roulette 10 1st - First column
+- /roulette 100 black x - Static result
+
+SLOT_MACHINE:
+name: Slot Machine Game
+command: /slots
+aliases: /s
+description: Classic slot machine with pre-generated animations and mathematically accurate probability distribution. Multipliers from 0× (loss) up to 9× (jackpot).
+
+SLOTS_HOW_TO_PLAY:
+- Spin: /slots <bet>
+- Watch reels spin and stop
+- Multiplier determines winnings
+- Add "x" for static: /slots 100 x
+- Win = bet × multiplier
+
+SLOTS_MULTIPLIER_DISTRIBUTION:
+- 0.0× (Loss): 34.8% - Lose bet
+- 0.5×: 28.5% - Half back
+- 1.0×: 1.0% - Break even
+- 1.5×: 13.0% - Small profit
+- 2.0×: 9.0% - Double
+- 2.5×: 4.0%
+- 3.0×: 3.0%
+- 3.5×: 2.0%
+- 4.0×: 1.0%
+- 4.5×: 0.7%
+- 5.0×: 0.6%
+- 5.5×: 0.5%
+- 6.0×: 0.4%
+- 6.5×: 0.3%
+- 7.0×: 0.2%
+- 8.0×: 0.1%
+- 9.0×: 0.1% 
+
+SLOTS_COMMANDS:
+- /slots <bet> - Animated spin
+- /slots <bet> x - Static (faster)
+- Examples: /slots 100, /slots 50 x
+
+ANALOG_CLOCK:
+name: Analog Clock
+command: /time
+aliases: /time
+description: Beautiful analog clock showing current time with hour, minute, and second hands on your personal background. Includes hidden daily easter egg at 21:37 for bonus coins!
+
+CLOCK_HOW_TO_USE:
+- Type /time to see current time
+- Shows analog clock with moving hands
+- Digital time and date below
+- Uses your selected background
+
+TRANSFER_SYSTEM:
+name: Transfer System
+command: /transfer
+aliases: /t
+description: Securely transfer coins between players with visual confirmation. Send money to friends, repay debts, or be generous! Shows both players' avatars and updated balances.
+
+TRANSFER_HOW_TO_USE:
+- /transfer <amount> <player_name> - Send coins
+- /transfer <amount> <user_id> - Use ID for exact match
+- Amount must be positive whole number
+- Player name can include spaces
+- @ symbol ignored (optional)
+
+TRANSFER_COMMAND_FORMATS:
+- By name: /transfer 100 John
+- With spaces: /transfer 500 Jane Doe
+- By ID: /transfer 1000 123456
+- With @: /transfer 50 @John
+
+TRANSFER_SEARCH_METHODS:
+- Exact name first, then partial matches
+- If multiple found, shows list with IDs
+- Use User ID for precise targeting
+- Case-insensitive
+
+TRANSFER_EXAMPLES:
+- /transfer 100 John - Send 100 to John
+- /transfer 500 Jane Doe - Send 500 to Jane
+- /transfer 50 @Mike - Send 50 to Mike
+- /transfer 1000 123456 - Send to ID 123456
+- /t 25 Sarah - Alias version
+
+TREE:
+name: Tree Game
+command: /tree
+aliases: /tree
+description: Idle garden game where trees grow over time and can pay multipliers when harvested. Each tree’s final result is decided at planting. If a tree withers, it gives 0 coins.
+
+TREE_HOW_TO_PLAY:
+- Plant a tree: /tree plant <cost> (10=x2, 50=x3, 200=x5, 1000=x10)
+- Trees grow automatically through 16 stages (1-3h per stage)
+- Total growth time: 16-48h (avg ~32h)
+- Check your garden: /tree
+- Harvest a tree: /tree cut <slot>
+- Unlock more slots: /tree buy slot <nr> (2:1000, 3:5000)
+- Manually update growth: /tree water
+- IMPORTANT: Withered trees give 0 coins and must be harvested to free the slot
+
+TREE_TYPES:
+| Tree | Cost | Max Multiplier | Full Success Chance |
+|------|------|----------------|---------------------|
+| x2 Tree | 10 coins | 2.0x | 55% |
+| x3 Tree | 50 coins | 3.0x | 37% |
+| x5 Tree | 200 coins | 5.0x | 22% |
+| x10 Tree | 1000 coins | 10.0x | 11% |
+
+TREE_MULTIPLIER_MECHANICS:
+- Final multiplier is decided AT PLANTING TIME
+- Players cannot influence the outcome after planting
+- If the tree reaches full multiplier = success
+- If the tree does not reach full multiplier = withers and pays 0
+- Multiplier stays hidden until the tree finishes
+
+TREE_WITHER_MECHANICS:
+- If a tree does not hit its FULL multiplier, it withers
+- Withered trees give 0 coins when harvested
+- Withered trees still occupy the slot until cut
+- Example: Plant x10 for 1000 coins, it withers -> payout = 0
+
+TREE_GROWTH_MECHANICS:
+- 16 internal growth stages
+- Each stage takes 1-3 hours
+- Minimum total growth: 16h
+- Maximum total growth: 48h
+- Average total growth: ~32h
+- Growth is automatic, /tree water only refreshes progress
+
+TREE_SLOT_SYSTEM:
+- Slot 1: Free
+- Slot 2: 1000 coins
+- Slot 3: 5000 coins
+- One tree per slot
+- New trees go into the first empty slot
+
+TREE_COMMANDS:
+| Command | Description |
+|---------|-------------|
+| /tree | Show your garden |
+| /tree plant <cost> | Plant a tree (10, 50, 200, 1000) |
+| /tree cut <slot> | Harvest tree from slot |
+| /tree buy slot <nr> | Unlock slot 2 or 3 |
+| /tree water | Refresh tree growth |
+| /tree help | Show help |
+
+TREE_HARVESTING:
+- Full success: payout = cost × max multiplier
+- Withered tree: payout = 0
+- Full success also unlocks the next tree tier
+- Withered trees must still be harvested to clear slot
+
+TREE_RISK_REWARD:
+| Tree | Success Chance | Risk | Potential Payout |
+|------|----------------|------|------------------|
+| x2 Tree | 55% | Low | 20 coins |
+| x3 Tree | 37% | Medium | 150 coins |
+| x5 Tree | 22% | High | 1000 coins |
+| x10 Tree | 11% | Extreme | 10000 coins |
+
+TREE_UNLOCK_PROGRESSION:
+1. Start with x2 tree
+2. Harvest x2 at full x2 -> unlock x3
+3. Harvest x3 at full x3 -> unlock x5
+4. Harvest x5 at full x5 -> unlock x10
+5. All trees unlocked
+
+TREE_STRATEGY_TIPS:
+- Start with x2 trees (safest)
+- Full multiplier is required to unlock the next tree tier
+- Slot 2 is usually worth buying early
+- Check garden regularly, trees grow while offline
+- Higher tiers = much bigger rewards but high chance of total loss
+- Never forget: withered trees give 0
+
+TREE_EXAMPLES:
+- /tree
+- /tree plant 10
+- /tree plant 50
+- /tree cut 1
+- /tree buy slot 2
+- /tree water
+
+TREE_NOTE:
+High-risk, high-reward idle game. Trees grow over time, but only FULL multiplier trees pay out. If a tree withers, you lose the full investment and get 0 coins.
