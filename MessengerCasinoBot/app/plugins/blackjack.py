@@ -110,7 +110,16 @@ class BlackjackTableGenerator:
                     draw.rectangle([x, y, x + cell_size, y + cell_size], fill=color2)
         
         return pattern
-        
+    
+    def _get_card_point_value(self, card):
+        value = card[:-1]
+        if value in ['J', 'Q', 'K']:
+            return 10
+        elif value == 'A':
+            return 11
+        else:
+            return int(value)
+
     def generate_table_image(self, game_state, output_path, user_background_path=None, font_scale=1.0):
         player_cards = game_state.get('player_cards', [])
         dealer_cards = game_state.get('dealer_cards', [])
@@ -284,25 +293,15 @@ class BlackjackTableGenerator:
             self._draw_cards(table_img, left_hand, left_center_x, player_y + 50)
             
             if split_points and len(split_points) > 0:
-                points_color = COLORS['text_danger'] if split_points[0] > 21 else COLORS['text_primary']
-                points_text = f"{split_points[0]}"
                 if self.text_renderer:
-                    points_img = self.text_renderer.render_text(
-                        text=points_text,
-                        font_size=points_font_size,
-                        color=points_color,
-                        stroke_width=int(2 * font_scale),
-                        stroke_color=(0, 0, 0, 255)
-                    )
-                    points_x = left_center_x - points_img.width // 2
-                    points_y = player_y + 15
-                    table_img.alpha_composite(points_img, (points_x, points_y))
+                    hand_text = f"Hand 1 ({split_points[0]})"
+                    hand_color = (255, 215, 0) if current_hand == 0 and game_status == "player_turn" else (180, 180, 180)
                     
                     hand_num_img = self.text_renderer.render_text(
-                        text="Hand 1",
-                        font_size=14,
-                        color=(255, 215, 0) if current_hand == 0 and game_status == "player_turn" else (180, 180, 180),
-                        stroke_width=1,
+                        text=hand_text,
+                        font_size=points_font_size,
+                        color=hand_color,
+                        stroke_width=int(2 * font_scale),
                         stroke_color=(0, 0, 0, 255)
                     )
                     num_x = left_center_x - hand_num_img.width // 2
@@ -314,25 +313,15 @@ class BlackjackTableGenerator:
             self._draw_cards(table_img, right_hand, right_center_x, player_y + 50)
             
             if split_points and len(split_points) > 1:
-                points_color = COLORS['text_danger'] if split_points[1] > 21 else COLORS['text_primary']
-                points_text = f"{split_points[1]}"
                 if self.text_renderer:
-                    points_img = self.text_renderer.render_text(
-                        text=points_text,
-                        font_size=points_font_size,
-                        color=points_color,
-                        stroke_width=int(2 * font_scale),
-                        stroke_color=(0, 0, 0, 255)
-                    )
-                    points_x = right_center_x - points_img.width // 2
-                    points_y = player_y + 15
-                    table_img.alpha_composite(points_img, (points_x, points_y))
+                    hand_text = f"Hand 2 ({split_points[1]})"
+                    hand_color = (255, 215, 0) if current_hand == 1 and game_status == "player_turn" else (180, 180, 180)
                     
                     hand_num_img = self.text_renderer.render_text(
-                        text="Hand 2",
-                        font_size=14,
-                        color=(255, 215, 0) if current_hand == 1 and game_status == "player_turn" else (180, 180, 180),
-                        stroke_width=1,
+                        text=hand_text,
+                        font_size=points_font_size,
+                        color=hand_color,
+                        stroke_width=int(2 * font_scale),
                         stroke_color=(0, 0, 0, 255)
                     )
                     num_x = right_center_x - hand_num_img.width // 2
@@ -361,22 +350,93 @@ class BlackjackTableGenerator:
         if game_status == 'player_turn':
             buttons_center_y = dealer_y + 100 + (player_y - (dealer_y + 100)) // 2
             self._draw_buttons_horizontal(table_img, TABLE_WIDTH // 2, buttons_center_y, game_state)
-        
+                        
         elif game_status not in ['player_turn', 'dealer_turn']:
-            result_center_y = dealer_y + 100 + (player_y - (dealer_y + 100)) // 2
+            result_center_y = dealer_y + 100 + (player_y - (dealer_y + 100)) // 2 - 5
             
             bet = game_state.get('bet', 0)
             win_amount = game_state.get('win_amount', 0)
+            message = game_state.get('message', '')
+            game_status = game_state.get('game_status', '')
+            is_split = game_state.get('is_split', False)
+            split_points = game_state.get('split_points', [])
             
-            if win_amount > 0:
-                result_text = f"WIN: +{win_amount}$"
-                result_color = COLORS['text_success']
-            elif win_amount < 0:
-                result_text = f"LOSE: {win_amount}$"
-                result_color = COLORS['text_danger']
+            if is_split:
+                total_profit = 0
+                hand_bets_list = game_state.get('hand_bets', [])
+                dealer_points = game_state.get('dealer_points', 0)
+                split_hands_list = game_state.get('split_hands', [])
+                
+                for i, points in enumerate(split_points):
+                    if hand_bets_list and i < len(hand_bets_list):
+                        hand_bet = hand_bets_list[i]
+                    else:
+                        hand_bet = bet
+                    
+                    if points > 21:
+                        total_profit -= hand_bet
+                    elif dealer_points > 21 or points > dealer_points:
+                        split_hand_cards = split_hands_list[i] if i < len(split_hands_list) else []
+                        if points == 21 and len(split_hand_cards) == 2:
+                            total_profit += hand_bet
+                        else:
+                            total_profit += hand_bet
+                    elif points == dealer_points:
+                        pass
+                    else:
+                        total_profit -= hand_bet
+                
+                actual_profit = total_profit
             else:
-                result_text = "PUSH: 0$"
-                result_color = COLORS['text_highlight']
+                if win_amount > 0:
+                    actual_profit = win_amount - bet
+                else:
+                    actual_profit = -bet
+            
+            result_text = ""
+            result_color = COLORS['text_primary']
+            
+            if is_split:
+                if actual_profit > 0:
+                    result_text = f"WIN: +{actual_profit}$"
+                    result_color = COLORS['text_success']
+                elif actual_profit < 0:
+                    result_text = f"LOST: {actual_profit}$"
+                    result_color = COLORS['text_danger']
+                else:
+                    result_text = "PUSH: 0$"
+                    result_color = COLORS['text_highlight']
+            else:
+                if game_status == "player_blackjack":
+                    if actual_profit > 0:
+                        result_text = f"BLACKJACK! +{actual_profit}$"
+                    else:
+                        result_text = f"BLACKJACK! +{win_amount}$"
+                    result_color = COLORS['text_success']
+                elif "dealer busts" in message.lower() or "you win" in message.lower():
+                    if actual_profit > 0:
+                        result_text = f"WIN: +{actual_profit}$"
+                    else:
+                        result_text = f"WIN: +{win_amount}$"
+                    result_color = COLORS['text_success']
+                elif "bust" in message.lower() or "dealer wins" in message.lower() or "lose" in message.lower():
+                    if actual_profit < 0:
+                        result_text = f"LOST: {actual_profit}$"
+                    else:
+                        result_text = f"LOST: -{bet}$"
+                    result_color = COLORS['text_danger']
+                elif "push" in message.lower() or "tie" in message.lower():
+                    result_text = "PUSH: 0$"
+                    result_color = COLORS['text_highlight']
+                elif actual_profit > 0:
+                    result_text = f"WIN: +{actual_profit}$"
+                    result_color = COLORS['text_success']
+                elif actual_profit < 0:
+                    result_text = f"LOST: {actual_profit}$"
+                    result_color = COLORS['text_danger']
+                else:
+                    result_text = "PUSH: 0$"
+                    result_color = COLORS['text_highlight']
             
             if self.text_renderer:
                 result_img = self.text_renderer.render_text(
@@ -405,8 +465,8 @@ class BlackjackTableGenerator:
                 table_img.alpha_composite(result_img, (result_x, result_y))
                     
         table_img_rgb = table_img.convert('RGB')
-        table_img_rgb.save(output_path, format='PNG')
-
+        table_img_rgb.save(output_path, format='PNG')        
+        
     def _draw_cards(self, table_img, cards, center_x, center_y):
         CARD_WIDTH = 112
         CARD_HEIGHT = 112
@@ -437,7 +497,7 @@ class BlackjackTableGenerator:
             if card_img:
                 card_img_resized = card_img.resize((CARD_WIDTH, CARD_HEIGHT))
                 table_img.alpha_composite(card_img_resized, (int(card_x), int(center_y - CARD_HEIGHT // 2)))
-    
+        
     def _draw_buttons_horizontal(self, table_img, center_x, center_y, game_state):
         button_width = 80
         button_height = 30
@@ -449,20 +509,20 @@ class BlackjackTableGenerator:
         
         player_cards = game_state.get('player_cards', [])
         is_split = game_state.get('is_split', False)
-        split_hands = game_state.get('split_hands', [])
-        current_hand = game_state.get('current_hand', 0)
         
         if not is_split:
             if len(player_cards) == 2:
                 buttons.append('double')
-            if len(player_cards) == 2 and player_cards[0][0] == player_cards[1][0]:
-                buttons.append('split')
+            if len(player_cards) == 2:
+                card1 = player_cards[0]
+                card2 = player_cards[1]
+                val1 = self._get_card_point_value(card1)
+                val2 = self._get_card_point_value(card2)
+                if val1 == val2:
+                    buttons.append('split')
         else:
-            if current_hand < len(split_hands):
-                current_hand_cards = split_hands[current_hand]
-                if len(current_hand_cards) == 2:
-                    buttons.append('double')
-                
+            pass
+                    
         total_width = len(buttons) * button_width + (len(buttons) - 1) * button_spacing
         start_x = center_x - total_width // 2
         
@@ -473,6 +533,9 @@ class BlackjackTableGenerator:
                 button_x = start_x + i * (button_width + button_spacing)
                 button_y = center_y - button_height // 2
                 table_img.alpha_composite(button_img_resized, (int(button_x), int(button_y)))
+                
+    def _get_card_value(self, card):
+        return card[:-1]
 
 
 class BlackjackGame:
@@ -509,6 +572,11 @@ class BlackjackGame:
         
         random.shuffle(self.deck)
     
+    def _check_and_reshuffle(self):
+        if len(self.deck) < 20:
+            logger.info(f"[BlackJack] Reshuffling deck, only {len(self.deck)} cards remaining")
+            self.initialize_deck()
+    
     def deal_initial_cards(self):
         self.player_cards = [self.deck.pop(), self.deck.pop()]
         self.dealer_cards = [self.deck.pop(), self.deck.pop()]
@@ -528,6 +596,18 @@ class BlackjackGame:
             if dealer_has_blackjack:
                 self.game_status = "push"
                 self.message = "Both have Blackjack! Push!"
+
+    def _get_card_value(self, card):
+        return card[:-1]
+    
+    def _get_card_point_value(self, card):
+        value = card[:-1]
+        if value in ['J', 'Q', 'K']:
+            return 10
+        elif value == 'A':
+            return 11
+        else:
+            return int(value)
     
     def calculate_points(self):
         self.player_points = self._calculate_hand_points(self.player_cards)
@@ -556,6 +636,80 @@ class BlackjackGame:
             aces -= 1
         
         return points
+
+    def split(self):
+        if (self.game_status != "player_turn" or len(self.player_cards) != 2 or 
+            self._get_card_point_value(self.player_cards[0]) != self._get_card_point_value(self.player_cards[1]) or self.is_split):
+            return False
+        
+        card1 = self.player_cards[0]
+        card2 = self.player_cards[1]
+        
+        hand1 = [card1]
+        hand2 = [card2]
+        
+        self._check_and_reshuffle()
+        hand1.append(self.deck.pop())
+        hand2.append(self.deck.pop())
+        
+        self.split_hands = [hand1, hand2]
+        self.is_split = True
+        self.current_hand_index = 0
+        
+        self.hand_bets = [self.bet, self.bet]
+        self.hand_status = ["active", "active"]
+        self.hand_points = []
+        
+        for i, hand in enumerate([hand1, hand2]):
+            points = self._calculate_hand_points(hand)
+            self.hand_points.append(points)
+            if points == 21:
+                self.hand_status[i] = "stand"
+        
+        self.player_cards = []
+        self.player_points = 0
+        
+        self.message = f"Split! Now playing hand 1 of 2"
+        
+        if self.hand_status[0] != "active":
+            self._next_hand()
+        
+        return True
+    
+    def _has_soft_17(self):
+        aces = 0
+        points = 0
+        
+        for card in self.dealer_cards:
+            value = card[:-1]
+            if value in ['J', 'Q', 'K']:
+                points += 10
+            elif value == 'A':
+                aces += 1
+                points += 11
+            else:
+                points += int(value)
+        
+        while points > 21 and aces > 0:
+            points -= 10
+            aces -= 1
+        
+        if points == 17 and aces > 0:
+            temp_points = points
+            temp_aces = aces
+            while temp_aces > 0 and temp_points > 17:
+                temp_points -= 10
+                temp_aces -= 1
+            return temp_points < 17
+        
+        return False
+    
+    def _should_dealer_hit(self):
+        if self.dealer_points < 17:
+            return True
+        if self.dealer_points == 17 and self._has_soft_17():
+            return True
+        return False
     
     def hit(self):
         if self.game_status != "player_turn":
@@ -563,8 +717,14 @@ class BlackjackGame:
         
         current_status = self._get_current_hand_status()
         if current_status != "active":
+            hand_num = self.current_hand_index + 1 if self.is_split else 1
+            if current_status == "stand":
+                self.message = f"Hand {hand_num} is already standing!"
+            elif current_status == "bust":
+                self.message = f"Hand {hand_num} is already busted!"
             return False
         
+        self._check_and_reshuffle()
         new_card = self.deck.pop()
         current_cards = self._get_current_hand_cards()
         current_cards.append(new_card)
@@ -594,6 +754,11 @@ class BlackjackGame:
         
         current_status = self._get_current_hand_status()
         if current_status != "active":
+            hand_num = self.current_hand_index + 1 if self.is_split else 1
+            if current_status == "stand":
+                self.message = f"Hand {hand_num} is already standing!"
+            elif current_status == "bust":
+                self.message = f"Hand {hand_num} is already busted!"
             return False
         
         self._set_current_hand_status("stand")
@@ -608,20 +773,34 @@ class BlackjackGame:
         if self.game_status != "player_turn":
             return False
         
+        if self.is_split:
+            self.message = "Double is not allowed after split!"
+            return False
+        
         current_cards = self._get_current_hand_cards()
         if len(current_cards) != 2:
             return False
         
         current_status = self._get_current_hand_status()
         if current_status != "active":
+            hand_num = self.current_hand_index + 1 if self.is_split else 1
+            if current_status == "stand":
+                self.message = f"Hand {hand_num} is already standing!"
+            elif current_status == "bust":
+                self.message = f"Hand {hand_num} is already busted!"
             return False
         
         if not self.is_split:
-            self.bet *= 2
-            self.hand_bets[0] = self.bet
+            additional_bet = self.bet
+            self.hand_bets[0] += additional_bet
         else:
-            self.hand_bets[self.current_hand_index] *= 2
+            if self.current_hand_index < len(self.hand_bets):
+                additional_bet = self.hand_bets[self.current_hand_index]
+                self.hand_bets[self.current_hand_index] += additional_bet
+            else:
+                return False
         
+        self._check_and_reshuffle()
         new_card = self.deck.pop()
         current_cards.append(new_card)
         new_points = self._calculate_hand_points(current_cards)
@@ -638,47 +817,7 @@ class BlackjackGame:
         
         self._next_hand()
         return True
-    
-    def split(self):
-        if (self.game_status != "player_turn" or len(self.player_cards) != 2 or 
-            self.player_cards[0][0] != self.player_cards[1][0] or self.is_split):
-            return False
-        
-        card1 = self.player_cards[0]
-        card2 = self.player_cards[1]
-        
-        hand1 = [card1]
-        hand2 = [card2]
-        
-        hand1.append(self.deck.pop())
-        hand2.append(self.deck.pop())
-        
-        self.split_hands = [hand1, hand2]
-        self.is_split = True
-        self.current_hand_index = 0
-        
-        self.hand_bets = [self.bet, self.bet]
-        self.hand_status = ["active", "active"]
-        
-        self.hand_points = [
-            self._calculate_hand_points(hand1),
-            self._calculate_hand_points(hand2)
-        ]
-        
-        self.player_cards = []
-        self.player_points = 0
-        
-        for i, points in enumerate(self.hand_points):
-            if points == 21:
-                self.hand_status[i] = "stand"
-        
-        self.message = f"Split! Now playing hand 1 of 2"
-        
-        if all(status != "active" for status in self.hand_status):
-            self._next_hand()
-        
-        return True
-    
+
     def _get_current_hand_cards(self):
         if not self.is_split:
             return self.player_cards
@@ -689,25 +828,35 @@ class BlackjackGame:
         if not self.is_split:
             return self.player_points
         else:
-            return self.hand_points[self.current_hand_index]
+            if self.current_hand_index < len(self.hand_points):
+                return self.hand_points[self.current_hand_index]
+            return 0
     
     def _set_current_hand_points(self, points):
         if not self.is_split:
             self.player_points = points
         else:
-            self.hand_points[self.current_hand_index] = points
+            if self.current_hand_index >= len(self.hand_points):
+                self.hand_points.append(points)
+            else:
+                self.hand_points[self.current_hand_index] = points
     
     def _get_current_hand_status(self):
         if not self.is_split:
             return self.game_status if self.game_status != "player_turn" else "active"
         else:
-            return self.hand_status[self.current_hand_index]
+            if self.current_hand_index < len(self.hand_status):
+                return self.hand_status[self.current_hand_index]
+            return "active"
     
     def _set_current_hand_status(self, status):
         if not self.is_split:
             self.game_status = status
         else:
-            self.hand_status[self.current_hand_index] = status
+            if self.current_hand_index >= len(self.hand_status):
+                self.hand_status.append(status)
+            else:
+                self.hand_status[self.current_hand_index] = status
     
     def _next_hand(self):
         if not self.is_split:
@@ -719,18 +868,26 @@ class BlackjackGame:
         if self.current_hand_index >= len(self.split_hands):
             self._dealer_turn()
         else:
+            while len(self.hand_status) <= self.current_hand_index:
+                self.hand_status.append("active")
+            while len(self.hand_points) <= self.current_hand_index:
+                self.hand_points.append(0)
+            while len(self.hand_bets) <= self.current_hand_index:
+                self.hand_bets.append(self.bet)
+            
             if self.hand_status[self.current_hand_index] == "active":
                 self.message = f"Playing split hand {self.current_hand_index + 1} of {len(self.split_hands)}"
             else:
                 self._next_hand()
-    
+        
     def _dealer_turn(self):
         self.game_status = "dealer_turn"
         self.message = "Dealer's turn"
         
         self.calculate_points()
         
-        while self.dealer_points < 17:
+        while self._should_dealer_hit():
+            self._check_and_reshuffle()
             new_card = self.deck.pop()
             self.dealer_cards.append(new_card)
             self.calculate_points()
@@ -765,38 +922,59 @@ class BlackjackGame:
                     push_count += 1
             
             self.message = f"{win_count} win, {lose_count} lose, {push_count} push, {bust_count} bust"
-    
+            
     def calculate_win_amount(self):
+        if self.game_status == "player_blackjack":
+            return int(self.bet * 2.5)
+        
+        if self.game_status == "push":
+            return self.bet
+        
         if self.game_status != "finished":
             return 0
         
         if not self.is_split:
             if self.player_points > 21:
                 return 0
-            elif self.dealer_points > 21 or self.player_points > self.dealer_points:
-                if self.player_points == 21 and len(self.player_cards) == 2:
-                    return int(self.bet * 2.5)
-                else:
-                    return self.bet * 2
+            elif self.dealer_points > 21:
+                return self.bet * 2
+            elif self.player_points > self.dealer_points:
+                return self.bet * 2
             elif self.player_points == self.dealer_points:
                 return self.bet
             else:
                 return 0
         else:
             total_win = 0
-            for i, points in enumerate(self.hand_points):
-                bet = self.hand_bets[i]
+            num_hands = len(self.split_hands)
+            
+            while len(self.hand_bets) < num_hands:
+                self.hand_bets.append(self.bet)
+            while len(self.hand_points) < num_hands:
+                self.hand_points.append(0)
+            
+            for i in range(num_hands):
+                if i >= len(self.hand_bets):
+                    logger.warning(f"[BlackJack] hand_bets index {i} out of range, using bet")
+                    bet = self.bet
+                else:
+                    bet = self.hand_bets[i]
+                
+                if i >= len(self.hand_points):
+                    logger.warning(f"[BlackJack] hand_points index {i} out of range, skipping")
+                    continue
+                    
+                points = self.hand_points[i]
+                
                 if points > 21:
                     continue
                 elif self.dealer_points > 21 or points > self.dealer_points:
-                    if points == 21 and len(self.split_hands[i]) == 2:
-                        total_win += int(bet * 2.5)
-                    else:
-                        total_win += bet * 2
+                    total_win += bet * 2
                 elif points == self.dealer_points:
                     total_win += bet
+            
             return total_win
-    
+            
     def get_game_state(self):
         display_dealer_cards = self.dealer_cards.copy()
         if self.game_status == "player_turn" and len(display_dealer_cards) > 1:
@@ -821,8 +999,9 @@ class BlackjackGame:
                 'split_hands': self.split_hands,
                 'split_points': self.hand_points,
                 'split_status': self.hand_status,
+                'hand_bets': self.hand_bets,
                 'current_hand': self.current_hand_index,
-                'win_amount': self.calculate_win_amount() if self.game_status == "finished" else 0
+                'win_amount': self.calculate_win_amount() if self.game_status in ["finished", "player_blackjack", "push"] else 0
             }
         else:
             game_state = {
@@ -834,11 +1013,10 @@ class BlackjackGame:
                 'message': self.message,
                 'bet': self.bet,
                 'is_split': False,
-                'win_amount': self.calculate_win_amount() if self.game_status == "finished" else 0
+                'win_amount': self.calculate_win_amount() if self.game_status in ["finished", "player_blackjack", "push"] else 0
             }
         
         return game_state
-
 
 class BlackjackPlugin(BaseGamePlugin):
     def __init__(self):
@@ -931,7 +1109,7 @@ class BlackjackPlugin(BaseGamePlugin):
                 return background_path
         
         return None
-    
+        
     def _send_game_image(self, user_id, user, sender, game, file_queue, win_amount=0, final_balance=None):
         img_path = os.path.join(self.results_folder, f"blackjack_{user_id}_{int(time.time())}.png")
         user_background_path = self.get_user_background_path(user_id, user)
@@ -941,13 +1119,53 @@ class BlackjackPlugin(BaseGamePlugin):
         if final_balance is None:
             final_balance = user["balance"] if user else 0
         
-        overlay_path, error = self.apply_user_overlay(
-            img_path, user_id, sender, game.bet, win_amount, final_balance, user,
-            show_win_text=False, font_scale=0.9, avatar_size=60
+        total_bet = game.bet
+        if game.is_split:
+            total_bet = sum(game.hand_bets) if game.hand_bets else game.bet
+        
+        is_loss = (win_amount == 0 and total_bet > 0 and game.game_status == "finished")
+        
+        user_info = {
+            "user_id": str(user_id),
+            "username": sender,
+            "bet": total_bet,
+            "win": win_amount,
+            "balance": final_balance,
+            "level": user.get("level", 1),
+            "level_progress": user.get("level_progress", 0),
+            "is_win": win_amount > 0,
+            "avatar_path": user.get("avatar_path", "")
+        }
+        
+        if is_loss and win_amount == 0:
+            user_info["win"] = -total_bet
+            user_info["is_win"] = False
+        
+        avatar_path = None
+        bg_path = None
+        
+        if hasattr(self, 'cache') and self.cache:
+            avatar_path = self.cache.get_avatar_path(user_id) if hasattr(self.cache, 'get_avatar_path') else None
+            bg_path = self.cache.get_background_path(user_id) if hasattr(self.cache, 'get_background_path') else None
+        
+        if not avatar_path or not bg_path:
+            return False
+        
+        final_path = self.generate_static(
+            image_path=img_path,
+            avatar_path=avatar_path,
+            bg_path=bg_path,
+            user_info=user_info,
+            show_bet_amount=True,
+            show_win_text=False,
+            font_scale=0.9,
+            avatar_size=60,
+            win_text_scale=1.0,
+            win_text_height=-1
         )
         
-        if overlay_path:
-            file_queue.put(overlay_path)
+        if final_path:
+            file_queue.put(final_path)
             return True
         return False
 
@@ -1045,8 +1263,10 @@ class BlackjackPlugin(BaseGamePlugin):
             if is_game_finished:
                 if game.game_status == "player_blackjack":
                     return f"**BLACKJACK!**\nYou won {win_amount} ({bet} × 2.5)!"
-                else:
+                elif game.game_status == "push":
                     return f"**Push!** Both have Blackjack!\nYour bet of {bet} is returned."
+                else:
+                    return f"Game finished! {game.message}"
             else:
                 return f"Blackjack started! Bet: {bet}"
 
@@ -1067,11 +1287,20 @@ class BlackjackPlugin(BaseGamePlugin):
                                     "Blackjack Error", cache, user_id)
                 return ""
             
+            if user["balance"] < game.bet:
+                self.send_message_image(sender, file_queue, f"Not enough funds to split! Need: {game.bet}, You have: {user['balance']}", 
+                                    "Blackjack Error", cache, user_id)
+                return ""
+            
             success = game.split()
             
             if not success:
                 self.send_message_image(sender, file_queue, "Cannot split this hand!", "Blackjack Error", cache, user_id)
                 return ""
+            
+            new_balance = user["balance"] - game.bet
+            self.update_user_balance(user_id, new_balance)
+            user["balance"] = new_balance
             
             self.save_game_state(user_id, game)
             
@@ -1167,7 +1396,11 @@ class BlackjackPlugin(BaseGamePlugin):
             self._send_game_image(user_id, user, sender, game, file_queue, win_amount, final_balance)
             
             if is_game_finished:
-                return f"{action_msg}! {game.message}\nTotal win: {win_amount}$"
+                if win_amount > 0:
+                    actual_profit = win_amount - game.bet
+                    return f"{action_msg}! {game.message}\nTotal profit: +{actual_profit}$"
+                else:
+                    return f"{action_msg}! {game.message}"
             else:
                 return f"{action_msg}! {game.message}"
 
