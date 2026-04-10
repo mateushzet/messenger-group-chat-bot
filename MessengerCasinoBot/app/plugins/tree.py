@@ -665,15 +665,29 @@ class TreePlugin(BaseGamePlugin):
         game = self.load_game_state(user_id)
         game.water_plants()
         
-        results = []
         total_cost = 0
+        for tree_id in tree_ids:
+            if tree_id >= game.unlocked_trees:
+                self.send_message_image(sender, file_queue, 
+                    f"Tree x{TreeGame.TREES[tree_id]['multiplier']} not unlocked yet",
+                    "Tree Game", self.cache, user_id)
+                self.show_game_status(user_id, user, sender, file_queue)
+                return False
+            
+            tree = TreeGame.TREES[tree_id]
+            total_cost += tree["cost"]
+        
+        if user["balance"] < total_cost:
+            self.send_message_image(sender, file_queue, 
+                f"Not enough coins! Need: {total_cost}, have: {user['balance']}",
+                "Tree Game", self.cache, user_id)
+            self.show_game_status(user_id, user, sender, file_queue)
+            return False
+        
+        results = []
         planted_count = 0
         
         for tree_id in tree_ids:
-            if tree_id >= game.unlocked_trees:
-                results.append(f"Tree x{TreeGame.TREES[tree_id]['multiplier']} not unlocked yet")
-                continue
-            
             success, result = game.plant_tree(tree_id)
             
             if not success:
@@ -681,22 +695,13 @@ class TreePlugin(BaseGamePlugin):
                 continue
             
             cost, slot_num = result
-            total_cost += cost
             planted_count += 1
             results.append(f"Planted x{TreeGame.TREES[tree_id]['multiplier']} in slot {slot_num}")
         
-        if total_cost > 0:
-            if user["balance"] < total_cost:
-                self.send_message_image(sender, file_queue, 
-                    f"Not enough coins! Need: {total_cost}, have: {user['balance']}",
-                    "Tree Game", self.cache, user_id)
-                self.show_game_status(user_id, user, sender, file_queue)
-                return False
-            
-            new_balance = user["balance"] - total_cost
-            self.update_user_balance(user_id, new_balance)
-            user["balance"] = new_balance
-            self.save_game_state(user_id)
+        new_balance = user["balance"] - total_cost
+        self.update_user_balance(user_id, new_balance)
+        user["balance"] = new_balance
+        self.save_game_state(user_id)
         
         result_msg = "\n".join(results)
         if planted_count > 0:
