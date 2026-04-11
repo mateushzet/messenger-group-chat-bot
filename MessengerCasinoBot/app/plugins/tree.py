@@ -16,8 +16,8 @@ class TreeGame:
     
     SLOT_COSTS = [0, 1000, 5000]
     
-    MIN_TIME_PER_STAGE = 1 * 60 * 60 
-    MAX_TIME_PER_STAGE = 3 * 60 * 60 
+    MIN_TIME_PER_STAGE = 1 #* 60 * 60 
+    MAX_TIME_PER_STAGE = 3 #* 60 * 60 
     
     GROWTH_STAGES = 16
     GROWTH_IMAGES = 8
@@ -738,7 +738,7 @@ class TreePlugin(BaseGamePlugin):
                 cut_count += 1
                 results.append(f"Slot {slot+1}: {message}")
             elif loss_amount > 0:
-                total_loss += loss_amount
+                total_loss -= loss_amount
                 withered_count += 1
                 results.append(f"Slot {slot+1}: {message}")
             else:
@@ -749,7 +749,7 @@ class TreePlugin(BaseGamePlugin):
             self.update_user_balance(user_id, new_balance)
             user["balance"] = new_balance
         
-        if total_loss > 0:
+        if total_loss < 0:
             new_level, new_progress = self.cache.add_experience(
                 user_id, total_loss, sender, file_queue
             )
