@@ -426,6 +426,30 @@ HOURLY_REWARD_SYSTEM:
 - Average: ~30 coins (weighted)
 - Probability: Higher near average, lower for extremes
 
+HILO:
+name: Hi-Lo Card Challenge
+command: /hilo
+aliases: /hl
+description: Reserve your bet, see the current card, and guess if the next draw will be higher or lower. Each correct guess increases the multiplier, but a wrong call wipes out the streak.
+
+HILO_HOW_TO_PLAY:
+- Start a round: /hilo start <bet>
+- Guess the next card is higher: /hilo high or /hl high
+- Guess the next card is lower: /hilo low or /hl low
+- Cash out once you hit at least one correct guess: /hilo collect or /hilo cashout
+
+HILO_COMMANDS:
+- /hilo status - Show the current card and streak
+- /hilo high or /hl high - Bet the next card is higher
+- /hilo low or /hl low - Bet the next card is lower
+- /hilo same or /hl same - Bet the next card matches the current one (shown when lower is not available)
+- /hilo collect / /hilo cashout - Bank the streak multiplier
+
+HILO_MECHANICS:
+- Each correct guess increases the payout by +0.5× (starting at 1.0×)
+- Ties or wrong guesses end the streak and cost the reserved bet
+- Collect anytime after a correct guess to lock in the multiplier
+
 JACKPOT:
 name: Jackpot Game
 command: /jackpot
