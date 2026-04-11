@@ -190,27 +190,30 @@ class TreeGame:
                         plant["withered"] = True
         
         return any_updated
-    
+        
     def harvest_tree(self, slot_index):
         if slot_index < 0 or slot_index >= len(self.slots):
-            return None, "Invalid slot number"
+            return None, "Invalid slot number", 0
         
         slot = self.slots[slot_index]
         if not slot["plant"]:
-            return None, "Nothing growing in this slot"
+            return None, "Nothing growing in this slot", 0
         
         plant = slot["plant"]
         if plant["harvested"]:
-            return None, "This tree has already been harvested"
+            return None, "This tree has already been harvested", 0
         
         self.water_plants()
         
         tree = self.TREES[plant["tree_id"]]
         base_cost = tree["cost"]
         
+        loss_amount = 0
+        
         if plant["withered"]:
             current_multiplier = 0
             win_amount = 0
+            loss_amount = base_cost
         else:
             current_multiplier = self._calculate_multiplier_at_stage(
                 tree["multiplier"], plant["current_stage"]
@@ -230,12 +233,14 @@ class TreeGame:
         slot["plant"] = None
         
         message = f"You harvested the tree! Earned: {win_amount} coins (x{current_multiplier} multiplier)"
+        if plant["withered"]:
+            message = f"The tree withered! You lost: {loss_amount} coins"
         if next_tree_unlocked:
             next_tree = self.TREES[plant["tree_id"] + 1]
             message += f"\nYou unlocked {next_tree['name']} tree!"
         
-        return win_amount, message
-    
+        return win_amount, message, loss_amount
+
     def get_slot_status(self, slot_index):
         if slot_index < 0 or slot_index >= len(self.slots):
             return None
@@ -717,10 +722,12 @@ class TreePlugin(BaseGamePlugin):
         
         results = []
         total_win = 0
+        total_loss = 0
         cut_count = 0
+        withered_count = 0
         
         for slot in slots:
-            win_amount, message = game.harvest_tree(slot)
+            win_amount, message, loss_amount = game.harvest_tree(slot)
             
             if win_amount is None:
                 results.append(f"Slot {slot+1}: {message}")
@@ -730,16 +737,21 @@ class TreePlugin(BaseGamePlugin):
                 total_win += win_amount
                 cut_count += 1
                 results.append(f"Slot {slot+1}: {message}")
+            elif loss_amount > 0:
+                total_loss += loss_amount
+                withered_count += 1
+                results.append(f"Slot {slot+1}: {message}")
             else:
-                results.append(f"Slot {slot+1}: Withered tree - no reward")
+                results.append(f"Slot {slot+1}: {message}")
         
         if total_win > 0:
             new_balance = user["balance"] + total_win
             self.update_user_balance(user_id, new_balance)
             user["balance"] = new_balance
-            
+        
+        if total_loss > 0:
             new_level, new_progress = self.cache.add_experience(
-                user_id, total_win, sender, file_queue
+                user_id, total_loss, sender, file_queue
             )
             user["level"] = new_level
             user["level_progress"] = new_progress
