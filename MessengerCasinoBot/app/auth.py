@@ -171,106 +171,93 @@ class MessengerAuth:
             take_error_screenshot(page, "pin_submit")
             return False
 
-
-    def log_in_to_messenger(self):
-        p = sync_playwright().start()
-        
-        browser = p.chromium.launch(
-            headless=True,
-            args=['--disable-blink-features=AutomationControlled']
-        )
-        context = browser.new_context(
-            viewport={"width": 1200, "height": 800},
-            locale="en-US",
-            extra_http_headers={"Accept-Language": "en-US,en;q=0.9"}
-        )
-        page = context.new_page()
-
-        self.load_cookies(context)
-
-        try:
-            page.goto(
-                f"https://www.messenger.com/t/{self.threadid}",
-                wait_until="domcontentloaded",
-                timeout=30000
-            )
-        except Exception as e:
-            logger.critical(f"[AUTH] Loading error: {e}")
-            browser.close()
-            p.stop()
-            return None, None, None
-
-        self.check_and_handle_browser_notice(page)
-        time.sleep(5)
-
-        if self.check_pin_dialog(page):
-            if not self.handle_pin_dialog(page):
-                logger.critical("[AUTH] Failed to handle PIN dialog")
-                browser.close()
-                p.stop()
-                return None, None, None
-        
-        time.sleep(10)
-
-        take_info_screenshot(page, "after_log_in")
-
-        return page, browser, p
-    
     def check_and_handle_browser_notice(self, page: Page) -> bool:
         try:
-            time.sleep(5)
-            
-            close_buttons = page.locator("button[tabindex='0']")
-            
-            if close_buttons.count() > 0:
-                
-                for i in range(close_buttons.count()):
-                    try:
-                        btn = close_buttons.nth(i)
-                        if btn.is_visible(timeout=1000):
-                            btn_text = btn.inner_text().strip()
-                            
-                            if btn_text.lower() in ["close", "zamknij", "x"]:
-                                btn.click(force=True)
-                                time.sleep(1)
-                                return True
-                    except Exception as e:
-                        continue
-            
             close_selectors = [
-                "button:has-text('Close')",
-                "button >> text=/^close$/i"
+                "button[aria-label='Close']",
+                "button[aria-label='Zamknij']",
+                "div[role='button'][aria-label='Close']",
+                "div[role='button'][aria-label='Zamknij']",
+                "button:has-text('×')",
+                "button:has-text('✕')",
+                "button:has-text('X')",
+                "[role='button']:has-text('×')",
+                "svg[aria-label='Close']",
+                "//button[contains(@aria-label, 'Close')]",
+                "//div[contains(@aria-label, 'Close')]",
+                "//*[contains(@class, 'close')]",
+                "//*[contains(@class, 'Close')]"
             ]
             
             for selector in close_selectors:
                 try:
-                    close_btn = page.locator(selector).first
-                    if close_btn.count() > 0 and close_btn.is_visible(timeout=1000):
-                        close_btn.click(force=True)
+                    if selector.startswith("//"):
+                        element = page.locator(f"xpath={selector}")
+                    else:
+                        element = page.locator(selector)
+                    
+                    if element.count() > 0 and element.first.is_visible(timeout=2000):
+                        element.first.click(force=True)
                         page.wait_for_timeout(1000)
+                        
+                        logger.info("[AUTH] Dialog closed")
                         return True
-                except Exception:
+                except Exception as e:
                     continue
             
-            all_buttons = page.locator("button")
-            if all_buttons.count() > 0:
-                for i in range(min(all_buttons.count(), 10)):
-                    try:
-                        btn = all_buttons.nth(i)
-                        if btn.is_visible(timeout=500):
-                            btn_text = btn.inner_text().strip()
-                            if btn_text and btn_text.lower() in ["close", "zamknij"]:
-                                btn.click(force=True)
-                                page.wait_for_timeout(1000)
-                                return True
-                    except:
-                        continue
+            try:
+                result = page.evaluate("""
+                    () => {
+                        // Szukaj elementów z 'close' w aria-label
+                        const elements = document.querySelectorAll('[aria-label*="close" i], [aria-label*="zamknij" i]');
+                        for (const el of elements) {
+                            if (el.click) {
+                                el.click();
+                                return 'clicked by aria-label';
+                            }
+                        }
+                        
+                        // Szukaj elementów z tekstem X, ×, ✕
+                        const xElements = Array.from(document.querySelectorAll('button, div[role="button"]'))
+                            .filter(el => {
+                                const text = el.innerText || '';
+                                return text === '×' || text === '✕' || text === 'X' || text === 'x';
+                            });
+                        
+                        if (xElements.length > 0) {
+                            xElements[0].click();
+                            return 'clicked by X text';
+                        }
+                        
+                        // Szukaj elementów w prawym górnym rogu
+                        const rightTopElements = Array.from(document.querySelectorAll('button, div[role="button"]'))
+                            .filter(el => {
+                                const rect = el.getBoundingClientRect();
+                                return rect.top < 100 && rect.right > window.innerWidth - 100;
+                            });
+                        
+                        if (rightTopElements.length > 0) {
+                            rightTopElements[0].click();
+                            return 'clicked by position';
+                        }
+                        
+                        return 'no close button found';
+                    }
+                """)
+                logger.info(f"[AUTH] JavaScript result: {result}")
+                
+                if "clicked" in result:
+                    page.wait_for_timeout(1000)
+                    return True
+                    
+            except Exception as e:
+                logger.error(f"[AUTH] JavaScript error: {e}")
             
             return True
-                
+            
         except Exception as e:
-            logger.critical(f"Error handling browser notice: {e}", exc_info=True)
-            take_error_screenshot(page, "handlle_browser_notice")
+            logger.critical(f"[AUTH] error in check_and_handle_browser_notice: {e}", exc_info=True)
+            take_error_screenshot(page, "handle_browser_notice")
             return False
 
     def remove_unwanted_aria_labels(self, page: Page):
@@ -334,3 +321,51 @@ class MessengerAuth:
                 }});
             }})();
         """)
+
+    def log_in_to_messenger(self):
+        p = sync_playwright().start()
+        
+        browser = p.chromium.launch(
+            headless=True,
+            args=['--disable-blink-features=AutomationControlled']
+        )
+        context = browser.new_context(
+            viewport={"width": 1200, "height": 800},
+            locale="en-US",
+            extra_http_headers={"Accept-Language": "en-US,en;q=0.9"}
+        )
+        page = context.new_page()
+
+        self.load_cookies(context)
+
+        try:
+            page.goto(
+                f"https://www.messenger.com/t/{self.threadid}",
+                wait_until="domcontentloaded",
+                timeout=30000
+            )
+        except Exception as e:
+            logger.critical(f"[AUTH] Loading error: {e}")
+            browser.close()
+            p.stop()
+            return None, None, None
+
+        time.sleep(5)
+        
+        self.check_and_handle_browser_notice(page)
+        
+        time.sleep(10)
+        
+        if self.check_pin_dialog(page):
+            
+            if not self.handle_pin_dialog(page):
+                logger.critical("[AUTH] Failed to handle PIN dialog")
+                
+                browser.close()
+                p.stop()
+                return None, None, None
+        
+        time.sleep(5)
+        take_info_screenshot(page, "after_log_in")
+        
+        return page, browser, p
