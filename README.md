@@ -46,6 +46,8 @@ This repository contains a Python implementation built on Playwright (browser au
 <br>
 <img width="900" height="1190" alt="image" src="https://github.com/user-attachments/assets/cd7acc56-9255-4e79-a2d0-b74cbd375b46" />
 <br>
+<img width="1000" height="650" alt="image" src="https://github.com/user-attachments/assets/3cd27ba9-ccea-4555-afe5-724d52e8c2e7" />
+<br>
 <img width="270" height="330" alt="682692725_1646843923024310_6933494357104694238_n" src="https://github.com/user-attachments/assets/4c75a4eb-6729-4141-beb2-ba6e29a407c9" />
 <br>
 <img width="800" height="600" alt="image" src="https://github.com/user-attachments/assets/8c0dee17-028d-4176-92d4-f27946f1af50" />
