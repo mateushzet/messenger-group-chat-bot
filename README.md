@@ -6,20 +6,6 @@ This repository contains a Python implementation built on Playwright (browser au
 
 <img width="720" height="571" alt="image" src="https://github.com/user-attachments/assets/b80a72c5-7722-4cb9-8c37-6d8811f4185d" />
 <br>
-<img width="680" height="780" alt="image" src="https://github.com/user-attachments/assets/0f6109c4-8b8c-436c-91dd-c1520f0fba86" />
-<br>
-<img width="480" height="411" alt="image" src="https://github.com/user-attachments/assets/8fae40d2-a946-47d4-abb8-875b8970ed83" />
-<br>
-<img width="980" height="340" alt="image" src="https://github.com/user-attachments/assets/e8f80d07-4e3d-4e1e-8a70-7c26e5e9f73e" />
-<br>
-<img width="708" height="394" alt="image" src="https://github.com/user-attachments/assets/ea18ee71-66fd-4d36-a227-2b423a105017" />
-<br>
-<img width="848" height="472" alt="image" src="https://github.com/user-attachments/assets/ba5b660e-9f46-496d-8b7a-ce20d1e9a412" />
-<br>
-<img width="520" height="280" alt="image" src="https://github.com/user-attachments/assets/68f407e2-dee2-4d81-8210-d6751a89bb63" />
-<br>
-<img width="480" height="384" alt="image" src="https://github.com/user-attachments/assets/c349dd79-314b-4f08-99c7-e033e6c5bfa7" />
-<br>
 <img width="700" height="200" alt="682975868_950274591121033_5503739652065091571_n" src="https://github.com/user-attachments/assets/f856d197-08ed-4bfc-a1b3-f8753cd2d2ee" />
 <br>
 <img width="400" height="400" alt="632967423_25883757254599384_1361686381067693734_n" src="https://github.com/user-attachments/assets/cced9464-b2f1-40fc-a485-39f7bd5727bd" />
@@ -52,7 +38,7 @@ This repository contains a Python implementation built on Playwright (browser au
 <br>
 <img width="370" height="480" alt="image" src="https://github.com/user-attachments/assets/2f5cd4ad-b26e-4d67-b467-b39e219f4683" />
 <br>
-<br><img width="316" height="300" alt="642938644_1207857134751952_1753480880732567316_n" src="https://github.com/user-attachments/assets/e616e91c-8b4d-4d0e-a10e-e155a9777c5a" />
+<img width="316" height="300" alt="642938644_1207857134751952_1753480880732567316_n" src="https://github.com/user-attachments/assets/e616e91c-8b4d-4d0e-a10e-e155a9777c5a" />
 <br>
 <img width="400" height="400" alt="672406795_2162307761271454_892846005625418323_n" src="https://github.com/user-attachments/assets/3d106c46-50fe-4f3c-9eb8-8ac42359915a" />
 <br>
@@ -69,5 +55,19 @@ This repository contains a Python implementation built on Playwright (browser au
 <img width="800" height="550" alt="image" src="https://github.com/user-attachments/assets/33767fc6-2a44-4c37-a456-ddbb0c202089" />
 <br>
 <img width="400" height="400" alt="632967423_25883757254599384_1361686381067693734_n" src="https://github.com/user-attachments/assets/405db7dc-337f-4b9e-8adf-c11904261aa8" />
+<br>
+<img width="680" height="780" alt="image" src="https://github.com/user-attachments/assets/0f6109c4-8b8c-436c-91dd-c1520f0fba86" />
+<br>
+<img width="480" height="411" alt="image" src="https://github.com/user-attachments/assets/8fae40d2-a946-47d4-abb8-875b8970ed83" />
+<br>
+<img width="980" height="340" alt="image" src="https://github.com/user-attachments/assets/e8f80d07-4e3d-4e1e-8a70-7c26e5e9f73e" />
+<br>
+<img width="708" height="394" alt="image" src="https://github.com/user-attachments/assets/ea18ee71-66fd-4d36-a227-2b423a105017" />
+<br>
+<img width="848" height="472" alt="image" src="https://github.com/user-attachments/assets/ba5b660e-9f46-496d-8b7a-ce20d1e9a412" />
+<br>
+<img width="520" height="280" alt="image" src="https://github.com/user-attachments/assets/68f407e2-dee2-4d81-8210-d6751a89bb63" />
+<br>
+<img width="480" height="384" alt="image" src="https://github.com/user-attachments/assets/c349dd79-314b-4f08-99c7-e033e6c5bfa7" />
 <br>
 <img width="480" height="860" alt="image" src="https://github.com/user-attachments/assets/5fa9dda0-dc68-410a-bdb0-025e2650c1f4" />
