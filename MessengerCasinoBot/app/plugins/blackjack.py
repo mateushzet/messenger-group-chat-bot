@@ -5,6 +5,7 @@ from base_game_plugin import BaseGamePlugin
 from logger import logger
 import time
 import json
+from plugins.weekly import record_weekly_win
 
 class BlackjackTableGenerator:
     def __init__(self, text_renderer=None):
@@ -1254,6 +1255,10 @@ class BlackjackPlugin(BaseGamePlugin):
                 user["level"] = newLevel
                 user["level_progress"] = newLevelProgress
                 
+                net_profit = win_amount - bet
+                if net_profit > 0:
+                    record_weekly_win(self.cache, user_id, "blackjack", net_profit)
+                
                 self.active_games.pop(user_id, None)
             else:
                 self.save_game_state(user_id, game)
@@ -1387,6 +1392,11 @@ class BlackjackPlugin(BaseGamePlugin):
                     new_level, new_progress = self.cache.add_experience(user_id, win_amount, sender, file_queue)
                     user["level"] = new_level
                     user["level_progress"] = new_progress
+                    
+                    total_bets = sum(game.hand_bets) if getattr(game, "hand_bets", None) else game.bet
+                    net_profit = win_amount - total_bets
+                    if net_profit > 0:
+                        record_weekly_win(self.cache, user_id, "blackjack", net_profit)
                 
                 self.active_games.pop(user_id, None)
                 if hasattr(self, 'cache') and self.cache:
@@ -1406,7 +1416,7 @@ class BlackjackPlugin(BaseGamePlugin):
 
         else:
             self.send_message_image(sender, file_queue, "Unknown command. Use: /bj start <bet>, /bj hit, /bj stand, /bj double, /bj split", 
-                                "Blackjack Error", cache, user_id)
+                                "Blackjack Error", cache)
             return ""
 
 def register():

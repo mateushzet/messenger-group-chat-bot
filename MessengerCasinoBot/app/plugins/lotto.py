@@ -5,6 +5,7 @@ from datetime import datetime
 from PIL import Image
 from base_game_plugin import BaseGamePlugin
 from logger import logger
+from plugins.weekly import record_weekly_win
 
 class LottoPlugin(BaseGamePlugin):
     def __init__(self):
@@ -310,6 +311,8 @@ class LottoPlugin(BaseGamePlugin):
         
         user["level"] = newLevel
         user["level_progress"] = newLevelProgress
+        if total_net_win > 0:
+            record_weekly_win(self.cache, user_id, "lotto", total_net_win)
         user_info_after = self.create_user_info(sender, total_bet, total_net_win, new_balance, user)
         
         if multi_game_count == 1:

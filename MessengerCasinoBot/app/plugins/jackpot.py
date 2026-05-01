@@ -6,7 +6,6 @@ from datetime import datetime
 from base_game_plugin import BaseGamePlugin
 from logger import logger
 from PIL import Image, ImageDraw
-
 class JackpotGame:
     def __init__(self, plugin_instance):
         self.active_jackpot = None
@@ -108,7 +107,6 @@ class JackpotGame:
                         player.get('username'),
                         self.plugin.file_queue
                     )
-                
                 anim_path, error = self.plugin._create_winner_animation(jackpot_result)
                 if anim_path and not error and self.plugin.file_queue:
                     self.plugin.file_queue.put(anim_path)

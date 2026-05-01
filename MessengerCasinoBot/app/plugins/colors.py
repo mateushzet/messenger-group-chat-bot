@@ -4,6 +4,7 @@ import time
 from base_game_plugin import BaseGamePlugin
 from logger import logger
 from PIL import Image, ImageDraw
+from plugins.weekly import record_weekly_win
 
 class ColorsPlugin(BaseGamePlugin):
     def __init__(self):
@@ -478,6 +479,9 @@ class ColorsPlugin(BaseGamePlugin):
                                 "Error updating balance!",
                                 "Colors - System Error", cache, user_id)
             return None
+        
+        if net_win > 0:
+            record_weekly_win(self.cache, user_id, "colors", net_win)
         
         user_info_before = self.create_user_info(sender, amount, 0, balance_before, user.copy())
         

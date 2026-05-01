@@ -4,6 +4,7 @@ import time
 from PIL import Image, ImageDraw, ImageSequence
 from base_game_plugin import BaseGamePlugin
 from logger import logger
+from plugins.weekly import record_weekly_win
 
 class PlinkoPlugin(BaseGamePlugin):
     def __init__(self):
@@ -509,6 +510,9 @@ class PlinkoPlugin(BaseGamePlugin):
                                   "Error updating balance!",
                                   "Plinko - System Error", cache, user_id)
             return None
+        
+        if net_win > 0:
+            record_weekly_win(self.cache, user_id, "plinko", net_win)
         
         user_info_before = self.create_user_info(sender, total_bet, 0, balance_before, user.copy())
         

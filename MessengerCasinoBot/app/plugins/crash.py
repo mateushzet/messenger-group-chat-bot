@@ -5,6 +5,7 @@ import math
 from PIL import Image
 from base_game_plugin import BaseGamePlugin
 from logger import logger
+from plugins.weekly import record_weekly_win
 
 class CrashPlugin(BaseGamePlugin):
     def __init__(self):
@@ -809,6 +810,7 @@ class CrashPlugin(BaseGamePlugin):
         
         if net_win > 0:
             user_info_after = self.create_user_info(sender, amount, payout, new_balance, user)
+            record_weekly_win(self.cache, user_id, "crash", net_win)
         elif net_win < 0:
             user_info_after = self.create_user_info(sender, amount, -abs(net_win), new_balance, user)
         else:

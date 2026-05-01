@@ -4,6 +4,7 @@ import time
 from typing import Dict, Optional, Any
 from base_game_plugin import BaseGamePlugin
 from logger import logger
+from plugins.weekly import record_weekly_win
 from PIL import Image, ImageDraw
 
 RED_NUMBERS = {1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36}
@@ -427,6 +428,8 @@ class RoulettePlugin(BaseGamePlugin):
         
         user["level"] = newLevel
         user["level_progress"] = newLevelProgress
+        if net_win > 0:
+            record_weekly_win(self.cache, user_id, "roulette", net_win)
         user_info_after = self.create_user_info(sender, amount, net_win, new_balance, user)
 
         result_path, error = self.generate_animation(

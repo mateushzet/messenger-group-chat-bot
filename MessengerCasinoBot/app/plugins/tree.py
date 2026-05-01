@@ -4,7 +4,6 @@ import time
 from PIL import Image, ImageDraw
 from base_game_plugin import BaseGamePlugin
 from logger import logger
-
 class TreeGame:
     
     TREES = [
@@ -16,8 +15,8 @@ class TreeGame:
     
     SLOT_COSTS = [0, 1000, 5000]
     
-    MIN_TIME_PER_STAGE = 1 #* 60 * 60 
-    MAX_TIME_PER_STAGE = 3 #* 60 * 60 
+    MIN_TIME_PER_STAGE = 1 * 60 * 60 
+    MAX_TIME_PER_STAGE = 3 * 60 * 60 
     
     GROWTH_STAGES = 16
     GROWTH_IMAGES = 8
