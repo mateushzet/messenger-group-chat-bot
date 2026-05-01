@@ -9,8 +9,8 @@ from PIL import Image, ImageDraw
 
 from base_game_plugin import BaseGamePlugin
 from logger import logger
+from plugins.weekly import record_weekly_win
 
-# Dodajmy oddzielny logger dla hilo
 hilo_logger = logging.getLogger("hilo_debug")
 hilo_logger.setLevel(logging.DEBUG)
 if not hilo_logger.handlers:
@@ -42,15 +42,15 @@ class HiLoGame:
         self.sender_name = sender_name
         self.bet = bet
         self.deck = deck[:] if deck else self._build_deck()
-        self.current_card = current_card or self._draw_card()  # Lewa strona (do wyświetlenia)
+        self.current_card = current_card or self._draw_card()
         self.streak = streak
-        self.last_card = last_card  # Prawa strona (wynik)
+        self.last_card = last_card
         self.last_direction = last_direction
         self.last_result = last_result
         self.game_status = status or "waiting_guess"
         self.message = message or "Guess if the next card will be higher or lower."
         self.multiplier = multiplier if multiplier is not None else 1.0
-        self.next_guess_card = next_guess_card  # Karta na którą będzie następne typowanie
+        self.next_guess_card = next_guess_card
         
         hilo_logger.debug(f"=== GAME INIT ===")
         hilo_logger.debug(f"user_id: {user_id}")
@@ -62,7 +62,6 @@ class HiLoGame:
 
     def _build_deck(self) -> List[str]:
         suits = ["S", "H", "D", "C"]
-        # As jako najmniejszy (1), Król jako największy (13)
         values = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
         deck = [f"{value}{suit}" for suit in suits for value in values]
         random.shuffle(deck)
@@ -78,7 +77,6 @@ class HiLoGame:
         return card
 
     def _card_rank(self, card: str) -> int:
-        # As = 1, 2=2, ..., 10=10, J=11, Q=12, K=13
         rank_map = {"A": 1, "J": 11, "Q": 12, "K": 13}
         value = card[:-1]
         if value.isdigit():
@@ -126,7 +124,6 @@ class HiLoGame:
             prob = value / total
             stage_mult = self._calculate_direction_multiplier(prob)
             
-            # KURWA MNOŻENIE A NIE DODAWANIE
             next_total = self.get_multiplier()
             if stage_mult:
                 next_total *= stage_mult
@@ -259,7 +256,7 @@ class HiLoGame:
         if self.next_guess_card:
             self.current_card = self.next_guess_card
             self.next_guess_card = None
-            self.last_card = None  # Resetuj prawą stronę (będzie zakryta)
+            self.last_card = None
             hilo_logger.debug(f"Następna runda - typujemy na: {self.current_card}")
             return True
         return False
@@ -276,7 +273,7 @@ class HiLoGame:
     def collect(self) -> int:
         if self.streak == 0 or self.game_status != "waiting_guess":
             return 0
-        payout = int(self.bet * self.get_multiplier())
+        payout = int(self.bet * self.get_multiplier()) + self.bet
         self.game_status = "finished"
         self.last_result = "collect"
         self.message = (
@@ -322,8 +319,6 @@ class HiLoGame:
         )
 
     def get_render_state(self) -> Dict:
-        # Karta do wyświetlenia na lewo: current_card
-        # Karta do wyświetlenia na prawo: last_card
         state = {
             "current_card": self.current_card,
             "last_card": self.last_card,
@@ -431,13 +426,12 @@ class HiLoCardRenderer:
         last_result = game_state.get("last_result")
         game_status = game_state.get("status")
 
-        # Tło zmienia się natychmiast po wyniku
         if last_result == "win":
-            bg_color = (40, 80, 40, 255)  # Zielone tło po wygranej
+            bg_color = (40, 80, 40, 255)
         elif last_result in ("loss", "tie"):
-            bg_color = (80, 40, 40, 255)  # Czerwone tło po przegranej lub remisie
+            bg_color = (80, 40, 40, 255)
         else:
-            bg_color = (12, 16, 28, 255)  # Domyślne #0C101C
+            bg_color = (12, 16, 28, 255)
         
         table_img = Image.new("RGBA", (width, height), bg_color)
         
@@ -465,7 +459,6 @@ class HiLoCardRenderer:
             cards_y,
         )
 
-        # CURRENT CARD (lewa)
         current_card = game_state.get("current_card")
         hilo_logger.debug(f"Rendering LEFT (CURRENT) card: {current_card}")
         self._paste_card(
@@ -476,7 +469,6 @@ class HiLoCardRenderer:
             side="LEFT"
         )
 
-        # NEXT CARD (prawa)
         next_card = game_state.get("last_card")
         hilo_logger.debug(f"Rendering RIGHT (NEXT) card: {next_card}")
         if next_card:
@@ -497,7 +489,6 @@ class HiLoCardRenderer:
                 side="RIGHT"
             )
 
-        # Podpisy pod kartami
         label_font_size = max(16, int(18 * font_scale))
         label_color = (235, 235, 245, 255)
         current_label = self.text_renderer.render_text(
@@ -564,20 +555,17 @@ class HiLoCardRenderer:
             (int(center_x - multiplier_img.width // 2), stats_y + streak_img.height + 8),
         )
         
-        # Przyciski
         button_width = 200
         button_height = 55
         button_spacing = 15
         
         buttons_y = stats_y + 70
         
-        # Sprawdź czy karta jest ekstremalna
         is_highest = has_high == False and has_low == True
         is_lowest = has_low == False and has_high == True
         is_middle = has_high and has_low
         
         if is_highest:
-            # Tylko LOW i SAME
             if has_low:
                 low_next_mult = low_info.get('next_total', game_state.get('multiplier', 1.0))
                 draw.rounded_rectangle(
@@ -642,7 +630,6 @@ class HiLoCardRenderer:
                 )
         
         elif is_lowest:
-            # Tylko HIGH i SAME
             if has_high:
                 high_next_mult = high_info.get('next_total', game_state.get('multiplier', 1.0))
                 draw.rounded_rectangle(
@@ -707,7 +694,6 @@ class HiLoCardRenderer:
                 )
         
         elif is_middle:
-            # HIGH i LOW (bez SAME)
             if has_high:
                 high_next_mult = high_info.get('next_total', game_state.get('multiplier', 1.0))
                 draw.rounded_rectangle(
@@ -771,7 +757,6 @@ class HiLoCardRenderer:
                     (int(center_x - low_subtext.width // 2), buttons_y + low_label.height + 4)
                 )
 
-        # Komunikat na dole
         status_message = game_state.get("message", "Guess high or low to continue.")
         wrapped = textwrap.wrap(status_message, width=45)
         message_images = []
@@ -1129,16 +1114,18 @@ class HiLoPlugin(BaseGamePlugin):
                 self.send_message_image(sender, file_queue, " You need at least one correct guess before collecting!", "Hi-Lo", cache, user_id)
                 return ""
 
-            net_win = payout - game.bet 
-            new_balance = user["balance"] + net_win
-            self.update_user_balance(user_id, new_balance)
-            user["balance"] = new_balance
-            
-            new_level, new_progress = self.cache.add_experience(
-                user_id, net_win, sender, file_queue
-            )
-            user["level"] = new_level
-            user["level_progress"] = new_progress
+        net_win = payout - game.bet 
+        new_balance = user["balance"] + net_win
+        self.update_user_balance(user_id, new_balance)
+        user["balance"] = new_balance
+        
+        new_level, new_progress = self.cache.add_experience(
+            user_id, net_win, sender, file_queue
+        )
+        user["level"] = new_level
+        user["level_progress"] = new_progress
+        if net_win > 0:
+            record_weekly_win(self.cache, user_id, "hilo", net_win)
             
             self._clear_game(user_id)
             self._send_game_image(user_id, user, sender, game, file_queue, win_amount=net_win, final_balance=new_balance, show_win_text=True)
