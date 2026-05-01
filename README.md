@@ -1,4 +1,3 @@
-<img width="400" height="400" alt="632967423_25883757254599384_1361686381067693734_n" src="https://github.com/user-attachments/assets/405db7dc-337f-4b9e-8adf-c11904261aa8" />
 # MessengerGroupChatBot
 
 A Messenger group chat bot that automates reading messages and responding to commands: a virtual currency system, casino-style mini games, daily/hourly rewards, rankings.
@@ -68,5 +67,7 @@ This repository contains a Python implementation built on Playwright (browser au
 <img width="300" height="200" alt="image" src="https://github.com/user-attachments/assets/619c7ccd-5e59-411d-8fd2-e590940985d1" />
 <br>
 <img width="800" height="550" alt="image" src="https://github.com/user-attachments/assets/33767fc6-2a44-4c37-a456-ddbb0c202089" />
+<br>
+<img width="400" height="400" alt="632967423_25883757254599384_1361686381067693734_n" src="https://github.com/user-attachments/assets/405db7dc-337f-4b9e-8adf-c11904261aa8" />
 <br>
 <img width="480" height="860" alt="image" src="https://github.com/user-attachments/assets/5fa9dda0-dc68-410a-bdb0-025e2650c1f4" />
