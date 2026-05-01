@@ -179,14 +179,59 @@ def fill_unknown_senders(messages):
 
 def extract_messages_fix_unknown_sender(page, command_queue):
     def collect_messages():
-        rows_local = page.query_selector_all("div[role='row']")
+        def parse_sender_and_message_from_aria(aria_label):
+            if not aria_label:
+                return None, None
+
+            aria = aria_label.strip()
+            if aria.lower().startswith("at "):
+                parts = aria.split(",", 1)
+                if len(parts) == 2:
+                    rest = parts[1].strip()
+                    if ": " in rest:
+                        sender, msg = rest.split(": ", 1)
+                        return sender.strip(), msg.strip()
+                    if ":" in rest:
+                        sender, msg = rest.split(":", 1)
+                        return sender.strip(), msg.strip()
+                    return rest.strip(), ""
+
+            if " by " in aria:
+                after_by = aria.split(" by ", 1)[1].strip()
+                if ": " in after_by:
+                    sender, msg = after_by.split(": ", 1)
+                    return sender.strip(), msg.strip()
+                if ":" in after_by:
+                    sender, msg = after_by.split(":", 1)
+                    return sender.strip(), msg.strip()
+                return after_by.strip(), ""
+
+            if ": " in aria:
+                head, msg = aria.rsplit(": ", 1)
+                if "," in head:
+                    sender = head.split(",")[-1].strip()
+                    return sender, msg.strip()
+                return None, msg.strip()
+
+            return None, None
+
+        rows_local = page.query_selector_all(
+            "div[data-scope='messages_table'][aria-roledescription='message'][aria-label]"
+        )
+        if not rows_local:
+            rows_local = page.query_selector_all("div[role='row']")
+        if not rows_local:
+            rows_local = page.query_selector_all("[role='article'][aria-label]")
+        if not rows_local:
+            rows_local = page.query_selector_all("[aria-roledescription='message'][aria-label]")
+        if not rows_local:
+            rows_local = page.query_selector_all("[data-scope='messages_table'][aria-label]")
         messages_local = []
         for idx, row in enumerate(rows_local):
             try:
-                gridcell = row.query_selector("div[role='gridcell']")
-                if not gridcell:
-                    continue
-                if row.get_attribute("class") is None or row.get_attribute("class") == "x9f619 x1n2onr6 x1ja2u2z":
+                gridcell = row.query_selector("div[role='gridcell']") or row
+
+                if row.get_attribute("class") == "x9f619 x1n2onr6 x1ja2u2z":
                     continue
                 
                 you_sent_element = row.query_selector('span:has-text("You sent")')
@@ -194,8 +239,17 @@ def extract_messages_fix_unknown_sender(page, command_queue):
                 has_reaction = bool(row.query_selector('div[aria-label*="Like"][role="img"], div[aria-label*="Thumbs up"][role="img"]'))
                 has_reaction_svg = bool(row.query_selector('svg title[id*="_r_a"]'))
                 
-                message_el = gridcell.query_selector("div[dir='auto']")
+                message_el = (
+                    gridcell.query_selector("[data-lexical-editor='true']")
+                    or gridcell.query_selector("div[dir='auto']")
+                )
                 message_text = message_el.inner_text().strip() if message_el else ""
+
+                if message_text == "":
+                    if row.query_selector("a[href*='/messenger_media/?attachment_id='], a[href*='messenger_media'][role='link']"):
+                        message_text = "media_attachment"
+                    elif row.query_selector("img[alt='GIF Image']"):
+                        message_text = "gif_attachment"
 
                 img_elements = row.query_selector_all('img[alt^=""]')
                 emoji_imgs = []
@@ -232,7 +286,10 @@ def extract_messages_fix_unknown_sender(page, command_queue):
                 elif contains_you_sent:
                     sender_name = "You"
                 else:
-                    sender_name = "Unknown"
+                    parsed_sender, parsed_msg = parse_sender_and_message_from_aria(row.get_attribute("aria-label"))
+                    sender_name = parsed_sender or "Unknown"
+                    if message_text == "" and parsed_msg:
+                        message_text = parsed_msg
                     
                 messages_local.append({
                     "row": row,
@@ -242,7 +299,7 @@ def extract_messages_fix_unknown_sender(page, command_queue):
                     "avatar_url": avatar_url,
                     "contains_emoji": len(emoji_imgs) > 0,
                     "has_you_sent": contains_you_sent,
-                    "has_reaction": has_reaction or has_reaction_svg
+                    "has_reaction": has_reaction or has_reaction_svg,
                 })
             except Exception as e:
                 logger.warning(f"[MessageHandler] Error during message extraction: {e}")
@@ -255,6 +312,7 @@ def extract_messages_fix_unknown_sender(page, command_queue):
         sender_name = message["sender"]
         message_text = message["message"]
         row = message["row"]
+
         is_command_message = message_text.startswith('/')
         page.mouse.move(0, 0)
 
@@ -284,7 +342,6 @@ def extract_messages_fix_unknown_sender(page, command_queue):
                 remove_message(page, row, sender_name)
 
         elif sender_name == "You":
-            # Usuń reakcje, emoji i specjalne wiadomości
             if message_text == "reaction" or message["has_reaction"]:
                 if unsend_message(page, row, sender_name):
                     logger.info(f"[MessageHandler] Removed reaction message from 'You'")

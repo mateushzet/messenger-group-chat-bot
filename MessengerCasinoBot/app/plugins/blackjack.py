@@ -4,7 +4,6 @@ from PIL import Image, ImageDraw
 from base_game_plugin import BaseGamePlugin
 from logger import logger
 import time
-import json
 from plugins.weekly import record_weekly_win
 
 class BlackjackTableGenerator:
