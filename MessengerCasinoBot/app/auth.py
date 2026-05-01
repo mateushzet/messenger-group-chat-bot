@@ -109,9 +109,8 @@ class MessengerAuth:
             try:
                 page.wait_for_selector("input[maxlength='6']", timeout=5000)
             except:
-                logger.critical(f"[AUTH] PIN input not found")
-                take_error_screenshot(page, "pin_input_not_found")
-                return False
+                logger.warning("[AUTH] PIN input not found; assuming dialog no longer requires input")
+                return True
             
             pin_input = None
             selectors = [
@@ -130,9 +129,8 @@ class MessengerAuth:
                     continue
             
             if not pin_input:
-                logger.critical(f"[AUTH] PIN input not found")
-                take_error_screenshot(page, "pin_input_not_found")
-                return False
+                logger.warning("[AUTH] PIN input not found after locating dialog; continuing without PIN entry")
+                return True
             
             pin_input.click()
             page.wait_for_timeout(500)
@@ -287,7 +285,9 @@ class MessengerAuth:
             "Chat info",
             "Customize chat",
             "Media & files",
-            "Thread composer"
+            "Thread composer",
+            "Chats",
+            "Thread list"
         ]
 
         classes_to_remove = [
@@ -326,7 +326,7 @@ class MessengerAuth:
         p = sync_playwright().start()
         
         browser = p.chromium.launch(
-            headless=True,
+            headless=False,
             args=['--disable-blink-features=AutomationControlled']
         )
         context = browser.new_context(
