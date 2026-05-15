@@ -132,34 +132,122 @@ def add_angry_reaction_to_message(page, row):
 
 def remove_message(page, row, sender_name):
     try:
-        if click_menu_option(page, row, "Remove message"):
-            confirm = page.wait_for_selector("div[aria-label='Remove']", timeout=1000)
-            if confirm:
-                confirm.click(force=True)
+        clicked = click_menu_option(page, row, "Remove message") or click_menu_option(page, row, "Remove")
+        if clicked:
+            time.sleep(0.2)  # Czekaj na animację
+            
+            # Sprawdź wszystkie możliwe selektory dla przycisku Remove
+            confirm_btn = None
+            selectors = [
+                # Bezpośrednio po aria-label
+                "div[aria-label='Remove'][role='button']:visible",
+                # Przez tekst
+                "span:has-text('Remove'):visible",
+                # Dowolny przycisk z tekstem Remove
+                "button:has-text('Remove'):visible",
+                "[role='button']:has-text('Remove'):visible",
+                # Fallback - wszystko co ma Remove
+                "*:has-text('Remove') >> visible=true"
+            ]
+            
+            for selector in selectors:
+                try:
+                    confirm_btn = page.locator(selector).first
+                    confirm_btn.wait_for(state="visible", timeout=1000)
+                    if confirm_btn:
+                        logger.info(f"[MessageHandler] Found Remove button with selector: {selector}")
+                        break
+                except:
+                    continue
+            
+            if confirm_btn:
+                # Spróbuj kliknąć na różne sposoby
+                try:
+                    confirm_btn.click(force=True, timeout=2000)
+                except:
+                    # Jeśli normalne kliknięcie nie działa, kliknij przez JavaScript
+                    page.evaluate("element => element.click()", confirm_btn.element_handle())
+                
+                time.sleep(0.1)
                 return True
+            else:
+                # Debug: pokaż co jest na stronie
+                html = page.inner_html("body")
+                if "Remove" in html:
+                    logger.warning("[MessageHandler] 'Remove' text found but button not clickable")
+                    take_error_screenshot(page, "remove_button_not_clickable")
+                else:
+                    logger.warning("[MessageHandler] Remove button not found in DOM")
+                    
     except Exception as e:
-        logger.warning(f"[MessageHandler] Error removing message from '{sender_name}': {e}")
-        take_error_screenshot(page,"removing_message")
+        logger.warning(f"[MessageHandler] Error removing message: {e}")
+        take_error_screenshot(page, "removing_message")
         close_message_remove_popup(page)
     return False
 
 def unsend_message(page, row, sender_name):
     try:
-        if click_menu_option(page, row, "Unsend message"):
-            radio = page.wait_for_selector("input[type='radio'][value='1']", timeout=1000)
-            if radio:
-                radio.click(force=True)
-                time.sleep(0.01)
-                remove_button = page.wait_for_selector(
-                    'xpath=//div[@aria-label="Remove" and @role="button"]', timeout=1000
-                )
-                if remove_button:
-                    remove_button.click(force=True)
-                    time.sleep(0.01)
-                    return True
+        clicked = click_menu_option(page, row, "Unsend message") or click_menu_option(page, row, "Unsend")
+        if clicked:
+            time.sleep(0.2)  # Czekaj na pojawienie się dialogu
+            
+            # Krok 1: Wybierz radio button "Remove for everyone"
+            radio_selected = False
+            radio_selectors = [
+                "input[type='radio'][value='1']",
+                "input[value='1'][type='radio']",
+                "[role='radio'][aria-checked='false']:has-text('Everyone')",
+                "label:has-text('Everyone') input[type='radio']"
+            ]
+            
+            for selector in radio_selectors:
+                try:
+                    radio = page.locator(selector).first
+                    radio.wait_for(state="visible", timeout=1000)
+                    radio.click(force=True)
+                    radio_selected = True
+                    logger.info(f"[MessageHandler] Radio button selected with: {selector}")
+                    break
+                except:
+                    continue
+            
+            if not radio_selected:
+                logger.warning("[MessageHandler] Could not find radio button, trying to continue anyway")
+            
+            time.sleep(0.1)
+            
+            # Krok 2: Kliknij Remove (tak samo jak w remove_message)
+            confirm_btn = None
+            remove_selectors = [
+                "div[aria-label='Remove'][role='button']:visible",
+                "span:has-text('Remove'):visible",
+                "[role='button']:has-text('Remove'):visible",
+                "button:has-text('Remove'):visible",
+                "*:has-text('Remove') >> visible=true"
+            ]
+            
+            for selector in remove_selectors:
+                try:
+                    confirm_btn = page.locator(selector).first
+                    confirm_btn.wait_for(state="visible", timeout=1000)
+                    if confirm_btn:
+                        logger.info(f"[MessageHandler] Found Remove button with: {selector}")
+                        break
+                except:
+                    continue
+            
+            if confirm_btn:
+                # Kliknij przez JavaScript (działa zawsze)
+                page.evaluate("element => element.click()", confirm_btn.element_handle())
+                time.sleep(0.1)
+                return True
+            else:
+                logger.warning("[MessageHandler] Remove button not found in unsend dialog")
+                take_error_screenshot(page, "unsend_remove_not_found")
+                
     except Exception as e:
         logger.warning(f"[MessageHandler] Error unsending message from '{sender_name}': {e}")
-        take_error_screenshot(page,"unsending_message")
+        take_error_screenshot(page, "unsending_message")
         close_message_remove_popup(page)
     return False
 
