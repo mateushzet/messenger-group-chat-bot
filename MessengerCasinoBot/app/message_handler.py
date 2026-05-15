@@ -134,19 +134,14 @@ def remove_message(page, row, sender_name):
     try:
         clicked = click_menu_option(page, row, "Remove message") or click_menu_option(page, row, "Remove")
         if clicked:
-            time.sleep(0.2)  # Czekaj na animację
+            time.sleep(0.2)
             
-            # Sprawdź wszystkie możliwe selektory dla przycisku Remove
             confirm_btn = None
             selectors = [
-                # Bezpośrednio po aria-label
                 "div[aria-label='Remove'][role='button']:visible",
-                # Przez tekst
                 "span:has-text('Remove'):visible",
-                # Dowolny przycisk z tekstem Remove
                 "button:has-text('Remove'):visible",
                 "[role='button']:has-text('Remove'):visible",
-                # Fallback - wszystko co ma Remove
                 "*:has-text('Remove') >> visible=true"
             ]
             
@@ -161,17 +156,14 @@ def remove_message(page, row, sender_name):
                     continue
             
             if confirm_btn:
-                # Spróbuj kliknąć na różne sposoby
                 try:
                     confirm_btn.click(force=True, timeout=2000)
                 except:
-                    # Jeśli normalne kliknięcie nie działa, kliknij przez JavaScript
                     page.evaluate("element => element.click()", confirm_btn.element_handle())
                 
                 time.sleep(0.1)
                 return True
             else:
-                # Debug: pokaż co jest na stronie
                 html = page.inner_html("body")
                 if "Remove" in html:
                     logger.warning("[MessageHandler] 'Remove' text found but button not clickable")
@@ -189,9 +181,8 @@ def unsend_message(page, row, sender_name):
     try:
         clicked = click_menu_option(page, row, "Unsend message") or click_menu_option(page, row, "Unsend")
         if clicked:
-            time.sleep(0.2)  # Czekaj na pojawienie się dialogu
+            time.sleep(0.2)
             
-            # Krok 1: Wybierz radio button "Remove for everyone"
             radio_selected = False
             radio_selectors = [
                 "input[type='radio'][value='1']",
@@ -216,7 +207,6 @@ def unsend_message(page, row, sender_name):
             
             time.sleep(0.1)
             
-            # Krok 2: Kliknij Remove (tak samo jak w remove_message)
             confirm_btn = None
             remove_selectors = [
                 "div[aria-label='Remove'][role='button']:visible",
@@ -237,7 +227,6 @@ def unsend_message(page, row, sender_name):
                     continue
             
             if confirm_btn:
-                # Kliknij przez JavaScript (działa zawsze)
                 page.evaluate("element => element.click()", confirm_btn.element_handle())
                 time.sleep(0.1)
                 return True

@@ -1,7 +1,11 @@
 import random
 from datetime import datetime, timedelta
+import os
+
+from PIL import Image, ImageDraw
 
 from base_game_plugin import BaseGamePlugin
+from utils import _get_unique_id
 
 
 CORE_WEEKLY_QUESTS = [
@@ -239,6 +243,8 @@ class WeeklyQuestManager:
             if target and current >= target:
                 completed_count += 1
         completed_all = completed_count == len(targets)
+        week_key = self._current_week_start().isoformat()
+        skip_available = weekly.get("last_rotated_week") != week_key
 
         return {
             "week_start": weekly.get("week_start"),
@@ -247,6 +253,7 @@ class WeeklyQuestManager:
             "labels": labels,
             "active_quests": active,
             "claimed": weekly.get("claimed", False),
+            "skip_available": skip_available,
             "completed_all": completed_all,
             "can_claim": completed_all and not weekly.get("claimed", False),
             "reward": self.REWARD,
@@ -351,6 +358,37 @@ class WeeklyPlugin(BaseGamePlugin):
         super().__init__(game_name="weekly")
         self.reward_amount = weekly_manager.REWARD
 
+    def _render_gradient_bar(self, width: int, height: int, left_rgba, right_rgba, radius: int = 10) -> Image.Image:
+        width = max(1, int(width))
+        height = max(1, int(height))
+
+        base = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+        px = base.load()
+
+        lr, lg, lb, la = left_rgba
+        rr, rg, rb, ra = right_rgba
+
+        denom = max(1, width - 1)
+        for x in range(width):
+            t = x / denom
+            r = int(lr + (rr - lr) * t)
+            g = int(lg + (rg - lg) * t)
+            b = int(lb + (rb - lb) * t)
+            a = int(la + (ra - la) * t)
+            for y in range(height):
+                px[x, y] = (r, g, b, a)
+
+        highlight = Image.new("RGBA", (width, height), (255, 255, 255, 0))
+        hdraw = ImageDraw.Draw(highlight)
+        hdraw.rounded_rectangle([0, 0, width, max(1, height // 2)], radius=radius, fill=(255, 255, 255, 22))
+        base = Image.alpha_composite(base, highlight)
+
+        mask = Image.new("L", (width, height), 0)
+        mdraw = ImageDraw.Draw(mask)
+        mdraw.rounded_rectangle([0, 0, width, height], radius=radius, fill=255)
+        base.putalpha(mask)
+        return base
+
     def _format_week_dates(self, iso_start):
         week_start = iso_start or ""
         week_end = ""
@@ -379,7 +417,8 @@ class WeeklyPlugin(BaseGamePlugin):
                 status.get("labels", {}).get(key, key.title()) for key in active_keys
             ]
             lines.append(f"Active quests: {', '.join(active_labels)}")
-            lines.append("Skip one quest once/week with `/weekly skip <slot>` (1-3).")
+            if status.get("skip_available", True):
+                lines.append("Skip one quest once/week with `/weekly skip <slot>` (1-3).")
             lines.append("")
 
         for game_key, label in status.get("labels", {}).items():
@@ -402,7 +441,299 @@ class WeeklyPlugin(BaseGamePlugin):
 
         return "\n".join(lines)
 
-    def _respond(self, sender, file_queue, message, cache, user_id):
+    def _load_game_icon(self, game_key: str, size: int = 64) -> Image.Image:
+        base_key = weekly_manager._base_game_key(game_key or "")
+        icon_path = self.get_asset_path("icons", f"{base_key}.png")
+
+        try:
+            if os.path.exists(icon_path):
+                icon = Image.open(icon_path).convert("RGBA")
+                return icon.resize((size, size), Image.Resampling.LANCZOS)
+        except Exception:
+            pass
+
+        icon = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(icon)
+        draw.ellipse([2, 2, size - 2, size - 2], fill=(60, 60, 80, 230))
+
+        letter = (base_key[:1] or "?").upper()
+        letter_img = self.text_renderer.render_text(
+            text=letter,
+            font_size=max(18, int(size * 0.45)),
+            color=(255, 255, 255, 255),
+            stroke_width=2,
+            stroke_color=(0, 0, 0, 255),
+            shadow=True,
+        )
+        icon.alpha_composite(
+            letter_img,
+            ((size - letter_img.width) // 2, (size - letter_img.height) // 2),
+        )
+        return icon
+
+    def _generate_weekly_status_image(
+        self,
+        status: dict,
+        username: str,
+        background_path: str,
+        output_folder: str,
+        notice: dict | None = None,
+    ) -> str | None:
+        try:
+            IMAGE_WIDTH = 600
+            PADDING_X = 20
+            HEADER_Y = 14
+
+            week_start, week_end = self._format_week_dates(status.get("week_start"))
+            header_text = f"Weekly Quests ({week_start} - {week_end})"
+
+            title_img = self.text_renderer.render_text(
+                text=header_text,
+                font_size=26,
+                color=(255, 255, 255, 255),
+                stroke_width=2,
+                stroke_color=(0, 0, 0, 255),
+                shadow=True,
+            )
+
+            rows = []
+            active_keys = status.get("active_quests", []) or list(status.get("labels", {}).keys())
+            active_keys = active_keys[:3]
+
+            for game_key in active_keys:
+                label = status.get("labels", {}).get(game_key, game_key.title())
+                target = int(status.get("targets", {}).get(game_key, 0) or 0)
+                progress = int(status.get("progress", {}).get(game_key, 0) or 0)
+
+                if target <= 0:
+                    percent = 100
+                else:
+                    percent = int(max(0, min(100, (progress / target) * 100)))
+
+                rows.append(
+                    {
+                        "game_key": game_key,
+                        "label": label,
+                        "target": target,
+                        "progress": progress,
+                        "percent": percent,
+                        "done": target > 0 and progress >= target,
+                    }
+                )
+
+            ROW_H = 92
+            ROW_GAP = 12
+            BODY_TOP = HEADER_Y + title_img.height + 14
+            BODY_H = len(rows) * ROW_H + max(0, len(rows) - 1) * ROW_GAP
+
+            footer_lines = []
+            completed_count = int(status.get("completed_count", 0) or 0)
+            total_active = len(status.get("targets", {}) or {}) or len(rows) or 3
+            footer_lines.append(f"Completed: {completed_count}/{total_active}")
+            if status.get("skip_available", False):
+                footer_lines.append("Skip available: /weekly skip <slot> (1-3)")
+            if status.get("can_claim"):
+                footer_lines.append(f"Reward ready: +{self.reward_amount} coins")
+            elif status.get("claimed"):
+                footer_lines.append("Reward already claimed. Reset happens every Monday.")
+            else:
+                footer_lines.append(f"Finish every quest to unlock +{self.reward_amount} coins.")
+
+            footer_imgs = [
+                self.text_renderer.render_text(
+                    text=line,
+                    font_size=16,
+                    color=(240, 240, 240, 255),
+                    stroke_width=1,
+                    stroke_color=(0, 0, 0, 255),
+                    shadow=True,
+                )
+                for line in footer_lines
+            ]
+            footer_h = sum(img.height for img in footer_imgs) + (len(footer_imgs) - 1) * 4
+
+            nick_img = self.text_renderer.render_text(
+                text=username,
+                font_size=16,
+                color=(255, 255, 255, 255),
+                stroke_width=1,
+                stroke_color=(0, 0, 0, 255),
+                shadow=True,
+            )
+
+            IMAGE_H = BODY_TOP + BODY_H + 18 + footer_h + 14 + nick_img.height + 18
+
+            bg = Image.open(background_path).convert("RGB").resize((IMAGE_WIDTH, IMAGE_H), Image.Resampling.LANCZOS)
+            canvas = bg.convert("RGBA")
+            draw = ImageDraw.Draw(canvas)
+
+            canvas.alpha_composite(title_img, ((IMAGE_WIDTH - title_img.width) // 2, HEADER_Y))
+
+            dark = (8, 8, 12, 245)
+            row_x = PADDING_X
+            row_w = IMAGE_WIDTH - PADDING_X * 2
+            icon_size = 64
+            bar_h = 26
+
+            y = BODY_TOP
+            for row in rows:
+                draw.rounded_rectangle(
+                    [row_x, y, row_x + row_w, y + ROW_H],
+                    radius=18,
+                    fill=dark,
+                )
+
+                icon = self._load_game_icon(row["game_key"], size=icon_size)
+                icon_x = row_x + 14
+                icon_y = y + (ROW_H - icon_size) // 2
+                canvas.alpha_composite(icon, (icon_x, icon_y))
+
+                text_x = icon_x + icon_size + 14
+                label_img = self.text_renderer.render_text(
+                    text=str(row["label"]),
+                    font_size=18,
+                    color=(255, 255, 255, 255),
+                    stroke_width=1,
+                    stroke_color=(0, 0, 0, 255),
+                    shadow=True,
+                )
+                canvas.alpha_composite(label_img, (text_x, y + 14))
+
+                bar_x = text_x
+                bar_y = y + ROW_H - 40
+                bar_w = row_x + row_w - 16 - bar_x
+
+                draw.rounded_rectangle(
+                    [bar_x, bar_y, bar_x + bar_w, bar_y + bar_h],
+                    radius=8,
+                    fill=(24, 24, 32, 255),
+                )
+
+                fill_w = int(bar_w * (row["percent"] / 100.0))
+                if fill_w > 0:
+                    p = int(row["percent"])
+                    if p < 25:
+                        left, right = (230, 70, 70, 255), (200, 45, 45, 255)
+                    elif p < 50:
+                        left, right = (240, 140, 60, 255), (215, 110, 40, 255)
+                    elif p < 75:
+                        left, right = (245, 210, 70, 255), (230, 185, 55, 255)
+                    elif p < 100:
+                        left, right = (245, 210, 70, 255), (230, 185, 55, 255)
+                    else:
+                        left, right = (80, 200, 110, 255), (55, 170, 85, 255)
+
+                    fill_img = self._render_gradient_bar(fill_w, bar_h, left, right, radius=10)
+                    canvas.alpha_composite(fill_img, (bar_x, bar_y))
+
+                if row["target"] > 0:
+                    bar_text = f"{row['progress']}/{row['target']}"
+                else:
+                    bar_text = str(row["progress"])
+
+                bar_text_img = self.text_renderer.render_text(
+                    text=bar_text,
+                    font_size=13,
+                    color=(255, 255, 255, 255),
+                    stroke_width=2,
+                    stroke_color=(0, 0, 0, 255),
+                    shadow=False,
+                )
+                canvas.alpha_composite(
+                    bar_text_img,
+                    (
+                        bar_x + (bar_w - bar_text_img.width) // 2,
+                        bar_y + (bar_h - bar_text_img.height) // 2,
+                    ),
+                )
+
+                y += ROW_H + ROW_GAP
+
+            footer_y = BODY_TOP + BODY_H + 18
+            x_center = IMAGE_WIDTH // 2
+            cur_y = footer_y
+            for img in footer_imgs:
+                canvas.alpha_composite(img, (x_center - img.width // 2, cur_y))
+                cur_y += img.height + 4
+
+            sep_y = cur_y + 8
+            draw.line([(0, sep_y), (IMAGE_WIDTH, sep_y)], fill=(30, 30, 40, 220), width=2)
+            nick_y = sep_y + 12
+            canvas.alpha_composite(nick_img, ((IMAGE_WIDTH - nick_img.width) // 2, nick_y))
+
+            if notice:
+                headline = str(notice.get("headline") or "")
+                subline = str(notice.get("subline") or "")
+
+                if headline:
+                    headline_img = self.text_renderer.render_text(
+                        text=headline,
+                        font_size=56,
+                        color=(255, 255, 255, 210),
+                        stroke_width=4,
+                        stroke_color=(0, 0, 0, 255),
+                        shadow=True,
+                        shadow_color=(0, 0, 0, 200),
+                        shadow_offset=(3, 3),
+                    )
+                else:
+                    headline_img = None
+
+                if subline:
+                    subline_img = self.text_renderer.render_text(
+                        text=subline,
+                        font_size=40,
+                        color=(255, 255, 255, 210),
+                        stroke_width=3,
+                        stroke_color=(0, 0, 0, 255),
+                        shadow=True,
+                        shadow_color=(0, 0, 0, 200),
+                        shadow_offset=(3, 3),
+                    )
+                else:
+                    subline_img = None
+
+                block_h = 0
+                if headline_img:
+                    block_h += headline_img.height
+                if subline_img:
+                    block_h += (14 if block_h else 0) + subline_img.height
+
+                center_y = (canvas.height - block_h) // 2
+                cur_y = center_y
+                if headline_img:
+                    canvas.alpha_composite(headline_img, ((IMAGE_WIDTH - headline_img.width) // 2, cur_y))
+                    cur_y += headline_img.height + 14
+                if subline_img:
+                    canvas.alpha_composite(subline_img, ((IMAGE_WIDTH - subline_img.width) // 2, cur_y))
+
+            output_path = os.path.join(output_folder, f"weekly_{username}_{_get_unique_id()}.png")
+            canvas.convert("RGB").save(output_path, "PNG", quality=95)
+            return output_path
+        except Exception:
+            return None
+
+    def _respond(self, sender, file_queue, message, cache, user_id, status: dict | None = None, notice: dict | None = None):
+        if status:
+            background_path = None
+            if cache and user_id and hasattr(cache, "get_background_path"):
+                background_path = cache.get_background_path(user_id)
+
+            if not background_path or not os.path.exists(background_path):
+                background_path = self.get_asset_path("backgrounds", "default-bg.png")
+
+            if background_path and os.path.exists(background_path):
+                image_path = self._generate_weekly_status_image(
+                    status=status,
+                    username=sender,
+                    background_path=background_path,
+                    output_folder=self.results_folder,
+                    notice=notice,
+                )
+                if image_path:
+                    file_queue.put(image_path)
+                    return
+
         self.send_message_image(sender, file_queue, message, "Weekly Quest", cache, user_id)
 
     def execute_game(self, command_name, args, file_queue, cache=None, sender=None, avatar_url=None):
@@ -422,37 +753,37 @@ class WeeklyPlugin(BaseGamePlugin):
                     return ""
 
             success, payload = weekly_manager.rotate_one_quest(cache, user_id, slot_index=slot_index)
-            if success:
-                payload_list = payload if isinstance(payload, (list, tuple)) else (payload,)
-                if len(payload_list) >= 2:
-                    old_choice, new_choice = payload_list[0], payload_list[1]
-                else:
-                    old_choice = payload_list[0] if payload_list else "unknown"
-                    new_choice = "unknown"
-                replaced_idx = payload_list[2] if len(payload_list) > 2 else None
-                old_entry = weekly_manager.variant_data.get(old_choice, {})
-                new_entry = weekly_manager.variant_data.get(new_choice, {})
-                old_label = old_entry.get("label", old_choice)
-                new_label = new_entry.get("label", new_choice)
-                slot_text = f"Quest #{replaced_idx + 1}" if replaced_idx is not None else "Quest"
-                self._respond(sender, file_queue,
-                              f"{slot_text} skipped: {old_label} → {new_label}. Skip available again next week.",
-                              cache, user_id)
-            else:
-                self._respond(sender, file_queue, payload, cache, user_id)
+
+            status = weekly_manager.get_status(cache, user_id)
+            message = self._build_status_message(status)
+            if not success and payload:
+                message = f"{payload}\n\n{message}"
+            self._respond(sender, file_queue, message, cache, user_id, status=status)
             return ""
 
         if args and args[0].lower() in {"claim", "c"}:
-            success, payload = weekly_manager.claim_reward(cache, user_id)
-            if success:
-                self._respond(sender, file_queue, f"Weekly reward claimed! +{payload} coins added to your balance.", cache, user_id)
-            else:
-                self._respond(sender, file_queue, payload, cache, user_id)
+            status = weekly_manager.get_status(cache, user_id)
+            message = self._build_status_message(status)
+            self._respond(sender, file_queue, message, cache, user_id, status=status)
             return ""
 
         status = weekly_manager.get_status(cache, user_id)
+        auto_claimed = False
+        auto_claim_amount = None
+        if status and status.get("can_claim"):
+            success, payload = weekly_manager.claim_reward(cache, user_id)
+            if success:
+                auto_claimed = True
+                auto_claim_amount = payload
+
+        if auto_claimed:
+            status = weekly_manager.get_status(cache, user_id)
         message = self._build_status_message(status)
-        self._respond(sender, file_queue, message, cache, user_id)
+        notice = None
+        if auto_claimed and auto_claim_amount is not None:
+            message = f"Auto-claimed weekly reward: +{auto_claim_amount} coins.\n\n{message}"
+            notice = {"headline": "REWARD CLAIMED", "subline": f"+{auto_claim_amount} COINS"}
+        self._respond(sender, file_queue, message, cache, user_id, status=status, notice=notice)
         return ""
 
 
@@ -462,7 +793,7 @@ def register():
         "name": "weekly",
         "aliases": ["/weekly", "/wq"],
         "description": (
-            "Track weekly quests (3 active quests). Use `/weekly` to view status, `/weekly claim` to cash out, "
+            "Track weekly quests (3 active quests). Use `/weekly` to view status, "
             "and `/weekly skip <slot>` (or `/weekly rotate <slot>`) once per week to swap one active quest (1-3) for another random one."
         ),
         "execute": plugin.execute_game
