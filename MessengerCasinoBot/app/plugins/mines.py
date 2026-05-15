@@ -452,7 +452,8 @@ class MinesPlugin(BaseGamePlugin):
             self.send_message_image(sender, file_queue,
                                   "Mines Game Commands:\n\n"
                                   "Start new game:\n"
-                                  "/mines start <bet> <bombs>\n\n"
+                                  "/mines start <bet> <bombs>\n"
+                                  "or /mines <bet> <bombs>\n\n"
                                   "Reveal tiles:\n"
                                   "/mines <tile> (1-25)\n"
                                   "Example: /mines 13\n\n"
@@ -462,10 +463,21 @@ class MinesPlugin(BaseGamePlugin):
                                   "Mines Game Help", cache, user_id)
             return ""
 
+        implicit_start = False
+        implicit_bet = None
+        implicit_bombs = None
+        if len(args) >= 2:
+            try:
+                implicit_bet = int(args[0])
+                implicit_bombs = int(args[1])
+                implicit_start = True
+            except ValueError:
+                implicit_start = False
+
         cmd = args[0].lower()
-        
-        if cmd == "start" or cmd == "bet" or cmd == "b" or cmd == "s":
-            if len(args) < 3:
+         
+        if cmd == "start" or cmd == "bet" or cmd == "b" or cmd == "s" or implicit_start:
+            if not implicit_start and len(args) < 3:
                 self.send_message_image(sender, file_queue,
                                       "Usage: /mines start <bet> <bombs>\n\n"
                                       "Example: /mines start 100 5\n\n"
@@ -473,12 +485,17 @@ class MinesPlugin(BaseGamePlugin):
                                       "Mines - Start Game", cache, user_id)
                 return ""
             try:
-                bet = int(args[1])
-                bombs = int(args[2])
+                if implicit_start:
+                    bet = implicit_bet
+                    bombs = implicit_bombs
+                else:
+                    bet = int(args[1])
+                    bombs = int(args[2])
             except ValueError as e:
                 self.send_message_image(sender, file_queue,
                                       "Invalid format!\n\n"
                                       "Use: /mines start <bet> <bombs>\n"
+                                      "or: /mines <bet> <bombs>\n"
                                       "Example: /mines start 100 5",
                                       "Mines - Error", cache, user_id)
                 return ""
