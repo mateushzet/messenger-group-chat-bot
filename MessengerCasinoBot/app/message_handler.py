@@ -1,261 +1,169 @@
 import os
 import time
+import uuid
 from datetime import datetime as dt
 from utils import take_error_screenshot
 from utils import take_info_screenshot
 from auth import MessengerAuth
 from logger import logger
-from collections import deque
 
 last_message_time = None
-
-recent_messages = deque(maxlen=10)
-MESSAGES_THRESHOLD = 1
-TIME_WINDOW = 0.7
+initial_load_done = False
+processed_in_session = set()
 
 BASE_DIR = os.path.dirname(__file__)
 TEMP_DIR = os.path.join(BASE_DIR, "temp")
+LOG_PREVIEW_LEN = 140
 
-def add_to_message_history(username):
-    recent_messages.append((dt.now(), username))
 
-def is_user_spamming(username):
-    now = dt.now()
-    
-    count = 0
-    for timestamp, user in recent_messages:
-        if user == username and (now - timestamp).total_seconds() <= TIME_WINDOW:
-            count += 1
-    
-    return count >= MESSAGES_THRESHOLD
+def _preview(text, limit=LOG_PREVIEW_LEN):
+    if text is None:
+        return ""
+    text = str(text).replace("\n", "\\n").replace("\r", "\\r")
+    if len(text) <= limit:
+        return text
+    return text[: max(0, limit - 3)] + "..."
+
+
+def _perf_ms(start):
+    return round((time.perf_counter() - start) * 1000, 1)
+
 
 def update_last_message_time():
     global last_message_time
     last_message_time = dt.now()
+    logger.debug(f"[MessageHandler] Updated last_message_time={last_message_time.isoformat()}")
+
 
 def get_sleep_time():
     global last_message_time
     
     if last_message_time is None:
         update_last_message_time()
+        logger.debug("[MessageHandler] get_sleep_time: last_message_time was None -> sleep=3")
         return 3
     
     now = dt.now()
     minutes_since_last = (now - last_message_time).total_seconds() / 60
     
     if minutes_since_last < 2:
+        logger.debug(f"[MessageHandler] get_sleep_time: minutes_since_last={minutes_since_last:.2f} -> sleep=0")
         return 0
     if minutes_since_last < 5:
+        logger.debug(f"[MessageHandler] get_sleep_time: minutes_since_last={minutes_since_last:.2f} -> sleep=1")
         return 1
     elif minutes_since_last < 30:
+        logger.debug(f"[MessageHandler] get_sleep_time: minutes_since_last={minutes_since_last:.2f} -> sleep=3")
         return 3
     elif minutes_since_last < 60:
+        logger.debug(f"[MessageHandler] get_sleep_time: minutes_since_last={minutes_since_last:.2f} -> sleep=5")
         return 5
     elif minutes_since_last < 120:
+        logger.debug(f"[MessageHandler] get_sleep_time: minutes_since_last={minutes_since_last:.2f} -> sleep=10")
         return 10
     elif minutes_since_last < 180:
+        logger.debug(f"[MessageHandler] get_sleep_time: minutes_since_last={minutes_since_last:.2f} -> sleep=15")
         return 15
     elif minutes_since_last < 240:
+        logger.debug(f"[MessageHandler] get_sleep_time: minutes_since_last={minutes_since_last:.2f} -> sleep=20")
         return 20
     elif minutes_since_last < 360:
+        logger.debug(f"[MessageHandler] get_sleep_time: minutes_since_last={minutes_since_last:.2f} -> sleep=25")
         return 25
     elif minutes_since_last < 480:
+        logger.debug(f"[MessageHandler] get_sleep_time: minutes_since_last={minutes_since_last:.2f} -> sleep=30")
         return 30
     elif minutes_since_last < 720:
+        logger.debug(f"[MessageHandler] get_sleep_time: minutes_since_last={minutes_since_last:.2f} -> sleep=60")
         return 60
     elif minutes_since_last < 1200:
+        logger.debug(f"[MessageHandler] get_sleep_time: minutes_since_last={minutes_since_last:.2f} -> sleep=180")
         return 180
     else:
+        logger.debug(f"[MessageHandler] get_sleep_time: minutes_since_last={minutes_since_last:.2f} -> sleep=200")
         return 200
 
-def close_message_remove_popup(page):
-    try:
-        close_btn = page.query_selector("div[aria-label='Close']")
-        if close_btn:
-            close_btn.click(force=True)
-    except Exception as e:
-        logger.warning(f"[MessageHandler] Error closing popup: {e}")
-
-def click_menu_option(page, row, label):
-    try:
-        row.hover(position={"x": 0, "y": 0})
-        more_btn = row.wait_for_selector("div[aria-label='More']", timeout=1000)
-        if more_btn:
-            more_btn.click(force=True)
-            time.sleep(0.01)
-            menu_btn = page.wait_for_selector(f"div[aria-label='{label}'][role='menuitem']", timeout=1000)
-            if menu_btn:
-                menu_btn.click(force=True)
-                time.sleep(0.01)
-                return True
-    except Exception as e:
-        logger.info(f"[MessageHandler] Error clicking menu option '{label}'")
-        close_message_remove_popup(page)
-    return False
-
-def add_reaction_to_message(page, row):
-    try:
-        row.hover(position={"x": 0, "y": 0})
-        react_btn = row.wait_for_selector("div[aria-label='React']", timeout=1000)
-        if react_btn:
-            react_btn.click(force=True)
-            time.sleep(0.01)
-            heart = page.wait_for_selector("img[alt='❤']", timeout=1000)
-            if heart:
-                heart.click(force=True)
-                time.sleep(0.01)
-                return True
-    except Exception as e:
-        logger.info(f"[MessageHandler] Error adding heart reaction")
-        take_error_screenshot(page,"adding_reaction")
-        close_message_remove_popup(page)
-    return False
-
-
-def add_angry_reaction_to_message(page, row):
-    try:
-        row.hover(position={"x": 0, "y": 0})
-        react_btn = row.wait_for_selector("div[aria-label='React']", timeout=1000)
-        if react_btn:
-            react_btn.click(force=True)
-            time.sleep(0.01)
-            angry = page.wait_for_selector("img[alt='😡']", timeout=1000)
-            if angry:
-                angry.click(force=True)
-                time.sleep(0.01)
-                return True
-    except Exception as e:
-        logger.info(f"[MessageHandler] Error adding angry reaction")
-        take_error_screenshot(page,"adding_reaction")
-        close_message_remove_popup(page)
-    return False
-
-def remove_message(page, row, sender_name):
-    try:
-        clicked = click_menu_option(page, row, "Remove message") or click_menu_option(page, row, "Remove")
-        if clicked:
-            time.sleep(0.2)
-            
-            confirm_btn = None
-            selectors = [
-                "div[aria-label='Remove'][role='button']:visible",
-                "span:has-text('Remove'):visible",
-                "button:has-text('Remove'):visible",
-                "[role='button']:has-text('Remove'):visible",
-                "*:has-text('Remove') >> visible=true"
-            ]
-            
-            for selector in selectors:
-                try:
-                    confirm_btn = page.locator(selector).first
-                    confirm_btn.wait_for(state="visible", timeout=1000)
-                    if confirm_btn:
-                        logger.info(f"[MessageHandler] Found Remove button with selector: {selector}")
-                        break
-                except:
-                    continue
-            
-            if confirm_btn:
-                try:
-                    confirm_btn.click(force=True, timeout=2000)
-                except:
-                    page.evaluate("element => element.click()", confirm_btn.element_handle())
-                
-                time.sleep(0.1)
-                return True
-            else:
-                html = page.inner_html("body")
-                if "Remove" in html:
-                    logger.warning("[MessageHandler] 'Remove' text found but button not clickable")
-                    take_error_screenshot(page, "remove_button_not_clickable")
-                else:
-                    logger.warning("[MessageHandler] Remove button not found in DOM")
-                    
-    except Exception as e:
-        logger.warning(f"[MessageHandler] Error removing message: {e}")
-        take_error_screenshot(page, "removing_message")
-        close_message_remove_popup(page)
-    return False
-
-def unsend_message(page, row, sender_name):
-    try:
-        clicked = click_menu_option(page, row, "Unsend message") or click_menu_option(page, row, "Unsend")
-        if clicked:
-            time.sleep(0.2)
-            
-            radio_selected = False
-            radio_selectors = [
-                "input[type='radio'][value='1']",
-                "input[value='1'][type='radio']",
-                "[role='radio'][aria-checked='false']:has-text('Everyone')",
-                "label:has-text('Everyone') input[type='radio']"
-            ]
-            
-            for selector in radio_selectors:
-                try:
-                    radio = page.locator(selector).first
-                    radio.wait_for(state="visible", timeout=1000)
-                    radio.click(force=True)
-                    radio_selected = True
-                    logger.info(f"[MessageHandler] Radio button selected with: {selector}")
-                    break
-                except:
-                    continue
-            
-            if not radio_selected:
-                logger.warning("[MessageHandler] Could not find radio button, trying to continue anyway")
-            
-            time.sleep(0.1)
-            
-            confirm_btn = None
-            remove_selectors = [
-                "div[aria-label='Remove'][role='button']:visible",
-                "span:has-text('Remove'):visible",
-                "[role='button']:has-text('Remove'):visible",
-                "button:has-text('Remove'):visible",
-                "*:has-text('Remove') >> visible=true"
-            ]
-            
-            for selector in remove_selectors:
-                try:
-                    confirm_btn = page.locator(selector).first
-                    confirm_btn.wait_for(state="visible", timeout=1000)
-                    if confirm_btn:
-                        logger.info(f"[MessageHandler] Found Remove button with: {selector}")
-                        break
-                except:
-                    continue
-            
-            if confirm_btn:
-                page.evaluate("element => element.click()", confirm_btn.element_handle())
-                time.sleep(0.1)
-                return True
-            else:
-                logger.warning("[MessageHandler] Remove button not found in unsend dialog")
-                take_error_screenshot(page, "unsend_remove_not_found")
-                
-    except Exception as e:
-        logger.warning(f"[MessageHandler] Error unsending message from '{sender_name}': {e}")
-        take_error_screenshot(page, "unsending_message")
-        close_message_remove_popup(page)
-    return False
 
 def fill_unknown_senders(messages):
+    """Uzupełnia nieznanych nadawców i normalizuje krótkie nazwy na podstawie wcześniejszych wiadomości"""
+    global USER_NAME_CACHE
+    
+    name_mapping = {}
+    for msg in messages:
+        sender = msg.get("sender")
+        avatar_url = msg.get("avatar_url")
+        
+        if sender and avatar_url and sender != "You" and sender != "Unknown":
+            if " " in sender:
+                first_name = sender.split()[0]
+                name_mapping[first_name] = sender
+                name_mapping[sender] = sender  # też zapamiętaj pełną
+    
     last_known_sender = None
     last_known_avatar = None
-    for i in reversed(range(len(messages))):
+    
+    for i in range(len(messages)):
         current_msg = messages[i]
-        if current_msg["sender"] == "Unknown":
+        sender = current_msg.get("sender")
+        
+        if sender == "Unknown":
             if last_known_sender:
                 current_msg["sender"] = last_known_sender
                 if last_known_avatar:
                     current_msg["avatar_url"] = last_known_avatar
+                logger.debug(f"[MessageHandler] Filled Unknown sender with: {last_known_sender}")
         else:
             last_known_sender = current_msg["sender"]
-            last_known_avatar = current_msg["avatar_url"]
+            last_known_avatar = current_msg.get("avatar_url")
+    
+    for msg in messages:
+        sender = msg.get("sender")
+        if sender and sender != "You" and sender != "Unknown":
+            if " " not in sender:
+                if sender in name_mapping:
+                    old_name = sender
+                    msg["sender"] = name_mapping[sender]
+                    logger.debug(f"[MessageHandler] Normalized name: '{old_name}' -> '{msg['sender']}'")
+                else:
+                    for full_name in name_mapping.values():
+                        if full_name.startswith(sender + " "):
+                            old_name = sender
+                            msg["sender"] = full_name
+                            name_mapping[sender] = full_name
+                            logger.debug(f"[MessageHandler] Normalized name (found): '{old_name}' -> '{msg['sender']}'")
+                            break
+    
+    for i in range(1, len(messages)):
+        current_msg = messages[i]
+        prev_msg = messages[i-1]
+        
+        current_sender = current_msg.get("sender")
+        prev_sender = prev_msg.get("sender")
+        
+        if current_sender and prev_sender:
+            if current_sender != "You" and prev_sender != "You":
+                if " " not in current_sender and " " in prev_sender:
+                    if prev_sender.startswith(current_sender + " "):
+                        old_name = current_sender
+                        current_msg["sender"] = prev_sender
+                        current_msg["avatar_url"] = prev_msg.get("avatar_url")
+                        logger.debug(f"[MessageHandler] Fixed name from previous message: '{old_name}' -> '{current_msg['sender']}'")
+    
+    unknown_after = sum(1 for m in messages if m.get("sender") == "Unknown")
+    short_names = sum(1 for m in messages if m.get("sender") and " " not in m.get("sender") and m.get("sender") not in ["You", "Unknown"])
+    
+    if short_names > 0:
+        logger.debug(f"[MessageHandler] fill_unknown_senders: short_names={short_names}, unknown={unknown_after}")
 
 def extract_messages_fix_unknown_sender(page, command_queue):
+    global initial_load_done, processed_in_session
+    
+    cycle_id = uuid.uuid4().hex[:8]
+    cycle_start = time.perf_counter()
+    logger.debug(f"[MessageHandler] cycle_start id={cycle_id}")
+
     def collect_messages():
+        collect_start = time.perf_counter()
         def parse_sender_and_message_from_aria(aria_label):
             if not aria_label:
                 return None, None
@@ -299,22 +207,19 @@ def extract_messages_fix_unknown_sender(page, command_queue):
             rows_local = page.query_selector_all("div[role='row']")
         if not rows_local:
             rows_local = page.query_selector_all("[role='article'][aria-label]")
-        if not rows_local:
-            rows_local = page.query_selector_all("[aria-roledescription='message'][aria-label]")
-        if not rows_local:
-            rows_local = page.query_selector_all("[data-scope='messages_table'][aria-label]")
+        
+        logger.debug(f"[MessageHandler] collect_messages id={cycle_id}: rows_found={len(rows_local)}")
         messages_local = []
         for idx, row in enumerate(rows_local):
             try:
+                data_message_id = row.get_attribute("data-message-id")
+                
                 gridcell = row.query_selector("div[role='gridcell']") or row
 
                 if row.get_attribute("class") == "x9f619 x1n2onr6 x1ja2u2z":
                     continue
                 
                 you_sent_element = row.query_selector('span:has-text("You sent")')
-                
-                has_reaction = bool(row.query_selector('div[aria-label*="Like"][role="img"], div[aria-label*="Thumbs up"][role="img"]'))
-                has_reaction_svg = bool(row.query_selector('svg title[id*="_r_a"]'))
                 
                 message_el = (
                     gridcell.query_selector("[data-lexical-editor='true']")
@@ -328,184 +233,106 @@ def extract_messages_fix_unknown_sender(page, command_queue):
                     elif row.query_selector("img[alt='GIF Image']"):
                         message_text = "gif_attachment"
 
-                img_elements = row.query_selector_all('img[alt^=""]')
-                emoji_imgs = []
-                for img in img_elements:
-                    try:
-                        src = img.get_attribute('src')
-                        if src and src.startswith('https://static.xx.fbcdn.net/images/emoji.php'):
-                            emoji_imgs.append(img)
-                    except:
-                        pass
-                
                 if message_text == "":
-                    if has_reaction or has_reaction_svg:
+                    aria_label = row.get_attribute("aria-label")
+                    if aria_label and any(word in aria_label.lower() for word in ["like", "thumbs", "reaction", "emoji"]):
                         message_text = "reaction"
-                    elif you_sent_element or emoji_imgs:
-                        message_text = "emoji_or_special"
-                    else:
-                        aria_label = row.get_attribute("aria-label")
-                        if aria_label:
-                            aria_label_lower = aria_label.lower()
-                            if any(word in aria_label_lower for word in ["like", "thumbs", "reaction", "emoji"]):
-                                message_text = "reaction"
 
                 if message_text == "Enter":
                     continue
                     
                 avatar = row.query_selector("img.x1rg5ohu, [role='row'] img")
                 row_text = row.inner_text().lower()
-                contains_you_sent = "you sent" in row_text
+                aria_label = row.get_attribute("aria-label") or ""
+                aria_label_lower = aria_label.lower()
+                contains_you_sent = (
+                    bool(you_sent_element)
+                    or ("you sent" in row_text)
+                    or ("you sent" in aria_label_lower)
+                )
                 avatar_url = None
-                if avatar:
+                if contains_you_sent:
+                    sender_name = "You"
+                elif avatar:
                     sender_name = avatar.get_attribute("alt")
                     avatar_url = avatar.get_attribute("src")
-                elif contains_you_sent:
-                    sender_name = "You"
                 else:
-                    parsed_sender, parsed_msg = parse_sender_and_message_from_aria(row.get_attribute("aria-label"))
-                    sender_name = parsed_sender or "Unknown"
-                    if message_text == "" and parsed_msg:
-                        message_text = parsed_msg
+                    sender_name = "Unknown"
+                    if message_text == "":
+                        parsed_sender, parsed_msg = parse_sender_and_message_from_aria(aria_label)
+                        if parsed_msg:
+                            message_text = parsed_msg
                     
                 messages_local.append({
-                    "row": row,
                     "sender": sender_name,
                     "message": message_text,
-                    "timestamp": dt.now().isoformat(),
                     "avatar_url": avatar_url,
-                    "contains_emoji": len(emoji_imgs) > 0,
                     "has_you_sent": contains_you_sent,
-                    "has_reaction": has_reaction or has_reaction_svg,
+                    "data_message_id": data_message_id,
                 })
             except Exception as e:
                 logger.warning(f"[MessageHandler] Error during message extraction: {e}")
                 take_error_screenshot(page, "message_extraction")
         fill_unknown_senders(messages_local)
+        unknown = sum(1 for m in messages_local if m.get("sender") == "Unknown")
+        commands = sum(1 for m in messages_local if str(m.get("message", "")).startswith("/"))
+        if messages_local:
+            logger.debug(
+                f"[MessageHandler] collect_done id={cycle_id}: messages={len(messages_local)}, commands={commands}, unknown={unknown}, ms={_perf_ms(collect_start)}"
+            )
+        else:
+            logger.debug(f"[MessageHandler] collect_done id={cycle_id}: messages=0, ms={_perf_ms(collect_start)}")
         return messages_local
 
     messages = collect_messages()
+    if not messages:
+        logger.debug(f"[MessageHandler] cycle_end id={cycle_id} messages=0 ms={_perf_ms(cycle_start)}")
+        return
+
+    if not initial_load_done:
+        for message in messages:
+            if message.get("data_message_id"):
+                processed_in_session.add(message.get("data_message_id"))
+        initial_load_done = True
+        logger.info(f"[MessageHandler] Initial load: added {len(processed_in_session)} existing message IDs as processed")
+        logger.debug(f"[MessageHandler] cycle_end id={cycle_id} initial load complete, no processing")
+        return
+
+    logger.debug(f"[MessageHandler] process_messages id={cycle_id}: start count={len(messages)}")
     for idx, message in enumerate(messages):
         sender_name = message["sender"]
         message_text = message["message"]
-        row = message["row"]
+        data_message_id = message.get("data_message_id")
+
+        if data_message_id and data_message_id in processed_in_session:
+            logger.debug(f"[MessageHandler] msg id={cycle_id} idx={idx}: skipping already processed message {data_message_id}")
+            continue
 
         is_command_message = message_text.startswith('/')
         page.mouse.move(0, 0)
 
-        if sender_name == "Open photo":
-            unsend_message(page, row, sender_name)
+        logger.debug(
+            f"[MessageHandler] msg id={cycle_id} idx={idx} sender='{sender_name}' "
+            f"command={is_command_message} you_sent={message.get('has_you_sent')} "
+            f"text='{_preview(message_text)}'"
+        )
 
-        elif sender_name == "Unknown":
-            if is_command_message:
-                retry_messages = collect_messages()
-                for m in retry_messages:
-                    if m["message"] == message_text:
-                        if m["sender"] != "Unknown":
-                            if is_user_spamming(sender_name):
-                                if add_angry_reaction_to_message(page, row):
-                                    if remove_message(page, row, sender_name):
-                                        logger.warning(f"[AntiSpam] Removed spam message from {sender_name}")
-                                        add_to_message_history(sender_name)
-                                continue
-                            if add_reaction_to_message(page, m["row"]):
-                                if remove_message(page, m["row"], m["sender"]):
-                                    command_queue.put(m)
-                                    add_to_message_history(sender_name)
-                                    update_last_message_time()
-                                    logger.info(f"[MessageHandler] Message queued: '{sender_name}' - '{message_text}'")
-                        break
-            else:
-                remove_message(page, row, sender_name)
-
-        elif sender_name == "You":
-            if message_text == "reaction" or message["has_reaction"]:
-                if unsend_message(page, row, sender_name):
-                    logger.info(f"[MessageHandler] Removed reaction message from 'You'")
-            elif message_text == "emoji_or_special":
-                if unsend_message(page, row, sender_name):
-                    logger.info(f"[MessageHandler] Removed emoji/special message from 'You'")
-            elif message_text.strip() == "" and "Open photo" not in message_text:
-                continue
-            else:
-                unsend_message(page, row, sender_name)
-
-        elif is_command_message:
-            if is_user_spamming(sender_name):
-                if add_angry_reaction_to_message(page, row):
-                    if remove_message(page, row, sender_name):
-                        logger.warning(f"[AntiSpam] Removed spam message from {sender_name}")
-                        add_to_message_history(sender_name)
-                continue
-            if add_reaction_to_message(page, row):
-                if remove_message(page, row, sender_name):
-                    command_queue.put(message)
-                    add_to_message_history(sender_name)
-                    update_last_message_time()
-                    logger.info(f"[MessageHandler] Message queued: '{sender_name}' - '{message_text}'")
-
+        if is_command_message and sender_name != "You" and not message.get("has_you_sent"):
+            if data_message_id and data_message_id not in processed_in_session:
+                logger.info(f"[MessageHandler] Command queued: '{sender_name}' - '{message_text}' (ID: {data_message_id})")
+                command_queue.put(message)
+                processed_in_session.add(data_message_id)
+                update_last_message_time()
+            elif not data_message_id:
+                logger.warning(f"[MessageHandler] Command without data-message-id, cannot track: '{message_text}'")
         else:
-            remove_message(page, row, sender_name)
+            if is_command_message and (sender_name == "You" or message.get("has_you_sent")):
+                logger.debug(f"[MessageHandler] msg id={cycle_id} idx={idx}: ignoring command from self")
+            else:
+                logger.debug(f"[MessageHandler] msg id={cycle_id} idx={idx}: ignoring non-command message from '{sender_name}'")
 
-def start_monitoring_messages(command_queue):
-    last_cleanup_time = None
-    while True:
-        try:
-            auth = MessengerAuth()
-            page, browser, playwright = auth.log_in_to_messenger()
+    logger.debug(f"[MessageHandler] cycle_end id={cycle_id} messages={len(messages)} ms={_perf_ms(cycle_start)}")
 
-            auth.remove_unwanted_aria_labels(page)
-            time.sleep(5)
-
-            if not page:
-                logger.error("[MessageHandler] Failed to log in for monitoring")
-                time.sleep(10)
-                continue
-            logger.info("[MessageHandler] Starting message monitoring")
-            try:
-                take_info_screenshot(page, "monitoring_ready")
-            except Exception as e:
-                logger.error(f"[MessageHandler] Failed to take initial screenshot: {e}")
-
-            while True:
-                try:
-                    extract_messages_fix_unknown_sender(page, command_queue)
-                    
-                    sleep_time = get_sleep_time()
-                    
-                    if sleep_time != 0:
-                        current_time = time.time()
-                        if (sleep_time == 3 and 
-                            (last_cleanup_time is None or 
-                            current_time - last_cleanup_time >= 300)):
-                            cleanup_temp_folder()
-                            last_cleanup_time = current_time
-                        
-                        time.sleep(sleep_time)
-
-                except Exception as e:
-                    logger.error(f"[MessageHandler] Error in message extraction: {e}")
-                    try:
-                        take_error_screenshot(page, "extraction_error")
-                    except:
-                        pass
-                    break
-            logger.critical("[MessageHandler] Closing browser, will reconnect...")
-            try:
-                browser.close()
-            except:
-                pass
-            try:
-                playwright.stop()
-            except:
-                pass
-            time.sleep(5)
-        except KeyboardInterrupt:
-            logger.info("[MessageHandler] Monitoring stopped by user")
-            break
-        except Exception as e:
-            logger.critical(f"[MessageHandler] Unexpected error in monitoring: {e}")
-            time.sleep(10)
 
 def get_last_message_time():
     global last_message_time
@@ -514,6 +341,7 @@ def get_last_message_time():
         update_last_message_time()
 
     return last_message_time
+
 
 def cleanup_temp_folder():
     try:
@@ -547,10 +375,80 @@ def cleanup_temp_folder():
                     pass
         
         if deleted_count > 0:
-            logger.info(f"[Cleanup] Cleaned {deleted_count} temp files")
+            logger.debug(f"[Cleanup] Cleaned {deleted_count} temp files")
             
         return deleted_count
         
     except Exception as e:
         logger.error(f"[Cleanup] Error cleaning temp: {e}")
         return 0
+
+
+def start_monitoring_messages(command_queue):
+    global initial_load_done, processed_in_session
+    
+    last_cleanup_time = None
+    initial_load_done = False
+    processed_in_session = set()
+    
+    while True:
+        try:
+            auth = MessengerAuth()
+            logger.info("[MessageHandler] Logging in to Messenger for monitoring...")
+            page, browser, playwright = auth.log_in_to_messenger()
+
+            auth.remove_unwanted_aria_labels(page)
+            time.sleep(5)
+
+            if not page:
+                logger.error("[MessageHandler] Failed to log in for monitoring")
+                time.sleep(10)
+                continue
+            logger.info("[MessageHandler] Starting message monitoring")
+            try:
+                take_info_screenshot(page, "monitoring_ready")
+            except Exception as e:
+                logger.error(f"[MessageHandler] Failed to take initial screenshot: {e}")
+
+            while True:
+                try:
+                    extract_messages_fix_unknown_sender(page, command_queue)
+                    
+                    sleep_time = get_sleep_time()
+                    logger.debug(f"[MessageHandler] loop_sleep sleep_time={sleep_time}")
+                    
+                    if sleep_time != 0:
+                        current_time = time.time()
+                        if (sleep_time == 3 and 
+                            (last_cleanup_time is None or 
+                            current_time - last_cleanup_time >= 300)):
+                            cleanup_start = time.perf_counter()
+                            cleanup_temp_folder()
+                            last_cleanup_time = current_time
+                            logger.debug(f"[Cleanup] cycle_cleanup ms={_perf_ms(cleanup_start)}")
+                        
+                        time.sleep(sleep_time)
+
+                except Exception as e:
+                    logger.error(f"[MessageHandler] Error in message extraction: {e}")
+                    try:
+                        take_error_screenshot(page, "extraction_error")
+                    except:
+                        pass
+                    break
+            logger.critical("[MessageHandler] Closing browser, will reconnect...")
+            try:
+                browser.close()
+            except:
+                pass
+            try:
+                playwright.stop()
+            except:
+                pass
+            time.sleep(5)
+        except KeyboardInterrupt:
+            logger.info("[MessageHandler] Monitoring stopped by user")
+            break
+        except Exception as e:
+            logger.critical(f"[MessageHandler] Unexpected error in monitoring: {e}")
+            time.sleep(10)

@@ -354,7 +354,7 @@ class MessengerAuth:
         
         self.check_and_handle_browser_notice(page)
         
-        time.sleep(10)
+        time.sleep(15)
         
         if self.check_pin_dialog(page):
             

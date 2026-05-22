@@ -11,7 +11,7 @@ def file_worker(file_queue: Queue):
     retry_delay = 1
     
     while True:
-        time.sleep(20)
+        #time.sleep(20)
         try:
             auth = MessengerAuth()
             page, browser, playwright = auth.log_in_to_messenger()
