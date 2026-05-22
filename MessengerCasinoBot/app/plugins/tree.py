@@ -332,24 +332,18 @@ class TreeTableGenerator:
         self.plants_folder = os.path.join(assets_folder, "plants")
         self.backgrounds_folder = os.path.join(assets_folder, "backgrounds")
         
-        logger.info(f"[Tree] Loading plants from: {self.plants_folder}")
-        logger.info(f"[Tree] Loading backgrounds from: {self.backgrounds_folder}")
-        
         if os.path.exists(self.plants_folder):
             files = os.listdir(self.plants_folder)
-            logger.info(f"[Tree] Found {len(files)} files in plants folder")
-            
+
             for filename in files:
                 if filename.endswith('.png') and filename.startswith('plant_'):
                     try:
                         self.loaded_plants[filename] = Image.open(
                             os.path.join(self.plants_folder, filename)
                         ).convert('RGBA')
-                        logger.info(f"[Tree] Loaded plant: {filename}")
                     except Exception as e:
                         logger.error(f"[Tree] Cannot load plant {filename}: {e}")
             
-            logger.info(f"[Tree] Total plants loaded: {len(self.loaded_plants)}")
         else:
             logger.error(f"[Tree] Plants folder does not exist: {self.plants_folder}")
         
@@ -360,7 +354,6 @@ class TreeTableGenerator:
                         self.loaded_backgrounds[filename] = Image.open(
                             os.path.join(self.backgrounds_folder, filename)
                         ).convert('RGBA')
-                        logger.info(f"[Tree] Loaded background: {filename}")
                     except Exception as e:
                         logger.error(f"[Tree] Cannot load background {filename}: {e}")
         else:
@@ -441,13 +434,11 @@ class TreeTableGenerator:
         multiplier_font_size = int(24 * font_scale)
         
         bg_filename = self.get_background_filename(game_state)
-        logger.info(f"[Tree] Looking for background: {bg_filename}")
         
         bg_image = None
         
         if bg_filename in self.loaded_backgrounds:
             bg_image = self.loaded_backgrounds[bg_filename].copy()
-            logger.info(f"[Tree] Using background: {bg_filename}")
         elif self.loaded_backgrounds:
             first_bg = list(self.loaded_backgrounds.keys())[0]
             bg_image = self.loaded_backgrounds[first_bg].copy()
@@ -467,18 +458,15 @@ class TreeTableGenerator:
         slots = game_state.get('slots', [])
         unlocked_slots = game_state.get('unlocked_slots', 1)
         
-        logger.info(f"[Tree] Processing {len(slots)} slots, unlocked: {unlocked_slots}")
         
         for i, slot_data in enumerate(slots):
             if i >= unlocked_slots:
-                logger.info(f"[Tree] Slot {i+1} is locked")
                 continue
             
             slot_x, slot_y = self.SLOT_POSITIONS[i]
             
             if slot_data and not slot_data.get('empty', True):
                 plant = slot_data
-                logger.info(f"[Tree] Slot {i+1} has plant: {plant.get('tree_name')}, stage: {plant.get('current_stage')}")
                 
                 tree_id = plant.get('tree_id', 0)
                 current_stage = plant.get('current_stage', 0)
@@ -487,11 +475,9 @@ class TreeTableGenerator:
                 if is_withered:
                     image_stage, _ = self._map_stage_to_image(current_stage, is_withered=True)
                     plant_filename = self.get_plant_filename(tree_id, image_stage, is_withered=True)
-                    logger.info(f"[Tree] Withered tree stage {current_stage} -> image stage {image_stage}: {plant_filename}")
                 else:
                     image_stage, _ = self._map_stage_to_image(current_stage)
                     plant_filename = self.get_plant_filename(tree_id, image_stage, is_withered=False)
-                    logger.info(f"[Tree] Internal stage {current_stage} -> image stage {image_stage}: {plant_filename}")
                 
                 if plant_filename in self.loaded_plants:
                     plant_img = self.loaded_plants[plant_filename].resize((self.PLANT_WIDTH, self.PLANT_HEIGHT))
@@ -500,7 +486,6 @@ class TreeTableGenerator:
                     plant_y = slot_y - self.PLANT_HEIGHT // 2
                     
                     table_img.alpha_composite(plant_img, (plant_x, plant_y))
-                    logger.info(f"[Tree] Planted image at ({plant_x}, {plant_y})")
                     
                     mult_x, mult_y = self.TEXT_POSITIONS[f'slot{i+1}_mult']
                     current_mult = plant.get('current_multiplier', 1.0)
@@ -533,11 +518,8 @@ class TreeTableGenerator:
                             table_img.alpha_composite(progress_bar, (bar_x, bar_y))
                 else:
                     logger.error(f"[Tree] Plant image not found: {plant_filename}")
-            else:
-                logger.info(f"[Tree] Slot {i+1} is empty")
         
         table_img.save(output_path, format='PNG')
-        logger.info(f"[Tree] Saved image to: {output_path}")
 
 class TreePlugin(BaseGamePlugin):
     

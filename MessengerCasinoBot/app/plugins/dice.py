@@ -323,11 +323,8 @@ class DiceAnimationGenerator:
         }
     
     def _load_animation_frames(self):
-        logger.info("[Dice] Starting to load animation frames...")
-        
         for value, path in self.dice_animations.items():
             try:
-                logger.info(f"[Dice] Loading animation for dice_{value} from {path}")
                 frames = []
                 
                 if not os.path.exists(path):
@@ -336,22 +333,13 @@ class DiceAnimationGenerator:
                     continue
                 
                 with Image.open(path) as img:
-                    logger.info(f"[Dice] Image format: {img.format}, mode: {img.mode}")
-                    logger.info(f"[Dice] Image size: {img.size}")
-                    logger.info(f"[Dice] Is animated: {getattr(img, 'is_animated', False)}")
-                    logger.info(f"[Dice] N frames: {getattr(img, 'n_frames', 1)}")
-                    
                     frame_count = 0
                     for frame in ImageSequence.Iterator(img):
                         frame_rgba = frame.convert('RGBA')
                         frames.append(frame_rgba)
                         frame_count += 1
-                        logger.info(f"[Dice] Loaded frame {frame_count}")
-                    
-                    logger.info(f"[Dice] Total frames loaded: {frame_count}")
                 
                 self.dice_animation_frames[value] = frames
-                logger.info(f"[Dice] FINAL: Loaded {len(frames)} frames for dice_{value}")
                 
             except Exception as e:
                 logger.error(f"[Dice] Failed to load animation for dice_{value}: {e}", exc_info=True)
@@ -694,9 +682,6 @@ class DiceAnimationGenerator:
         if frames:
             temp_path = os.path.join(os.path.dirname(__file__), "..", "results", 
                                     f"dice_{action_type}_{random.randint(1000,9999)}.webp")
-            
-            logger.info(f"[Dice] Saving animation with {len(frames)} frames to {temp_path}")
-            
             try:
                 os.makedirs(os.path.dirname(temp_path), exist_ok=True)
                 
@@ -709,7 +694,6 @@ class DiceAnimationGenerator:
                     loop=0,
                     quality=90
                 )
-                logger.info(f"[Dice] Successfully saved animation")
                 return temp_path
             except Exception as e:
                 logger.error(f"[Dice] Error saving animation: {e}")
@@ -731,16 +715,12 @@ class DicePlugin(BaseGamePlugin):
     
     def _load_dice_animations(self):
         dice_folder = self.get_asset_path("dice")
-        
-        logger.info(f"[Dice] Looking for dice animations in: {dice_folder}")
-        
         if not os.path.exists(dice_folder):
             logger.error(f"[Dice] Dice folder not found: {dice_folder}")
             return
         
         try:
             files = os.listdir(dice_folder)
-            logger.info(f"[Dice] Files in dice folder: {files}")
         except Exception as e:
             logger.error(f"[Dice] Error listing dice folder: {e}")
         
@@ -748,7 +728,6 @@ class DicePlugin(BaseGamePlugin):
             animation_path = os.path.join(dice_folder, f"dice_{i}.webp")
             if os.path.exists(animation_path):
                 self.dice_animations[i] = animation_path
-                logger.info(f"[Dice] Found dice animation: dice_{i}.webp")
             else:
                 logger.warning(f"[Dice] Missing dice animation: dice_{i}.webp")
     
@@ -1109,8 +1088,6 @@ class DicePlugin(BaseGamePlugin):
         game.max_rerolls = 1
         game.roll_dice(initial=True)
         self.active_games[user_id] = game
-        
-        logger.info(f"[Dice] New game started for {sender}, bet: {bet}, balance: {balance_before} -> {new_balance}")
         
         game_state = game.get_game_state()
         user_info_after = self.create_user_info(sender, bet, 0, new_balance, user)
