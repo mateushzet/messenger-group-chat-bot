@@ -48,6 +48,36 @@ class ConfigReader:
             logger.error(f"[ASK] Error reading config file: {e}")
             return None
 
+    @staticmethod
+    def get_gemini_model_names():
+        """
+        Optional config override in `config.ini`:
+          [gemini]
+          models = models/gemini-2.0-flash, models/gemini-1.5-flash
+        """
+        try:
+            app_path = os.path.dirname(os.path.abspath(__file__))
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(app_path)))
+            config_path = os.path.join(base_dir, 'MessengerCasinoBot', 'app', 'config', 'config.ini')
+
+            if not os.path.exists(config_path):
+                return None
+
+            config = configparser.ConfigParser()
+            config.read(config_path, encoding='utf-8')
+
+            if not (config.has_section('gemini') and config.has_option('gemini', 'models')):
+                return None
+
+            raw = config.get('gemini', 'models').strip()
+            if not raw:
+                return None
+
+            models = [m.strip() for m in raw.split(",") if m.strip()]
+            return models or None
+        except Exception:
+            return None
+
 
 class RateLimiter:
     
@@ -219,10 +249,11 @@ class GamesKnowledgeBase:
 class AskAssistant:
     
     MODELS_TO_TRY = [
-        "models/gemma-3-27b-it",
-        "models/gemma-3-12b-it",
-        "models/gemma-3-4b-it",
-        "models/gemma-3-1b-it"
+        "models/gemini-2.5-flash",
+        "models/gemini-2.5-flash-lite",
+        "models/gemini-3.5-flash",
+        "models/gemini-3-flash",
+        "models/gemini-3.1-flash-lite",
     ]
     
     _instance = None
@@ -292,6 +323,8 @@ IF YOU DON'T KNOW:
 - Suggest where to look for information
 - You can recommend contacting admin, other players or checking /help command
 """
+                configured_models = ConfigReader.get_gemini_model_names()
+                self.models_to_try = configured_models or self.MODELS_TO_TRY
                 
                 if GEMINI_AVAILABLE and self.api_key:
                     self._init_all_models()
@@ -303,29 +336,50 @@ IF YOU DON'T KNOW:
     def _init_all_models(self):
         try:
             genai.configure(api_key=self.api_key)
-            
-            for model_name in self.MODELS_TO_TRY:
+
+            def iter_model_name_variants(name: str):
+                name = (name or "").strip()
+                if not name:
+                    return []
+                if name.startswith("models/"):
+                    return [name, name[len("models/"):]]
+                return [name, f"models/{name}"]
+
+            for configured_name in getattr(self, "models_to_try", self.MODELS_TO_TRY):
                 try:
-                    test_model = genai.GenerativeModel(model_name)
-                    test_response = test_model.generate_content("Test")
-                    if test_response and test_response.text:
-                        self.models.append({
-                            'name': model_name,
-                            'model': test_model,
-                            'errors': 0,
-                            'last_used': 0
-                        })
-                        logger.info(f"[ASK] Successfully initialized model: {model_name}")
-                    else:
-                        logger.warning(f"[ASK] Model {model_name} returned empty response, skipping")
+                    initialized = False
+                    last_error = None
+                    for model_name in iter_model_name_variants(configured_name):
+                        try:
+                            test_model = genai.GenerativeModel(model_name)
+                            test_response = test_model.generate_content("Test")
+                            if test_response and test_response.text:
+                                self.models.append({
+                                    'name': model_name,
+                                    'model': test_model,
+                                    'errors': 0,
+                                    'last_used': 0
+                                })
+                                logger.info(f"[ASK] Successfully initialized model: {model_name}")
+                                initialized = True
+                                break
+                            else:
+                                last_error = f"empty response from {model_name}"
+                        except Exception as e:
+                            last_error = str(e)
+                            continue
+
+                    if not initialized:
+                        error_msg = last_error or "unknown error"
+                        if "429" in error_msg or "quota" in error_msg.lower() or "rate limit" in error_msg.lower():
+                            logger.warning(f"[ASK] Model {configured_name} has rate limit/quota issues: {error_msg[:100]}")
+                        elif "not found" in error_msg.lower() or "404" in error_msg:
+                            logger.warning(f"[ASK] Model {configured_name} not available: {error_msg[:100]}")
+                        else:
+                            logger.warning(f"[ASK] Failed to initialize model {configured_name}: {error_msg[:100]}")
+                        continue
                 except Exception as e:
-                    error_msg = str(e)
-                    if "429" in error_msg or "quota" in error_msg.lower() or "rate limit" in error_msg.lower():
-                        logger.warning(f"[ASK] Model {model_name} has rate limit/quota issues: {error_msg[:100]}")
-                    elif "not found" in error_msg.lower() or "404" in error_msg:
-                        logger.warning(f"[ASK] Model {model_name} not available: {error_msg[:100]}")
-                    else:
-                        logger.warning(f"[ASK] Failed to initialize model {model_name}: {error_msg[:100]}")
+                    logger.warning(f"[ASK] Failed to initialize model {configured_name}: {str(e)[:100]}")
                     continue
             
             if self.models:
