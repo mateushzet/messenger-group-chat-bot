@@ -130,6 +130,17 @@ class PokerHand:
 
 
 class TexasHoldemGame:
+    FEE_PERCENT = 0.10
+
+    def _apply_fee_to_net_win(self, net_win: int) -> int:
+        try:
+            net_value = int(net_win)
+        except (TypeError, ValueError):
+            return 0
+        if net_value <= 0:
+            return net_value
+        fee = int(net_value * self.FEE_PERCENT)
+        return max(0, net_value - fee)
     def __init__(
         self,
         user_id: str,
@@ -433,9 +444,11 @@ class TexasHoldemGame:
         self.status = "finished"
         self.winner = "player"
         self.finish_reason = "bot_fold"
-        self.payout = self.pot
-        self.net_win = self.payout - self.player_committed
-        self.message = f"Bot folds. You win the pot of {self.pot}."
+        gross_payout = self.pot
+        gross_net = gross_payout - self.player_committed
+        self.net_win = self._apply_fee_to_net_win(gross_net)
+        self.payout = max(0, self.player_committed + self.net_win)
+        self.message = f"Bot folds. You win the pot of {self.pot}"
 
     def finish_showdown(self):
         player_hand = PokerHand(self.player_cards + self.community_cards)
@@ -447,9 +460,11 @@ class TexasHoldemGame:
 
         if player_hand.score > bot_hand.score:
             self.winner = "player"
-            self.payout = self.pot
-            self.net_win = self.payout - self.player_committed
-            self.message = f"Showdown! You win with {player_hand.label}."
+            gross_payout = self.pot
+            gross_net = gross_payout - self.player_committed
+            self.net_win = self._apply_fee_to_net_win(gross_net)
+            self.payout = max(0, self.player_committed + self.net_win)
+            self.message = f"Showdown! You win with {player_hand.label} (-10%)."
         elif player_hand.score < bot_hand.score:
             self.winner = "bot"
             self.payout = 0
@@ -460,6 +475,20 @@ class TexasHoldemGame:
             self.payout = self.pot // 2
             self.net_win = self.payout - self.player_committed
             self.message = f"Showdown push. Both players have {player_hand.label}."
+
+    def runout_to_showdown(self, prefix: str = "All-in.") -> None:
+        if self.status != "active":
+            return
+
+        while self.status == "active":
+            if self.stage != "river":
+                self._reveal_next_stage()
+                continue
+
+            self._reveal_next_stage()
+
+        if self.message:
+            self.message = f"{prefix}\n{self.message}"
 
     def serialize(self) -> Dict:
         return {
@@ -514,13 +543,131 @@ class TexasHoldemGame:
 
 
 class PokerTableRenderer:
-    def __init__(self, text_renderer):
+    def __init__(self, text_renderer, card_assets_dir: Optional[str] = None):
         self.text_renderer = text_renderer
+        self.card_assets_dir = card_assets_dir
+        self._card_cache: Dict[str, Image.Image] = {}
         self.width = 760
         self.height = 560
         self.card_width = 76
         self.card_height = 108
         self.card_gap = 10
+
+    def _card_asset_filename(self, card: str) -> Optional[str]:
+        if not card or len(card) < 2:
+            return None
+
+        suit = card[-1].upper()
+        rank = card[:-1].upper()
+
+        suit_map = {"S": "spades", "H": "hearts", "D": "diamonds", "C": "clubs"}
+        suit_name = suit_map.get(suit)
+        if not suit_name:
+            return None
+
+        if rank in {"J", "Q", "K", "A"}:
+            rank_part = rank
+        else:
+            try:
+                value = int(rank)
+            except ValueError:
+                return None
+            if value < 2 or value > 10:
+                return None
+            rank_part = f"{value:02d}"
+
+        return f"card_{suit_name}_{rank_part}.png"
+
+    def _load_card_asset(self, filename: str) -> Optional[Image.Image]:
+        if not filename or not self.card_assets_dir:
+            return None
+
+        cached = self._card_cache.get(filename)
+        if cached is not None:
+            return cached
+
+        def _trim_whitespace(img: Image.Image) -> Image.Image:
+            try:
+                if img.mode != "RGBA":
+                    img_rgba = img.convert("RGBA")
+                else:
+                    img_rgba = img
+
+                alpha = img_rgba.getchannel("A")
+                bbox = alpha.getbbox()
+                if bbox:
+                    left, top, right, bottom = bbox
+                    if right - left > 10 and bottom - top > 10:
+                        return img_rgba.crop(bbox)
+            except Exception:
+                pass
+
+            try:
+                base = img.convert("RGB")
+                bg = base.getpixel((0, 0))
+                bg2 = base.getpixel((base.width - 1, 0))
+                if bg2 != bg:
+                    bg = base.getpixel((0, base.height - 1))
+
+                px = base.load()
+                left = 0
+                right = base.width - 1
+                top = 0
+                bottom = base.height - 1
+
+                def col_is_bg(x: int) -> bool:
+                    for y in range(0, base.height, max(1, base.height // 20)):
+                        if px[x, y] != bg:
+                            return False
+                    return True
+
+                def row_is_bg(y: int) -> bool:
+                    for x in range(0, base.width, max(1, base.width // 20)):
+                        if px[x, y] != bg:
+                            return False
+                    return True
+
+                while left < right and col_is_bg(left):
+                    left += 1
+                while right > left and col_is_bg(right):
+                    right -= 1
+                while top < bottom and row_is_bg(top):
+                    top += 1
+                while bottom > top and row_is_bg(bottom):
+                    bottom -= 1
+
+                if right - left < 10 or bottom - top < 10:
+                    return img
+
+                return img.crop((left, top, right + 1, bottom + 1))
+            except Exception:
+                return img
+
+        path = os.path.join(self.card_assets_dir, filename)
+        try:
+            if os.path.exists(path):
+                img = Image.open(path).convert("RGBA")
+                img = _trim_whitespace(img)
+                img = img.resize((self.card_width, self.card_height), Image.Resampling.LANCZOS)
+                self._card_cache[filename] = img
+                return img
+        except Exception as exc:
+            logger.warning(f"[Poker] Failed to load card asset {filename}: {exc}")
+
+        self._card_cache[filename] = None
+        return None
+
+    def _load_card_image(self, card: Optional[str], hidden: bool = False) -> Optional[Image.Image]:
+        if hidden:
+            return self._load_card_asset("card_back.png")
+
+        if not card:
+            return None
+
+        filename = self._card_asset_filename(card)
+        if not filename:
+            return None
+        return self._load_card_asset(filename)
 
     def _text(self, text: str, font_size: int, color, stroke_width: int = 0):
         return self.text_renderer.render_text(
@@ -546,7 +693,17 @@ class PokerTableRenderer:
         text_img = self._fit_text(text, font_size, self.width - 70, color)
         canvas.alpha_composite(text_img, ((self.width - text_img.width) // 2, y))
 
+    def _draw_centered_bottom(self, canvas: Image.Image, text: str, font_size: int, color, bottom_padding: int = 0):
+        text_img = self._fit_text(text, font_size, self.width - 30, color)
+        y = canvas.height - text_img.height - max(0, int(bottom_padding))
+        canvas.alpha_composite(text_img, ((self.width - text_img.width) // 2, y))
+
     def _draw_card(self, canvas: Image.Image, card: Optional[str], x: int, y: int, hidden: bool = False):
+        asset_img = self._load_card_image(card, hidden=hidden)
+        if asset_img is not None:
+            canvas.alpha_composite(asset_img, (x, y))
+            return
+
         draw = ImageDraw.Draw(canvas)
         rect = [x, y, x + self.card_width, y + self.card_height]
 
@@ -616,34 +773,33 @@ class PokerTableRenderer:
         draw.rounded_rectangle([58, 96, self.width - 58, self.height - 86], radius=150, fill=(18, 92, 72, 225), outline=(218, 170, 75, 230), width=5)
         draw.rounded_rectangle([78, 116, self.width - 78, self.height - 106], radius=130, outline=(20, 50, 42, 230), width=4)
 
-        self._draw_centered(canvas, "TEXAS HOLD'EM", 28, 28, (255, 255, 255, 255))
         status_color = self._result_color(game)
         headline = game.message.split("\n", 1)[0]
-        self._draw_centered(canvas, headline, 62, 20, status_color)
+        self._draw_centered(canvas, headline, 34, 20, status_color)
 
         info = f"Stage: {game.stage.upper()} | Pot: {game.pot} | You in: {game.player_committed}"
         if game.to_call > 0 and game.status == "active":
             info += f" | To call: {game.to_call}"
-        self._draw_centered(canvas, info, 90, 16, (235, 238, 245, 255))
+        self._draw_centered(canvas, info, 62, 16, (235, 238, 245, 255))
 
         bot_hidden = game.status != "finished"
         bot_label = "BOT"
         if game.status == "finished" and game.bot_hand_label:
             bot_label = f"BOT - {game.bot_hand_label}"
-        self._draw_centered(canvas, bot_label, 122, 16, (190, 198, 210, 255))
-        self._draw_cards(canvas, game.bot_cards, 148, hidden=bot_hidden, slots=2)
+        self._draw_centered(canvas, bot_label, 94, 16, (190, 198, 210, 255))
+        self._draw_cards(canvas, game.bot_cards, 120, hidden=bot_hidden, slots=2)
 
-        self._draw_centered(canvas, "BOARD", 268, 16, (190, 198, 210, 255))
+        self._draw_centered(canvas, "BOARD", 240, 16, (190, 198, 210, 255))
         board_slots = game.community_cards + [None] * (5 - len(game.community_cards))
-        self._draw_cards(canvas, board_slots, 294, slots=5)
+        self._draw_cards(canvas, board_slots, 266, slots=5)
 
         player_label = sender.upper()
         if len(player_label) > 20:
             player_label = f"{player_label[:17]}..."
         if game.status == "finished" and game.player_hand_label:
             player_label = f"{player_label} - {game.player_hand_label}"
-        self._draw_centered(canvas, player_label, 422, 16, (220, 225, 235, 255))
-        self._draw_cards(canvas, game.player_cards, 448, slots=2)
+        self._draw_centered(canvas, player_label, 394, 16, (220, 225, 235, 255))
+        self._draw_cards(canvas, game.player_cards, 420, slots=2)
 
         if game.status == "active":
             if game.to_call > 0:
@@ -652,12 +808,12 @@ class PokerTableRenderer:
                 action = "CHECK / BET <AMOUNT> / FOLD"
         else:
             if game.winner == "player":
-                action = f"PAYOUT {game.payout} | NET +{game.net_win}"
+                action = f"PAYOUT {game.payout} | NET +{game.net_win} (-10%)"
             elif game.winner == "tie":
                 action = f"SPLIT POT | NET {game.net_win}"
             else:
                 action = f"LOST {abs(game.net_win)}"
-        self._draw_centered(canvas, action, 522, 17, status_color)
+        self._draw_centered_bottom(canvas, action, 17, status_color, bottom_padding=0)
 
         canvas.convert("RGB").save(output_path, "PNG", quality=95)
 
@@ -668,7 +824,8 @@ class PokerPlugin(BaseGamePlugin):
         os.makedirs(self.results_folder, exist_ok=True)
         self.min_bet = 1
         self.active_games: Dict[str, TexasHoldemGame] = {}
-        self.renderer = PokerTableRenderer(self.text_renderer)
+        self.card_assets_dir = self.get_asset_path("blackjack", "board_elements")
+        self.renderer = PokerTableRenderer(self.text_renderer, card_assets_dir=self.card_assets_dir)
 
     def load_game_state(self, user_id: str) -> Optional[TexasHoldemGame]:
         user_id = str(user_id)
@@ -695,6 +852,20 @@ class PokerPlugin(BaseGamePlugin):
                 self.cache.save_game_state(user_id, self.game_name, game.serialize())
             else:
                 self.cache.delete_game_state(user_id, self.game_name)
+
+    def _force_showdown_if_broke(self, user: Dict, game: TexasHoldemGame) -> bool:
+        try:
+            balance = int(user.get("balance", 0))
+        except (TypeError, ValueError):
+            balance = 0
+
+        if balance > 0:
+            return False
+        if game.status != "active":
+            return False
+
+        game.runout_to_showdown("All-in (no balance left).")
+        return True
 
     def _clear_game(self, user_id: str):
         user_id = str(user_id)
@@ -784,7 +955,7 @@ class PokerPlugin(BaseGamePlugin):
                 bg_path=background_path,
                 user_info=user_info,
                 show_bet_amount=True,
-                show_win_text=game.status == "finished",
+                show_win_text=False,
                 font_scale=0.8,
                 avatar_size=62,
                 win_text_scale=0.8,
@@ -860,6 +1031,8 @@ class PokerPlugin(BaseGamePlugin):
         if len(args) == 0:
             game = self.load_game_state(user_id)
             if game:
+                if self._force_showdown_if_broke(user, game):
+                    self._finish_if_needed(user_id, user, sender, game, file_queue)
                 self._send_game_image(user_id, user, sender, game, file_queue)
                 return ""
             self._send_help(sender, file_queue, cache, user_id)
@@ -892,7 +1065,9 @@ class PokerPlugin(BaseGamePlugin):
 
             game = TexasHoldemGame(user_id, sender, ante)
             self.active_games[user_id] = game
+            self._force_showdown_if_broke(user, game)
             self.save_game_state(user_id, game)
+            self._finish_if_needed(user_id, user, sender, game, file_queue)
             self._send_game_image(user_id, user, sender, game, file_queue)
             logger.info(f"[Poker] Started Hold'em hand for {sender}, ante={ante}")
             return f"Texas Hold'em started. Ante: {ante}."
@@ -901,6 +1076,9 @@ class PokerPlugin(BaseGamePlugin):
         if not game:
             self.send_message_image(sender, file_queue, "No active poker hand. Use /poker start <ante>.", "Poker", cache, user_id)
             return ""
+
+        if self._force_showdown_if_broke(user, game):
+            self._finish_if_needed(user_id, user, sender, game, file_queue)
 
         success = False
         message = ""
@@ -919,6 +1097,8 @@ class PokerPlugin(BaseGamePlugin):
                 self.send_message_image(sender, file_queue, f"Insufficient funds. Need {cost} to call.", "Poker Error", cache, user_id)
                 return ""
             success, message = game.player_call()
+            if success and self._force_showdown_if_broke(user, game):
+                message = game.message
 
         elif cmd in {"bet", "b"}:
             amount, amount_error = self._parse_amount(args, 1)
@@ -933,6 +1113,8 @@ class PokerPlugin(BaseGamePlugin):
             if not success:
                 user["balance"] += cost
                 self.update_user_balance(user_id, user["balance"])
+            elif self._force_showdown_if_broke(user, game):
+                message = game.message
 
         elif cmd in {"raise", "r"}:
             amount, amount_error = self._parse_amount(args, 1)
@@ -947,6 +1129,8 @@ class PokerPlugin(BaseGamePlugin):
             if not success:
                 user["balance"] += cost
                 self.update_user_balance(user_id, user["balance"])
+            elif self._force_showdown_if_broke(user, game):
+                message = game.message
 
         elif cmd in {"fold", "f"}:
             success, message = game.player_fold()
