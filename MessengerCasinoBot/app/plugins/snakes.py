@@ -156,6 +156,37 @@ class SnakesGame:
     def current_payout(self) -> int:
         return int(round(self.bet * self.cumulative_multiplier))
 
+    def serialize(self) -> Dict:
+        return {
+            "bet": int(self.bet),
+            "difficulty": str(self.difficulty.key),
+            "round_index": int(self.round_index),
+            "cumulative_multiplier": float(self.cumulative_multiplier),
+            "last_roll": list(self.last_roll) if self.last_roll else None,
+            "last_sum": int(self.last_sum) if self.last_sum is not None else None,
+            "last_outcome": self.last_outcome,
+            "last_multiplier": float(self.last_multiplier) if self.last_multiplier is not None else None,
+            "last_table_round_index": int(self.last_table_round_index),
+        }
+
+    @classmethod
+    def deserialize(cls, data: Dict) -> "SnakesGame":
+        bet = int(data.get("bet", 0))
+        difficulty_key = str(data.get("difficulty", "medium")).lower()
+        difficulty = _DIFFICULTIES.get(difficulty_key, _DIFFICULTIES["medium"])
+        game = cls(bet=bet, difficulty=difficulty)
+        game.round_index = int(data.get("round_index", 0))
+        game.cumulative_multiplier = float(data.get("cumulative_multiplier", 1.0))
+        last_roll = data.get("last_roll")
+        game.last_roll = tuple(last_roll) if isinstance(last_roll, (list, tuple)) and len(last_roll) == 3 else None
+        game.last_sum = data.get("last_sum")
+        game.last_sum = int(game.last_sum) if game.last_sum is not None else None
+        game.last_outcome = data.get("last_outcome")
+        game.last_multiplier = data.get("last_multiplier")
+        game.last_multiplier = float(game.last_multiplier) if game.last_multiplier is not None else None
+        game.last_table_round_index = int(data.get("last_table_round_index", game.round_index))
+        return game
+
 
 class SnakesAnimationGenerator:
     def __init__(self, text_renderer):
@@ -403,8 +434,8 @@ class SnakesAnimationGenerator:
         logger.info(f"[Snakes] Generating animation for action: {action_type}")
         frames = []
         
-        ANIMATION_LENGTH = 15
-        HOLD_FRAMES = 6
+        ANIMATION_LENGTH = 20
+        HOLD_FRAMES = 20
         
         if action_type == 'start':
             original_multiplier = game.cumulative_multiplier
@@ -482,7 +513,7 @@ class SnakesAnimationGenerator:
             path_positions = self.get_path_positions_to_target(new_target_pos, start_pos)
             
             for pos in path_positions:
-                for _ in range(HOLD_FRAMES // 2):
+                for _ in range(HOLD_FRAMES * 15):
                     img = self.create_base_image(user_background_path)
                     self.draw_board(img, game, highlight_positions=[pos])
                     self.draw_dice_center(img, game, is_rolling=False)
@@ -509,7 +540,7 @@ class SnakesAnimationGenerator:
         elif action_type == 'cashout':
             current_pos = self.sum_to_pos.get(game.last_sum, (0, 0)) if game.last_sum else (0, 0)
             self.multiplier_color = (80, 255, 80, 255)
-            for _ in range(HOLD_FRAMES * 2):
+            for _ in range(HOLD_FRAMES * 15):
                 img = self.create_base_image(user_background_path)
                 self.draw_board(img, game, highlight_positions=[current_pos])
                 self.draw_dice_center(img, game, is_rolling=False)
@@ -570,7 +601,7 @@ class SnakesAnimationGenerator:
                 path_positions = self.get_path_positions_to_target(target_pos, start_pos)
                 
                 for pos in path_positions:
-                    for _ in range(HOLD_FRAMES // 2):
+                    for _ in range(HOLD_FRAMES * 2):
                         img = self.create_base_image(user_background_path)
                         self.draw_board(img, game, highlight_positions=[pos])
                         self.draw_dice_center(img, game, is_rolling=False)
@@ -587,50 +618,16 @@ class SnakesAnimationGenerator:
                         frames.append(img)
             
             self.multiplier_color = (255, 80, 80, 255)
-            
-            original_board_x0 = self.board_x0
-            original_board_y0 = self.board_y0
-            
-            for i in range(HOLD_FRAMES * 3):
+            for _ in range(HOLD_FRAMES):
                 img = self.create_base_image(user_background_path)
-                
-                if i < HOLD_FRAMES:
-                    shake_x = random.randint(-3, 3)
-                    shake_y = random.randint(-2, 2)
-                    self.board_x0 = original_board_x0 + shake_x
-                    self.board_y0 = original_board_y0 + shake_y
-                
+
                 if game.last_sum:
                     final_pos = self.sum_to_pos.get(game.last_sum, (0, 0))
                     self.draw_board(img, game, highlight_positions=[final_pos])
                 else:
                     self.draw_board(img, game)
-                
+
                 self.draw_dice_center(img, game, is_rolling=False)
-                self.draw_multiplier_center(img, game)
-                self.draw_progress_dots(img, game)
-                
-                self.board_x0 = original_board_x0
-                self.board_y0 = original_board_y0
-                
-                frames.append(img)
-            
-            for i in range(HOLD_FRAMES * 2):
-                img = self.create_base_image(user_background_path)
-                
-                if game.last_sum:
-                    final_pos = self.sum_to_pos.get(game.last_sum, (0, 0))
-                    self.draw_board(img, game, highlight_positions=[final_pos])
-                else:
-                    self.draw_board(img, game)
-                
-                self.draw_dice_center(img, game, is_rolling=False)
-                
-                if i % 2 == 0:
-                    self.multiplier_color = (255, 80, 80, 255)
-                else:
-                    self.multiplier_color = (200, 50, 50, 255)
-                
                 self.draw_multiplier_center(img, game)
                 self.draw_progress_dots(img, game)
                 frames.append(img)
@@ -662,7 +659,7 @@ class SnakesAnimationGenerator:
                     format='WEBP',
                     save_all=True,
                     append_images=frames[1:],
-                    duration=100,
+                    duration=75,
                     loop=0,
                     quality=90
                 )
@@ -685,13 +682,79 @@ class SnakesPlugin(BaseGamePlugin):
         if not value:
             return _DIFFICULTIES["medium"]
         key = value.strip().lower()
+
+        if key.isdigit():
+            num = int(key)
+            order = ["easy", "medium", "hard", "expert", "master"]
+            if 1 <= num <= len(order):
+                return _DIFFICULTIES[order[num - 1]]
+
         if key in _DIFFICULTIES:
             return _DIFFICULTIES[key]
+
+        if key in ("e", "ea"):
+            return _DIFFICULTIES["easy"]
         if key in ("med", "m"):
             return _DIFFICULTIES["medium"]
-        if key in ("exp", "e"):
+        if key in ("h",):
+            return _DIFFICULTIES["hard"]
+        if key in ("x", "ex", "exp"):
             return _DIFFICULTIES["expert"]
+        if key in ("ma", "mas"):
+            return _DIFFICULTIES["master"]
         return _DIFFICULTIES["medium"]
+
+    def load_game_state(self, user_id: str) -> Optional[Dict]:
+        user_id = str(user_id)
+        if user_id in self.active_games:
+            return self.active_games[user_id]
+
+        if hasattr(self, "cache") and self.cache:
+            stored = self.cache.get_game_state(user_id, self.game_name)
+            if stored:
+                try:
+                    game_data = stored.get("game") if isinstance(stored, dict) else None
+                    meta = stored.get("meta") if isinstance(stored, dict) else None
+                    if not isinstance(game_data, dict) or not isinstance(meta, dict):
+                        return None
+                    game = SnakesGame.deserialize(game_data)
+                    data = {
+                        "game": game,
+                        "bet": int(meta.get("bet", game.bet)),
+                        "balance_after_bet": int(meta.get("balance_after_bet", 0)),
+                        "balance_before": int(meta.get("balance_before", 0)),
+                        "player": meta.get("player"),
+                    }
+                    self.active_games[user_id] = data
+                    return data
+                except Exception as exc:
+                    logger.error(f"[Snakes] Failed to deserialize game: {exc}")
+        return None
+
+    def save_game_state(self, user_id: str, data: Optional[Dict]):
+        user_id = str(user_id)
+        if not (hasattr(self, "cache") and self.cache):
+            return
+        if not data:
+            self.cache.delete_game_state(user_id, self.game_name)
+            return
+        game: SnakesGame = data.get("game")
+        payload = {
+            "game": game.serialize() if game else None,
+            "meta": {
+                "bet": int(data.get("bet", 0)),
+                "balance_after_bet": int(data.get("balance_after_bet", 0)),
+                "balance_before": int(data.get("balance_before", 0)),
+                "player": data.get("player"),
+            },
+        }
+        self.cache.save_game_state(user_id, self.game_name, payload)
+
+    def _clear_game(self, user_id: str):
+        user_id = str(user_id)
+        self.active_games.pop(user_id, None)
+        if hasattr(self, "cache") and self.cache:
+            self.cache.delete_game_state(user_id, self.game_name)
 
     def get_user_background_path(self, user_id: str, user: Dict) -> Optional[str]:
         if not user:
@@ -728,7 +791,7 @@ class SnakesPlugin(BaseGamePlugin):
                 user_info_before=user_info_before,
                 user_info_after=user_info_after,
                 animated=True,
-                frame_duration=120,
+                frame_duration=75,
                 last_frame_multiplier=20,
                 show_win_text=show_win,
                 win_text_height=5,
@@ -822,6 +885,9 @@ class SnakesPlugin(BaseGamePlugin):
 
         if sub in ("roll", "r"):
             if user_id not in self.active_games:
+                self.load_game_state(user_id)
+
+            if user_id not in self.active_games:
                 self.send_message_image(
                     nickname=sender_display,
                     file_queue=file_queue,
@@ -876,7 +942,7 @@ class SnakesPlugin(BaseGamePlugin):
                     self._send_animation(sender_display, file_queue, cache, user_id, user, 
                                         bet, net_win, balance_after_bet, anim_path, game)
                 
-                self.active_games.pop(user_id, None)
+                self._clear_game(user_id)
                 return
 
             anim_path = self.animation_generator.generate_animation_frames(
@@ -884,7 +950,7 @@ class SnakesPlugin(BaseGamePlugin):
                 user_background_path=self.get_user_background_path(user_id, user),
                 old_game_state=old_game_state
             )
-            
+             
             if result.get("is_maxed"):
                 payout = game.current_payout()
                 net_win = payout - bet
@@ -907,15 +973,20 @@ class SnakesPlugin(BaseGamePlugin):
                     self._send_animation(sender_display, file_queue, cache, user_id, user, 
                                         bet, net_win, new_balance, anim_path, game)
                 
-                self.active_games.pop(user_id, None)
+                self._clear_game(user_id)
                 return
 
             if anim_path:
                 self._send_animation(sender_display, file_queue, cache, user_id, user, 
                                     bet, 0, balance_after_bet, anim_path, game)
+
+            self.save_game_state(user_id, data)
             return
 
         if sub in ("cashout", "c", "co"):
+            if user_id not in self.active_games:
+                self.load_game_state(user_id)
+
             if user_id not in self.active_games:
                 self.send_message_image(
                     nickname=sender_display,
@@ -934,6 +1005,7 @@ class SnakesPlugin(BaseGamePlugin):
 
             if game.round_index <= 0:
                 self.active_games[user_id] = data
+                self.save_game_state(user_id, data)
                 self.send_message_image(
                     nickname=sender_display,
                     file_queue=file_queue,
@@ -969,6 +1041,8 @@ class SnakesPlugin(BaseGamePlugin):
             if anim_path:
                 self._send_animation(sender_display, file_queue, cache, user_id, user, 
                                     bet, net_win, new_balance, anim_path, game)
+
+            self.save_game_state(user_id, None)
             return
 
         try:
@@ -999,6 +1073,17 @@ class SnakesPlugin(BaseGamePlugin):
             return
 
         if user_id in self.active_games:
+            self.send_message_image(
+                nickname=sender_display,
+                file_queue=file_queue,
+                message="You already have an active game.\n\nUse /snakes roll or /snakes cashout.",
+                title="Snakes - Active Game",
+                cache=cache,
+                user_id=user_id,
+            )
+            return
+
+        if self.load_game_state(user_id):
             self.send_message_image(
                 nickname=sender_display,
                 file_queue=file_queue,
@@ -1045,6 +1130,7 @@ class SnakesPlugin(BaseGamePlugin):
             "balance_before": balance_before,
             "player": sender_display,
         }
+        self.save_game_state(user_id, self.active_games[user_id])
 
         result = game.roll()
         if not result.get("ok"):
@@ -1076,7 +1162,7 @@ class SnakesPlugin(BaseGamePlugin):
                 self._send_animation(sender_display, file_queue, cache, user_id, user, 
                                     bet, net_win, balance_after_bet, anim_path, game)
             
-            self.active_games.pop(user_id, None)
+            self._clear_game(user_id)
             return
 
         anim_path = self.animation_generator.generate_animation_frames(
@@ -1099,12 +1185,14 @@ class SnakesPlugin(BaseGamePlugin):
                 self._send_animation(sender_display, file_queue, cache, user_id, user, 
                                     bet, net_win, new_balance, anim_path, game)
             
-            self.active_games.pop(user_id, None)
+            self._clear_game(user_id)
             return
 
         if anim_path:
             self._send_animation(sender_display, file_queue, cache, user_id, user, 
                                 bet, 0, balance_after_bet, anim_path, game)
+
+        self.save_game_state(user_id, self.active_games[user_id])
 
 
 def register():
