@@ -1,5 +1,6 @@
 import time
 import os
+import random
 from queue import Queue
 from logger import logger
 from auth import MessengerAuth
@@ -9,6 +10,7 @@ import time
 def file_worker(file_queue: Queue):
     max_retries = 3
     retry_delay = 1
+    sent_startup_avatar = False
     
     while True:
         #time.sleep(20)
@@ -26,6 +28,25 @@ def file_worker(file_queue: Queue):
                 take_info_screenshot(page, "ready_to_send_files")
             except Exception as e:
                 logger.error(f"[FileWorker] Failed to take screenshot: {e}")
+
+            if not sent_startup_avatar:
+                try:
+                    avatars_dir = os.path.join(os.path.dirname(__file__), "assets", "avatars")
+                    candidates = []
+                    if os.path.isdir(avatars_dir):
+                        for name in os.listdir(avatars_dir):
+                            lower = name.lower()
+                            if lower.endswith((".png", ".jpg", ".jpeg", ".webp", ".gif")):
+                                candidates.append(os.path.join(avatars_dir, name))
+                    if candidates:
+                        avatar_path = random.choice(candidates)
+                        file_queue.put(avatar_path)
+                        sent_startup_avatar = True
+                        logger.info(f"[FileWorker] Startup confirmation avatar queued: {os.path.basename(avatar_path)}")
+                    else:
+                        logger.warning(f"[FileWorker] No avatar files found in: {avatars_dir}")
+                except Exception as e:
+                    logger.warning(f"[FileWorker] Failed to queue startup avatar: {e}")
 
             while True:
                 file_path = file_queue.get()
