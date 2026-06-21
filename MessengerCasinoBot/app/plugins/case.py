@@ -1156,12 +1156,16 @@ class CasePlugin(BaseGamePlugin):
         
         if case_price not in self.case_prices:
             self.send_message_image(sender, file_queue, 
-                                  f"Invalid case price!\n\n" \
-                                  f"Available cases:\n" \
-                                  f"• $10 case\n" \
-                                  f"• $100 case\n" \
-                                  f"• $1000 case",
-                                  "Case - Error", cache, None)
+                                    f"Invalid case price!\n\n" \
+                                    f"Available prices:\n" \
+                                    f"• $10 case\n" \
+                                    f"• $50 case\n" \
+                                    f"• $100 case\n" \
+                                    f"• $1000 case",
+                                    f"• $2500 case\n" \
+                                    f"• $5000 case\n" \
+                                    f"• $10000 case\n" \
+                                    "Case - Error", cache, None)
             return ""
         
         user_id, user, error = self.validate_user_and_balance(cache, sender, avatar_url, case_price)
