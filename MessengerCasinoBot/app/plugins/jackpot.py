@@ -7,6 +7,9 @@ from base_game_plugin import BaseGamePlugin
 from logger import logger
 from PIL import Image, ImageDraw
 class JackpotGame:
+    ACTIVE_KEY = "active_jackpot"
+    PENDING_RESULT_KEY = "pending_jackpot_result"
+
     def __init__(self, plugin_instance):
         self.active_jackpot = None
         self.plugin = plugin_instance
@@ -16,7 +19,7 @@ class JackpotGame:
     def _load_from_cache(self):
         try:
             if self.plugin.cache:
-                saved_jackpot = self.plugin.cache.get_setting("active_jackpot", None)
+                saved_jackpot = self.plugin.cache.get_setting(self.ACTIVE_KEY, None)
                 if saved_jackpot:
                     status = saved_jackpot.get('status', 'waiting')
                     draw_time = saved_jackpot.get('draw_time')
@@ -107,10 +110,10 @@ class JackpotGame:
                         player.get('username'),
                         self.plugin.file_queue
                     )
-                anim_path, error = self.plugin._create_winner_animation(jackpot_result)
-                if anim_path and not error and self.plugin.file_queue:
-                    self.plugin.file_queue.put(anim_path)
-                    logger.info(f"[Jackpot] Jackpot animation sent: {anim_path}")
+                self._save_pending_result(jackpot_result)
+                sent = self.try_send_pending_animation(self.plugin.file_queue)
+                if sent:
+                    logger.info("[Jackpot] Pending jackpot animation sent during draw")
                 
                 self.active_jackpot = None
                 self._save_to_cache()
@@ -190,6 +193,8 @@ class JackpotGame:
             return True, "Joined jackpot successfully!"
 
     def get_jackpot_info(self):
+        self.force_draw_if_expired()
+
         if not self.active_jackpot:
             return None
         
@@ -236,9 +241,92 @@ class JackpotGame:
     def _save_to_cache(self):
         try:
             if self.plugin.cache:
-                self.plugin.cache.set_setting("active_jackpot", self.active_jackpot)
+                self.plugin.cache.set_setting(self.ACTIVE_KEY, self.active_jackpot)
         except Exception as e:
             logger.error(f"[Jackpot] Error saving jackpot: {e}")
+
+    def _save_pending_result(self, jackpot_result, anim_path=None, error=None):
+        try:
+            if not self.plugin.cache:
+                return
+
+            pending = {
+                "status": "pending",
+                "result": jackpot_result,
+                "anim_path": anim_path,
+                "error": error,
+                "saved_at": time.time(),
+                "attempts": 0,
+            }
+            self.plugin.cache.set_setting(self.PENDING_RESULT_KEY, pending)
+            logger.info(f"[Jackpot] Pending jackpot result saved: {jackpot_result.get('jackpot_id')}")
+        except Exception as e:
+            logger.error(f"[Jackpot] Error saving pending result: {e}")
+
+    def _clear_pending_result(self):
+        try:
+            if self.plugin.cache:
+                self.plugin.cache.set_setting(self.PENDING_RESULT_KEY, None)
+        except Exception as e:
+            logger.error(f"[Jackpot] Error clearing pending result: {e}")
+
+    def get_pending_result(self):
+        try:
+            if self.plugin.cache:
+                pending = self.plugin.cache.get_setting(self.PENDING_RESULT_KEY, None)
+                if isinstance(pending, dict) and pending.get("status") == "pending":
+                    return pending
+        except Exception as e:
+            logger.error(f"[Jackpot] Error loading pending result: {e}")
+        return None
+
+    def try_send_pending_animation(self, file_queue):
+        pending = self.get_pending_result()
+        if not pending or not file_queue:
+            return False
+
+        pending["attempts"] = int(pending.get("attempts", 0)) + 1
+        jackpot_result = pending.get("result")
+        if not jackpot_result:
+            self._clear_pending_result()
+            return False
+
+        anim_path = pending.get("anim_path")
+        if anim_path and os.path.exists(anim_path):
+            file_queue.put(anim_path)
+            self._clear_pending_result()
+            logger.info(f"[Jackpot] Sent cached pending animation: {anim_path}")
+            return True
+
+        anim_path, error = self.plugin._create_winner_animation(jackpot_result)
+        if anim_path and not error and os.path.exists(anim_path):
+            file_queue.put(anim_path)
+            self._clear_pending_result()
+            logger.info(f"[Jackpot] Regenerated and sent pending animation: {anim_path}")
+            return True
+
+        pending["anim_path"] = anim_path
+        pending["error"] = error or "Unknown animation generation error"
+        pending["last_attempt_at"] = time.time()
+        if self.plugin.cache:
+            self.plugin.cache.set_setting(self.PENDING_RESULT_KEY, pending)
+        logger.error(f"[Jackpot] Pending animation send failed: {pending['error']}")
+        return False
+
+    def force_draw_if_expired(self):
+        try:
+            if (
+                self.active_jackpot
+                and self.active_jackpot.get("status") == "counting_down"
+                and self.active_jackpot.get("draw_time")
+                and self.active_jackpot.get("draw_time") <= time.time()
+            ):
+                logger.warning("[Jackpot] Expired jackpot found during status check, forcing draw")
+                self._draw_jackpot()
+                return True
+        except Exception as e:
+            logger.error(f"[Jackpot] Error forcing expired draw: {e}")
+        return False
 
     def _force_complete_jackpot(self, jackpot):
         try:
@@ -526,7 +614,7 @@ class JackpotPlugin(BaseGamePlugin):
             footer_y = header_height + players_height + section_spacing * 2
             
             instruction_img = self.text_renderer.render_text(
-                text="Join: /jackpot bet <amount>",
+                text="Join: /jackpot <amount>",
                 font_size=18,
                 color=(150, 200, 255)
             )
@@ -582,7 +670,7 @@ class JackpotPlugin(BaseGamePlugin):
             img.paste(message_img, (message_x, 130), message_img)
             
             instruction_img = self.text_renderer.render_text(
-                text="/jackpot bet <amount>",
+                text="/jackpot <amount>",
                 font_size=18,
                 color=(150, 200, 255)
             )
@@ -609,18 +697,20 @@ class JackpotPlugin(BaseGamePlugin):
         if len(args) == 0 or args[0].lower() == "info":
             return self._handle_jackpot_info(sender, file_queue, cache, avatar_url)
         
-        elif args[0].lower() == "bet":
-            if len(args) < 2:
+        elif args[0].lower() == "bet" or self._is_amount_arg(args[0]):
+            if args[0].lower() == "bet" and len(args) < 2:
                 self.send_message_image(sender, file_queue,
                     "Usage: /jackpot bet <amount>\n\n"
-                    "Example: /jackpot bet 100\n"
+                    "Example: /jackpot 100\n"
                     "Minimum bet: $1\n"
                     "Only whole dollars allowed (no cents)",
                     "Jackpot - Error", cache, None)
                 return ""
+
+            amount_arg = args[1] if args[0].lower() == "bet" else args[0]
             
             try:
-                bet_amount = float(args[1])
+                bet_amount = float(amount_arg)
                 
                 if not bet_amount.is_integer():
                     self.send_message_image(sender, file_queue,
@@ -649,6 +739,7 @@ class JackpotPlugin(BaseGamePlugin):
             help_text = (
                 "**JACKPOT COMMANDS**\n\n"
                 "/jackpot - Show current jackpot\n"
+                "/jackpot <amount> - Join jackpot\n"
                 "/jackpot bet <amount> - Join jackpot\n"
                 "/jackpot help - Detailed info\n\n"
                 "**Rules:**\n"
@@ -660,8 +751,21 @@ class JackpotPlugin(BaseGamePlugin):
             self.send_message_image(sender, file_queue, help_text, 
                                   "Jackpot - Help", cache, None)
             return ""
+
+    def _is_amount_arg(self, value):
+        try:
+            float(value)
+            return True
+        except (TypeError, ValueError):
+            return False
     
     def _handle_jackpot_info(self, sender, file_queue, cache, avatar_url=None):
+        if self.jackpot_manager.force_draw_if_expired():
+            return ""
+
+        if self.jackpot_manager.try_send_pending_animation(file_queue):
+            return ""
+
         jackpot_info = self.jackpot_manager.get_jackpot_info()
         
         if not jackpot_info:
@@ -1013,7 +1117,7 @@ def register():
     logger.info("[Jackpot] Jackpot plugin registered")
     return {
         "name": "jackpot",
-        "description": "Jackpot game - everyone puts in money, one wins all!\n\nCommands:\n/jackpot - Show current jackpot\n/jackpot bet <amount> - Join jackpot\n/jackpot help - Detailed info",
+        "description": "Jackpot game - everyone puts in money, one wins all!\n\nCommands:\n/jackpot - Show current jackpot\n/jackpot <amount> - Join jackpot\n/jackpot bet <amount> - Join jackpot\n/jackpot help - Detailed info",
         "aliases": ["/jp"],
         "execute": plugin.execute_game,
         "set_file_queue": plugin.set_file_queue
