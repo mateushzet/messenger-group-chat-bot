@@ -2,6 +2,7 @@ import requests
 import os
 from logger import logger
 from urllib.parse import urlparse
+from PIL import Image
 
 BASE_DIR = os.path.dirname(__file__)
 ASSETS_DIR = os.path.join(BASE_DIR, "assets")
@@ -53,6 +54,76 @@ class UserManager:
             logger.error(f"[UserManager] Error downloading avatar from {avatar_url}: {e}", exc_info=True)
             return None
 
+    def _is_url(self, value):
+        if not value:
+            return False
+        parsed = urlparse(str(value))
+        return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+
+    def _remote_image_available(self, avatar_url):
+        try:
+            response = requests.get(avatar_url, timeout=5, stream=True)
+            response.raise_for_status()
+
+            content_type = response.headers.get("content-type", "").lower()
+            if content_type and not content_type.startswith("image/"):
+                logger.warning(f"[UserManager] Avatar URL is not an image: {avatar_url} ({content_type})")
+                return False
+
+            return True
+        except Exception as e:
+            logger.info(f"[UserManager] Stored avatar URL is not reachable: {avatar_url} ({e})")
+            return False
+
+    def _local_avatar_available(self, avatar_filename):
+        if not avatar_filename or avatar_filename == "TO_BE_UPDATED":
+            return False
+
+        path = os.path.join(AVATARS_FOLDER, avatar_filename)
+        if not os.path.exists(path):
+            return False
+
+        try:
+            with Image.open(path) as img:
+                img.verify()
+            return True
+        except Exception as e:
+            logger.info(f"[UserManager] Stored local avatar is invalid: {path} ({e})")
+            return False
+
+    def _stored_avatar_available(self, user_data):
+        avatar_source_url = user_data.get("avatar_source_url")
+        if self._is_url(avatar_source_url):
+            return self._remote_image_available(avatar_source_url)
+
+        avatar_url_field = user_data.get("avatar_url")
+        if self._is_url(avatar_url_field):
+            return self._remote_image_available(avatar_url_field)
+
+        return self._local_avatar_available(user_data.get("avatar") or avatar_url_field)
+
+    def _update_user_avatar(self, user_id, user_data, name, avatar_url):
+        logger.info(f"[UserManager] Updating avatar for user '{name}' (ID: {user_id}) to {avatar_url}")
+
+        new_avatar_filename = self.download_avatar(avatar_url)
+        if not new_avatar_filename:
+            return False, f"Failed to download new avatar for user {name}"
+
+        avatars = user_data.get("avatars", [])
+        if new_avatar_filename not in avatars:
+            avatars.append(new_avatar_filename)
+
+        self.cache.update_user(
+            user_id,
+            avatar_url=new_avatar_filename,
+            avatar_source_url=avatar_url,
+            avatar=new_avatar_filename,
+            avatars=avatars
+        )
+
+        logger.info(f"[UserManager] Avatar updated successfully for user '{name}'")
+        return True, f"Avatar updated for existing user: {name}"
+
     def find_user_by_name_avatar(self, name, avatar_url):
         if not self.cache:
             return None, None
@@ -98,6 +169,7 @@ class UserManager:
             level_progress=0.1,
             avatar=avatar_filename,
             avatar_url=avatar_filename,
+            avatar_source_url=avatar_url,
             avatars=[avatar_filename],
             background="default-bg.png",
             is_admin=is_admin
@@ -139,21 +211,29 @@ class UserManager:
                 
                 if user_to_update:
                     user_id, user_data = user_to_update
-                    logger.info(f"[UserManager] Updating avatar for user '{name}' (ID: {user_id}) from TO_BE_UPDATED to {avatar_url}")
-                    
-                    new_avatar_filename = self.download_avatar(avatar_url)
-                    if not new_avatar_filename:
-                        return False, f"Failed to download new avatar for user {name}"
-                    
-                    self.cache.update_user(
-                        user_id,
-                        avatar_url=new_avatar_filename,
-                        avatar=new_avatar_filename
-                    )
-                    
-                    logger.info(f"[UserManager] Avatar updated successfully for user '{name}'")
-                    return True, f"Avatar updated for existing user: {name}"
+                    return self._update_user_avatar(user_id, user_data, name, avatar_url)
                 else:
+                    stale_avatar_users = []
+                    for user_id, user_data in existing_users_with_same_name:
+                        if not self._stored_avatar_available(user_data):
+                            stale_avatar_users.append((user_id, user_data))
+
+                    if len(stale_avatar_users) == 1:
+                        user_id, user_data = stale_avatar_users[0]
+                        logger.info(
+                            f"[UserManager] Existing avatar for '{name}' (ID: {user_id}) is unavailable; "
+                            "assuming avatar was changed"
+                        )
+                        return self._update_user_avatar(user_id, user_data, name, avatar_url)
+
+                    if len(stale_avatar_users) > 1:
+                        stale_ids = ", ".join(user_id for user_id, _ in stale_avatar_users)
+                        logger.warning(
+                            f"[UserManager] Multiple users named '{name}' have unavailable avatars: {stale_ids}. "
+                            "Manual avatar update is required."
+                        )
+                        return False, f"Multiple users named '{name}' have unavailable avatars: {stale_ids}"
+
                     users_list = "\n".join(users_info)
                     logger.warning(f"[UserManager] Different avatar detected for user '{name}'. Existing users with same name: {users_list}")
                     return False, f"Different avatar detected for user '{name}'. Existing users with same name: {users_list}"
@@ -190,7 +270,9 @@ class UserManager:
         
         self.cache.update_user(
             user_id,
-            avatar_url=new_avatar_filename
+            avatar_url=new_avatar_filename,
+            avatar_source_url=new_avatar_url,
+            avatar=new_avatar_filename
         )
         
         return True, f"Avatar updated for user: {name} (ID: {user_id})"
