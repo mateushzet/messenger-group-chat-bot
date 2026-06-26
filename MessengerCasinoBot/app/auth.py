@@ -350,22 +350,12 @@ class MessengerAuth:
             p.stop()
             return None, None, None
 
-        time.sleep(5)
-        
-        self.check_and_handle_browser_notice(page)
-        
-        time.sleep(15)
-        
-        if self.check_pin_dialog(page):
-            
-            if not self.handle_pin_dialog(page):
-                logger.critical("[AUTH] Failed to handle PIN dialog")
-                
-                browser.close()
-                p.stop()
-                return None, None, None
-        
-        time.sleep(5)
+        take_info_screenshot(page, "befor_log_in")
+
+        for i in range(10):
+            self.check_and_handle_browser_notice(page)
+            time.sleep(1)
+    
         take_info_screenshot(page, "after_log_in")
         
         return page, browser, p
