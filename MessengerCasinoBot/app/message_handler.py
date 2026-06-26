@@ -84,9 +84,10 @@ def get_sleep_time():
         return 200
 
 
+pending_unknown_messages = []
+
 def fill_unknown_senders(messages):
-    """Uzupełnia nieznanych nadawców i normalizuje krótkie nazwy na podstawie wcześniejszych wiadomości"""
-    global USER_NAME_CACHE
+    global USER_NAME_CACHE, pending_unknown_messages
     
     name_mapping = {}
     for msg in messages:
@@ -97,24 +98,33 @@ def fill_unknown_senders(messages):
             if " " in sender:
                 first_name = sender.split()[0]
                 name_mapping[first_name] = sender
-                name_mapping[sender] = sender  # też zapamiętaj pełną
+                name_mapping[sender] = sender
     
-    last_known_sender = None
-    last_known_avatar = None
+    next_known_sender = None
+    next_known_avatar = None
     
-    for i in range(len(messages)):
+    for i in range(len(messages) - 1, -1, -1):
         current_msg = messages[i]
         sender = current_msg.get("sender")
         
         if sender == "Unknown":
-            if last_known_sender:
-                current_msg["sender"] = last_known_sender
-                if last_known_avatar:
-                    current_msg["avatar_url"] = last_known_avatar
-                logger.debug(f"[MessageHandler] Filled Unknown sender with: {last_known_sender}")
+            if next_known_sender:
+                current_msg["sender"] = next_known_sender
+                if next_known_avatar:
+                    current_msg["avatar_url"] = next_known_avatar
+                logger.debug(f"[MessageHandler] Filled Unknown sender with NEXT: {next_known_sender}")
         else:
-            last_known_sender = current_msg["sender"]
-            last_known_avatar = current_msg.get("avatar_url")
+            next_known_sender = current_msg["sender"]
+            next_known_avatar = current_msg.get("avatar_url")
+            
+            if pending_unknown_messages:
+                for pending_msg in pending_unknown_messages:
+                    if pending_msg.get("sender") == "Unknown":
+                        pending_msg["sender"] = next_known_sender
+                        if next_known_avatar:
+                            pending_msg["avatar_url"] = next_known_avatar
+                        logger.debug(f"[MessageHandler] Filled pending Unknown with: {next_known_sender}")
+                pending_unknown_messages.clear()
     
     for msg in messages:
         sender = msg.get("sender")
@@ -133,30 +143,33 @@ def fill_unknown_senders(messages):
                             logger.debug(f"[MessageHandler] Normalized name (found): '{old_name}' -> '{msg['sender']}'")
                             break
     
-    for i in range(1, len(messages)):
+    for i in range(len(messages) - 1):
         current_msg = messages[i]
-        prev_msg = messages[i-1]
+        next_msg = messages[i+1]
         
         current_sender = current_msg.get("sender")
-        prev_sender = prev_msg.get("sender")
+        next_sender = next_msg.get("sender")
         
-        if current_sender and prev_sender:
-            if current_sender != "You" and prev_sender != "You":
-                if " " not in current_sender and " " in prev_sender:
-                    if prev_sender.startswith(current_sender + " "):
+        if current_sender and next_sender:
+            if current_sender != "You" and next_sender != "You":
+                if " " not in current_sender and " " in next_sender:
+                    if next_sender.startswith(current_sender + " "):
                         old_name = current_sender
-                        current_msg["sender"] = prev_sender
-                        current_msg["avatar_url"] = prev_msg.get("avatar_url")
-                        logger.debug(f"[MessageHandler] Fixed name from previous message: '{old_name}' -> '{current_msg['sender']}'")
+                        current_msg["sender"] = next_sender
+                        current_msg["avatar_url"] = next_msg.get("avatar_url")
+                        logger.debug(f"[MessageHandler] Fixed name from next message: '{old_name}' -> '{current_msg['sender']}'")
     
     unknown_after = sum(1 for m in messages if m.get("sender") == "Unknown")
     short_names = sum(1 for m in messages if m.get("sender") and " " not in m.get("sender") and m.get("sender") not in ["You", "Unknown"])
     
     if short_names > 0:
         logger.debug(f"[MessageHandler] fill_unknown_senders: short_names={short_names}, unknown={unknown_after}")
+    
+    return unknown_after
+
 
 def extract_messages_fix_unknown_sender(page, command_queue):
-    global initial_load_done, processed_in_session
+    global initial_load_done, processed_in_session, pending_unknown_messages
     
     cycle_id = uuid.uuid4().hex[:8]
     cycle_start = time.perf_counter()
@@ -164,6 +177,7 @@ def extract_messages_fix_unknown_sender(page, command_queue):
 
     def collect_messages():
         collect_start = time.perf_counter()
+        
         def parse_sender_and_message_from_aria(aria_label):
             if not aria_label:
                 return None, None
@@ -210,6 +224,7 @@ def extract_messages_fix_unknown_sender(page, command_queue):
         
         logger.debug(f"[MessageHandler] collect_messages id={cycle_id}: rows_found={len(rows_local)}")
         messages_local = []
+        
         for idx, row in enumerate(rows_local):
             try:
                 data_message_id = row.get_attribute("data-message-id")
@@ -251,6 +266,7 @@ def extract_messages_fix_unknown_sender(page, command_queue):
                     or ("you sent" in aria_label_lower)
                 )
                 avatar_url = None
+                
                 if contains_you_sent:
                     sender_name = "You"
                 elif avatar:
@@ -273,15 +289,27 @@ def extract_messages_fix_unknown_sender(page, command_queue):
             except Exception as e:
                 logger.warning(f"[MessageHandler] Error during message extraction: {e}")
                 take_error_screenshot(page, "message_extraction")
-        fill_unknown_senders(messages_local)
-        unknown = sum(1 for m in messages_local if m.get("sender") == "Unknown")
+        
+        unknown_before = sum(1 for m in messages_local if m.get("sender") == "Unknown")
+        unknown_after = fill_unknown_senders(messages_local)
+        
+        for msg in messages_local:
+            if msg.get("sender") == "Unknown" and msg.get("data_message_id"):
+                if not any(p.get("data_message_id") == msg.get("data_message_id") for p in pending_unknown_messages):
+                    pending_unknown_messages.append(msg)
+                    logger.debug(f"[MessageHandler] Added to pending Unknown: ID={msg.get('data_message_id')}")
+        
         commands = sum(1 for m in messages_local if str(m.get("message", "")).startswith("/"))
+        
         if messages_local:
             logger.debug(
-                f"[MessageHandler] collect_done id={cycle_id}: messages={len(messages_local)}, commands={commands}, unknown={unknown}, ms={_perf_ms(collect_start)}"
+                f"[MessageHandler] collect_done id={cycle_id}: messages={len(messages_local)}, "
+                f"commands={commands}, unknown_before={unknown_before}, unknown_after={unknown_after}, "
+                f"pending_total={len(pending_unknown_messages)}, ms={_perf_ms(collect_start)}"
             )
         else:
             logger.debug(f"[MessageHandler] collect_done id={cycle_id}: messages=0, ms={_perf_ms(collect_start)}")
+        
         return messages_local
 
     messages = collect_messages()
@@ -299,10 +327,15 @@ def extract_messages_fix_unknown_sender(page, command_queue):
         return
 
     logger.debug(f"[MessageHandler] process_messages id={cycle_id}: start count={len(messages)}")
+    
     for idx, message in enumerate(messages):
         sender_name = message["sender"]
         message_text = message["message"]
         data_message_id = message.get("data_message_id")
+        
+        if sender_name == "Unknown":
+            logger.debug(f"[MessageHandler] msg id={cycle_id} idx={idx}: SKIPPING Unknown message, waiting for sender: '{_preview(message_text)}' (ID: {data_message_id})")
+            continue
 
         if data_message_id and data_message_id in processed_in_session:
             logger.debug(f"[MessageHandler] msg id={cycle_id} idx={idx}: skipping already processed message {data_message_id}")
@@ -388,6 +421,7 @@ def start_monitoring_messages(command_queue):
     global initial_load_done, processed_in_session
     
     last_cleanup_time = None
+    last_hourly_screenshot_time = None
     initial_load_done = False
     processed_in_session = set()
     
@@ -412,10 +446,21 @@ def start_monitoring_messages(command_queue):
 
             while True:
                 try:
+                    click_go_to_recent_button(page)
+
                     extract_messages_fix_unknown_sender(page, command_queue)
                     
                     sleep_time = get_sleep_time()
                     logger.debug(f"[MessageHandler] loop_sleep sleep_time={sleep_time}")
+
+                    now_ts = time.time()
+                    if last_hourly_screenshot_time is None or (now_ts - last_hourly_screenshot_time) >= 3600:
+                        try:
+                            take_info_screenshot(page, "hourly_monitoring")
+                            last_hourly_screenshot_time = now_ts
+                            logger.info("[MessageHandler] Hourly screenshot saved")
+                        except Exception as e:
+                            logger.warning(f"[MessageHandler] Hourly screenshot failed: {e}")
                     
                     if sleep_time != 0:
                         current_time = time.time()
@@ -452,3 +497,21 @@ def start_monitoring_messages(command_queue):
         except Exception as e:
             logger.critical(f"[MessageHandler] Unexpected error in monitoring: {e}")
             time.sleep(10)
+
+def click_go_to_recent_button(page):
+    """Kliknij przycisk 'Go to most recent message' jeśli istnieje"""
+    try:
+        recent_button = page.query_selector('div[aria-label="Go to most recent message"][role="button"]')
+        
+        if recent_button:
+            logger.info("[MessageHandler] Found 'Go to most recent message' button, clicking...")
+            recent_button.click()
+            time.sleep(1)
+            return True
+        else:
+            logger.debug("[MessageHandler] 'Go to most recent message' button not found")
+            return False
+            
+    except Exception as e:
+        logger.warning(f"[MessageHandler] Error clicking go to recent button: {e}")
+        return False
