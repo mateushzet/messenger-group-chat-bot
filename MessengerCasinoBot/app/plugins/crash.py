@@ -88,16 +88,25 @@ class CrashPlugin(BaseGamePlugin):
         
         closest_multiplier = min(self.multipliers, key=lambda x: abs(x - multiplier))
         
+        
         if closest_multiplier < 1.00:
             closest_multiplier = 1.00
-            
+        
         return closest_multiplier
-    
+
     def get_multiplier_index(self, multiplier):
+        """Znajduje indeks dokładnego mnożnika w liście"""
         for i, m in enumerate(self.multipliers):
             if abs(m - multiplier) < 0.001:
                 return i
-        return 0
+        closest_idx = 0
+        closest_diff = abs(self.multipliers[0] - multiplier)
+        for i, m in enumerate(self.multipliers[1:], 1):
+            diff = abs(m - multiplier)
+            if diff < closest_diff:
+                closest_diff = diff
+                closest_idx = i
+        return closest_idx
     
     def calculate_win(self, bet_amount, cashout_multiplier, crash_multiplier):
         if cashout_multiplier is None:
@@ -643,7 +652,7 @@ class CrashPlugin(BaseGamePlugin):
 
             if not animated:
                 temp_dir = self.get_app_path("temp")
-                temp_path = os.path.join(temp_dir, f"temp_crash_{int(time.time()*1000)}.webp")
+                temp_path = os.path.join(temp_dir, f"temp_crash_{time.time_ns()}.webp")
                 
                 with Image.open(self.crash_animation_path) as img:
                     img.seek(final_frame)
