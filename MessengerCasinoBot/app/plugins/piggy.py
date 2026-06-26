@@ -11,11 +11,11 @@ from logger import logger
 
 class PiggyBank:
     SETTING_KEY = "piggy_bank"
-    COOLDOWN_SECONDS = 60 * 60
     MIN_FREEZE_SECONDS = 20 * 60
     MAX_FREEZE_SECONDS = 2 * 60 * 60
     MIN_GROWTH_SPEED = 0.80
     MAX_GROWTH_SPEED = 1.25
+    MAX_FREEZES_PER_CYCLE = 3
 
     def __init__(self, plugin):
         self.plugin = plugin
@@ -32,6 +32,7 @@ class PiggyBank:
                 "last_claimed_at": None,
                 "last_claimed_by": None,
                 "last_claimed_amount": 0,
+                "freeze_count": 0,
             }
             self.save_state(state)
         updated = False
@@ -40,6 +41,9 @@ class PiggyBank:
             updated = True
         if "freeze_until" not in state:
             state["freeze_until"] = 0
+            updated = True
+        if "freeze_count" not in state:
+            state["freeze_count"] = 0
             updated = True
         if updated:
             self.save_state(state)
@@ -54,18 +58,6 @@ class PiggyBank:
         state = self.get_state()
         cooldown_until = float(state.get("cooldown_until") or 0)
         freeze_until = float(state.get("freeze_until") or 0)
-
-        if cooldown_until > now:
-            return {
-                "state": state,
-                "status": "cooldown",
-                "amount": 0,
-                "rate": 0,
-                "elapsed_seconds": 0,
-                "cooldown_remaining": cooldown_until - now,
-                "freeze_remaining": 0,
-                "stage": 0,
-            }
 
         growth_started_at = float(state.get("growth_started_at") or now)
         growth_speed = float(state.get("growth_speed") or 1.0)
@@ -90,9 +82,6 @@ class PiggyBank:
         now = now or time.time()
         info = self.get_info(now)
 
-        if info["status"] == "cooldown":
-            return False, info, "Piggy bank is cooling down after the last smash."
-
         if info["status"] == "frozen":
             return False, info, "Piggy bank is frozen."
 
@@ -101,14 +90,15 @@ class PiggyBank:
             return False, info, "Piggy bank is still empty. Come back later."
 
         state = {
-            "growth_started_at": now + self.COOLDOWN_SECONDS,
-            "cooldown_until": now + self.COOLDOWN_SECONDS,
+            "growth_started_at": now,
+            "cooldown_until": 0,
             "freeze_until": 0,
             "growth_speed": self._new_growth_speed(),
             "last_claimed_at": now,
             "last_claimed_by": username,
             "last_claimed_by_id": str(user_id),
             "last_claimed_amount": amount,
+            "freeze_count": 0,
         }
         self.save_state(state)
 
@@ -121,20 +111,24 @@ class PiggyBank:
         state = self.get_state()
         cooldown_until = float(state.get("cooldown_until") or 0)
         freeze_until = float(state.get("freeze_until") or 0)
+        freeze_count = int(state.get("freeze_count") or 0)
 
-        if cooldown_until > now:
-            return False, self.get_info(now), "Piggy bank is cooling down."
 
         if freeze_until > now:
             return False, self.get_info(now), "Piggy bank is already frozen."
 
+        if freeze_count >= self.MAX_FREEZES_PER_CYCLE:
+            return False, self.get_info(now), f"Piggy can only be frozen {self.MAX_FREEZES_PER_CYCLE} times per cycle."
+
         duration = random.randint(self.MIN_FREEZE_SECONDS, self.MAX_FREEZE_SECONDS)
         state["freeze_until"] = now + duration
+        state["freeze_count"] = freeze_count + 1
         self.save_state(state)
 
         info = self.get_info(now)
         info["freeze_duration"] = duration
-        return True, info, "Piggy bank frozen for a random 20-120 minutes."
+        info["freezes_remaining"] = self.MAX_FREEZES_PER_CYCLE - (freeze_count + 1)
+        return True, info, f"Piggy frozen for a random 20-120 minutes."
 
     @classmethod
     def rate_at_hour(cls, hour):
@@ -266,7 +260,7 @@ class PiggyPlugin(BaseGamePlugin):
                 "/piggy - show piggy bank status\n"
                 "/piggy smash - collect the full pot\n"
                 "/piggy freeze - block smashing for 20-120 minutes\n\n"
-                "After a smash, the piggy bank has a 60-minute cooldown.",
+                "Maximum 3 freezes per piggy cycle.",
                 "Piggy Help",
                 self.cache,
                 user_id,
@@ -348,22 +342,11 @@ class PiggyPlugin(BaseGamePlugin):
 
             amount = info.get("amount", 0)
 
-            if status == "cooldown":
-                status_color = self.colors["red"]
-                status_text = f"Cooldown: {self._format_duration(info.get('cooldown_remaining', 0))}"
-                status_img = self._text(status_text, 24, status_color, stroke=2)
-                status_x = (width - status_img.width) // 2
-                status_y = 388
-                self._draw_text_plate(img, status_x, status_y, status_img)
-                img.paste(status_img, (status_x, status_y), status_img)
-            elif status == "frozen" and not message:
-                status_img = self._text("Frozen", 24, (150, 220, 255), stroke=2)
-                status_x = (width - status_img.width) // 2
-                status_y = 388
-                self._draw_text_plate(img, status_x, status_y, status_img)
-                img.paste(status_img, (status_x, status_y), status_img)
-
-            command = self._text("/piggy smash", 30, self.colors["gold"], stroke=2)
+            if status == "frozen" and not message:
+                command = self._text("Piggy Frozen!", 30, self.colors["muted"], stroke=2)
+            else:
+                command = self._text("/piggy smash", 30, self.colors["gold"], stroke=2)
+                
             command_y = 414
             img.paste(command, ((width - command.width) // 2, command_y), command)
 
@@ -499,11 +482,11 @@ def register():
     logger.info("[Piggy] Piggy plugin registered")
     return {
         "name": "piggy",
-        "aliases": ["/pigg", "/pb"],
+        "aliases": ["/pigg", "/pb", "/pg"],
         "description": "Piggy Bank Jackpot\n\n"
         "/piggy - show piggy bank status\n"
         "/piggy smash - collect the current pot\n\n"
         "/piggy freeze - block smashing for 20-120 minutes\n\n"
-        "After a smash, the piggy bank resets and has a 60-minute cooldown.",
+        "Maximum 3 freezes per piggy cycle.",
         "execute": plugin.execute_game,
     }
