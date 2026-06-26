@@ -1,5 +1,6 @@
 import os
 import random
+import time
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 from base_game_plugin import BaseGamePlugin
@@ -396,6 +397,7 @@ class MinesGame:
                 
         img.save(output_path, format='WEBP', quality=90, optimize=True)
 
+
 class MinesPlugin(BaseGamePlugin):
     def __init__(self):
         logger.info("[Mines] Initializing MinesPlugin")
@@ -404,10 +406,53 @@ class MinesPlugin(BaseGamePlugin):
         )
         self.active_games = {}
         self.elements_folder = self.get_asset_path("mines", "board_elements")
-
         self.avatar_size = 80
         self.font_scale = 0.9
-    
+
+    def _save_active_games_to_cache(self):
+        """Save active Mines games to cache for total coins calculation."""
+        if not self.cache:
+            return
+        
+        try:
+            games_data = {}
+            for user_id, data in self.active_games.items():
+                games_data[str(user_id)] = {
+                    'bet': data.get('bet', 0),
+                    'bombs': data.get('bombs', 0),
+                    'player': data.get('player', ''),
+                    'started_at': time.time()
+                }
+            self.cache.set_setting('active_mines_games', games_data)
+            logger.debug(f"[Mines] Saved {len(games_data)} active games to cache")
+        except Exception as e:
+            logger.error(f"[Mines] Error saving active games to cache: {e}")
+
+    def _load_active_games_from_cache(self):
+        """Load active Mines games from cache."""
+        if not self.cache:
+            return
+        
+        try:
+            games_data = self.cache.get_setting('active_mines_games', {})
+            if games_data:
+                logger.info(f"[Mines] Found {len(games_data)} cached active games")
+                for user_id_str, game_data in games_data.items():
+                    logger.debug(f"[Mines] Cached game for user {user_id_str}: bet={game_data.get('bet', 0)}")
+        except Exception as e:
+            logger.error(f"[Mines] Error loading active games from cache: {e}")
+
+    def _clear_active_games_from_cache(self):
+        """Clear all active Mines games from cache."""
+        if not self.cache:
+            return
+        
+        try:
+            self.cache.set_setting('active_mines_games', {})
+            logger.debug("[Mines] Cleared active games from cache")
+        except Exception as e:
+            logger.error(f"[Mines] Error clearing active games from cache: {e}")
+
     def get_multiplier_info(self, bombs):
         if bombs < 1 or bombs > 24:
             return ""
@@ -437,6 +482,9 @@ class MinesPlugin(BaseGamePlugin):
     def execute_game(self, command_name, args, file_queue, cache=None, sender=None, avatar_url=None):
         
         self.cache = cache
+        
+        if self.cache and not self.active_games:
+            self._load_active_games_from_cache()
 
         user_id, user, error = self.validate_user(cache, sender, avatar_url)
         if error == "Invalid user":
@@ -530,6 +578,8 @@ class MinesPlugin(BaseGamePlugin):
                 "player": sender
             }
             
+            self._save_active_games_to_cache()
+            
             new_balance = balance_before - bet
             try:
                 self.update_user_balance(user_id, new_balance)
@@ -563,6 +613,9 @@ class MinesPlugin(BaseGamePlugin):
                 return ""
                 
             data = self.active_games.pop(user_id)
+            
+            self._save_active_games_to_cache()
+            
             game = data["game"]
             bet = data["bet"]
             bombs = data["bombs"]
@@ -648,6 +701,7 @@ class MinesPlugin(BaseGamePlugin):
                     
                     if user_id in self.active_games:
                         self.active_games.pop(user_id, None)
+                        self._save_active_games_to_cache()
                     
                     mult = game.get_current_multiplier()
                     win_amount = int(bet * mult)
@@ -694,6 +748,7 @@ class MinesPlugin(BaseGamePlugin):
                     
                     if user_id in self.active_games:
                         self.active_games.pop(user_id, None)
+                        self._save_active_games_to_cache()
                     
                     try:
                         newLevel, newLevelProgress = self.cache.add_experience(user_id, -bet, sender, file_queue)
@@ -764,6 +819,7 @@ class MinesPlugin(BaseGamePlugin):
                     messages.append(f"Use: /mines cashout")
                         
             return ""
+
 
 def register():
     logger.info("[Mines] Registering Mines plugin")
