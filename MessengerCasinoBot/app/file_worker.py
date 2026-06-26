@@ -13,7 +13,6 @@ def file_worker(file_queue: Queue):
     sent_startup_avatar = False
     
     while True:
-        #time.sleep(20)
         try:
             auth = MessengerAuth()
             page, browser, playwright = auth.log_in_to_messenger()
