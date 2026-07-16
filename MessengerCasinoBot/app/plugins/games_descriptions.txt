@@ -823,3 +823,75 @@ IMPORTANT_RULES:
 EXAMPLE_COMMANDS:
 - /ask how does mines work?
 - /ask ile trzeba do monthly roulette?
+
+QUEENS:
+name: Queens
+command: /queens
+aliases: /queen, /qn
+description: Daily LinkedIn-style Queens puzzle. Players use numbered tiles to place queens and earn a completion reward.
+
+COMMAND_LIST:
+- /queens - Show today's board.
+- /queens <tile> - Toggle one numbered tile.
+- /queens set <tile1> <tile2> ... - Submit all queen placements.
+- /queens clear - Clear current placements.
+
+IMPORTANT_RULES:
+- Reward is 30 coins.
+- Reward can be claimed once per calendar day.
+- Place one queen in each row, column, and region.
+- Queens cannot touch, including diagonally.
+
+EXAMPLE_COMMANDS:
+- /queens
+- /queens 2
+- /queens set 2 9 11 18 25
+
+TANGO:
+name: Tango
+command: /tango
+aliases: /tg
+description: Daily LinkedIn-style Tango puzzle. Players fill numbered cells with sun or moon symbols and earn a completion reward.
+
+COMMAND_LIST:
+- /tango - Show today's board.
+- /tango <tile> <sun|moon> - Fill one tile.
+- /tango <tile1> <sun|moon> <tile2> <sun|moon> - Fill multiple tiles.
+- /tango clear <tile> - Clear one filled tile.
+- /tango reset - Clear all non-fixed tiles.
+
+IMPORTANT_RULES:
+- Reward is 30 coins.
+- Reward can be claimed once per calendar day.
+- Each row and column must have equal suns and moons.
+- Three matching symbols in a row or column are not allowed.
+- Same and different links must be respected.
+
+EXAMPLE_COMMANDS:
+- /tango 2 sun
+- /tg 3 moon 5 sun
+- /tango clear 2
+
+ZIP:
+name: Zip
+command: /zip
+aliases: /zp
+description: Daily LinkedIn-style Zip puzzle. Players submit a numbered path through every tile and earn a completion reward.
+
+COMMAND_LIST:
+- /zip - Show today's board.
+- /zip <tile1> <tile2> ... - Replace the current path with a full or partial path.
+- /zip add <tile1> <tile2> ... - Append tiles to the current path.
+- /zip clear - Clear the current path.
+
+IMPORTANT_RULES:
+- Reward is 30 coins.
+- Reward can be claimed once per calendar day.
+- The path must cover every tile exactly once.
+- Each step must move up, down, left, or right.
+- Numbered clues must be visited in order.
+
+EXAMPLE_COMMANDS:
+- /zip
+- /zip add 1 2 3 4
+- /zip 1 2 3 4 8 7 6 5 9 10 11 12 16 15 14 13
