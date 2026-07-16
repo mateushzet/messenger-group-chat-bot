@@ -651,6 +651,21 @@ class TreePlugin(BaseGamePlugin):
         game = self.load_game_state(user_id)
         game.water_plants()
         
+        needed_slots = len(tree_ids)
+        available_slots = 0
+        
+        for slot in game.slots:
+            if slot["unlocked"] and slot["plant"] is None:
+                available_slots += 1
+        
+        if needed_slots > available_slots:
+            self.send_message_image(sender, file_queue, 
+                f"Not enough free slots! Need: {needed_slots}, available: {available_slots}\n"
+                f"Use /tree buy slot <nr> to unlock more slots.",
+                "Tree Game", self.cache, user_id)
+            self.show_game_status(user_id, user, sender, file_queue)
+            return False
+        
         total_cost = 0
         for tree_id in tree_ids:
             if tree_id >= game.unlocked_trees:
@@ -696,7 +711,7 @@ class TreePlugin(BaseGamePlugin):
         self.send_message_image(sender, file_queue, result_msg, "Tree Game", self.cache, user_id)
         self.show_game_status(user_id, user, sender, file_queue)
         return True
-
+    
     def _cut_multiple_trees(self, slots, user_id, user, sender, file_queue):
         game = self.load_game_state(user_id)
         game.water_plants()
