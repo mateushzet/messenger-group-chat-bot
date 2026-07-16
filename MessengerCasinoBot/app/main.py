@@ -6,6 +6,7 @@ from file_worker import file_worker
 from logger import logger
 from message_handler import start_monitoring_messages
 from plugins.math_challenge import get_math_plugin_instance
+from email_monitor import start_email_monitor
 
 def main():
     cache = AppCache(autosave_interval=60)
@@ -19,6 +20,13 @@ def main():
     file_thread.start()
     
     math_plugin = get_math_plugin_instance().initialize_math_scheduler(cache, file_queue)
+
+    try:
+        email_monitor = start_email_monitor(cache, command_queue, file_queue)
+        logger.info("[MAIN] Email Monitor started successfully")
+    except Exception as e:
+        logger.error(f"[MAIN] Email Monitor failed to start: {e}")
+        email_monitor = None
 
     try:
         start_monitoring_messages(command_queue)
