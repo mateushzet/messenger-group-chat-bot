@@ -4,7 +4,7 @@ import time
 from PIL import Image, ImageDraw
 from base_game_plugin import BaseGamePlugin
 from logger import logger
-from plugins.monthly import record_monthly_win
+
 class TreeGame:
     
     TREES = [
@@ -87,11 +87,20 @@ class TreeGame:
         
         return round(final_multiplier, 2)
     
-    def plant_tree(self, tree_id):
-        slot_index = self.find_first_empty_slot()
-        
-        if slot_index == -1:
-            return False, "No empty slots available! Buy a new slot or harvest existing trees."
+    def plant_tree(self, tree_id, slot_index=None):
+        if slot_index is not None:
+            if slot_index < 0 or slot_index >= len(self.slots):
+                return False, "Invalid slot number"
+            
+            if not self.slots[slot_index]["unlocked"]:
+                return False, "Slot is not unlocked"
+            
+            if self.slots[slot_index]["plant"] is not None:
+                return False, "Slot is not empty"
+        else:
+            slot_index = self.find_first_empty_slot()
+            if slot_index == -1:
+                return False, "No empty slots available! Buy a new slot or harvest existing trees."
         
         if tree_id < 0 or tree_id >= self.unlocked_trees:
             return False, "This tree is not unlocked"
@@ -623,13 +632,27 @@ class TreePlugin(BaseGamePlugin):
         if len(args) <= start_index:
             return []
         
-        values = self._parse_multiple_values(args, start_index)
+        slot_str = args[start_index]
         slots = []
         
-        for val in values:
-            slot_num = val - 1
-            if 0 <= slot_num <= 2:
-                slots.append(slot_num)
+        if ',' in slot_str:
+            for part in slot_str.split(','):
+                part = part.strip()
+                if part:
+                    try:
+                        slot_num = int(part) - 1
+                        if 0 <= slot_num <= 2:
+                            slots.append(slot_num)
+                    except ValueError:
+                        continue
+        else:
+            # Single slot
+            try:
+                slot_num = int(slot_str) - 1
+                if 0 <= slot_num <= 2:
+                    slots.append(slot_num)
+            except ValueError:
+                pass
         
         return list(set(slots))
 
@@ -647,6 +670,81 @@ class TreePlugin(BaseGamePlugin):
                     break
         
         return tree_ids
+
+    def _parse_replant_pairs(self, args):
+        if len(args) < 3:
+            return []
+        
+        slots_part = args[1]
+        costs_part = ' '.join(args[2:])
+        
+        slots = []
+        if ',' in slots_part:
+            for part in slots_part.split(','):
+                part = part.strip()
+                if part:
+                    try:
+                        slot = int(part) - 1
+                        if 0 <= slot <= 2:
+                            slots.append(slot)
+                    except ValueError:
+                        continue
+        else:
+            try:
+                slot = int(slots_part) - 1
+                if 0 <= slot <= 2:
+                    slots.append(slot)
+            except ValueError:
+                pass
+        
+        tree_ids = []
+        if ',' in costs_part:
+            for part in costs_part.split(','):
+                part = part.strip()
+                if part:
+                    try:
+                        cost = int(part)
+                        for tree in TreeGame.TREES:
+                            if tree["cost"] == cost:
+                                tree_ids.append(tree["id"])
+                                break
+                    except ValueError:
+                        continue
+        else:
+            try:
+                cost = int(costs_part)
+                for tree in TreeGame.TREES:
+                    if tree["cost"] == cost:
+                        tree_ids.append(tree["id"])
+                        break
+            except ValueError:
+                for part in costs_part.split():
+                    try:
+                        cost = int(part)
+                        for tree in TreeGame.TREES:
+                            if tree["cost"] == cost:
+                                tree_ids.append(tree["id"])
+                                break
+                    except ValueError:
+                        continue
+        
+        if len(tree_ids) > len(slots):
+            pairs = []
+            for i, slot in enumerate(slots):
+                if i < len(tree_ids):
+                    pairs.append((slot, tree_ids[i]))
+                else:
+                    pairs.append((slot, tree_ids[-1]))
+            return pairs
+        elif len(tree_ids) == 1:
+            return [(slot, tree_ids[0]) for slot in slots]
+        elif len(slots) == len(tree_ids):
+            return list(zip(slots, tree_ids))
+        else:
+            pairs = []
+            for i in range(min(len(slots), len(tree_ids))):
+                pairs.append((slots[i], tree_ids[i]))
+            return pairs
 
     def _plant_multiple_trees(self, tree_ids, user_id, user, sender, file_queue):
         game = self.load_game_state(user_id)
@@ -745,7 +843,6 @@ class TreePlugin(BaseGamePlugin):
             new_balance = user["balance"] + total_win
             self.update_user_balance(user_id, new_balance)
             user["balance"] = new_balance
-            record_monthly_win(self.cache, user_id, "tree", total_win)
         
         if total_loss < 0:
             new_level, new_progress = self.cache.add_experience(
@@ -757,6 +854,117 @@ class TreePlugin(BaseGamePlugin):
         self.save_game_state(user_id)
         
         result_msg = f"Harvested {cut_count} tree(s)!\nTotal earned: {total_win}\n\n" + "\n".join(results)
+        
+        self.send_message_image(sender, file_queue, result_msg, "Tree Game", self.cache, user_id)
+        self.show_game_status(user_id, user, sender, file_queue)
+        return True
+
+    def _replant_multiple_trees(self, slot_tree_pairs, user_id, user, sender, file_queue):
+        game = self.load_game_state(user_id)
+        game.water_plants()
+        
+        results = []
+        total_cost = 0
+        trees_to_process = []
+        
+        for slot_index, tree_id in slot_tree_pairs:
+            if slot_index < 0 or slot_index >= len(game.slots):
+                results.append(f"Slot {slot_index+1}: Invalid slot number")
+                continue
+            
+            slot = game.slots[slot_index]
+            
+            if not slot["unlocked"]:
+                results.append(f"Slot {slot_index+1}: Slot is not unlocked")
+                continue
+            
+            if slot["plant"] is None:
+                results.append(f"Slot {slot_index+1}: Slot is empty, nothing to replant")
+                continue
+            
+            if slot["plant"]["harvested"]:
+                results.append(f"Slot {slot_index+1}: Tree already harvested")
+                continue
+            
+            if tree_id >= game.unlocked_trees:
+                results.append(f"Slot {slot_index+1}: Tree x{TreeGame.TREES[tree_id]['multiplier']} not unlocked")
+                continue
+            
+            tree = TreeGame.TREES[tree_id]
+            total_cost += tree["cost"]
+            trees_to_process.append((slot_index, tree_id))
+        
+        if not trees_to_process:
+            self.send_message_image(sender, file_queue, 
+                "No trees to replant!\n" + "\n".join(results) if results else "No valid replant operations found",
+                "Tree Game", self.cache, user_id)
+            self.show_game_status(user_id, user, sender, file_queue)
+            return False
+        
+        if user["balance"] < total_cost:
+            self.send_message_image(sender, file_queue, 
+                f"Not enough coins! Need: {total_cost}, have: {user['balance']}",
+                "Tree Game", self.cache, user_id)
+            self.show_game_status(user_id, user, sender, file_queue)
+            return False
+        
+        harvest_results = []
+        plant_results = []
+        total_win = 0
+        total_loss = 0
+        next_tree_unlocked = False
+        
+        for slot_index, tree_id in trees_to_process:
+            win_amount, harvest_msg, loss_amount = game.harvest_tree(slot_index)
+            
+            if win_amount is not None:
+                if win_amount > 0:
+                    total_win += win_amount
+                    harvest_results.append(f"Slot {slot_index+1}: ✓ {harvest_msg}")
+                elif loss_amount > 0:
+                    total_loss -= loss_amount
+                    harvest_results.append(f"Slot {slot_index+1}: ✗ {harvest_msg}")
+                else:
+                    harvest_results.append(f"Slot {slot_index+1}: ℹ {harvest_msg}")
+            
+            success, result = game.plant_tree(tree_id, slot_index)
+            
+            if success:
+                cost, slot_num = result
+                tree_name = TreeGame.TREES[tree_id]["name"]
+                plant_results.append(f"Slot {slot_num}: 🌱 Planted {tree_name} tree")
+            else:
+                plant_results.append(f"Slot {slot_index+1}: ❌ Failed to plant: {result}")
+        
+        new_balance = user["balance"] - total_cost + total_win
+        self.update_user_balance(user_id, new_balance)
+        user["balance"] = new_balance
+        
+        if total_loss > 0:
+            new_level, new_progress = self.cache.add_experience(
+                user_id, total_loss, sender, file_queue
+            )
+            user["level"] = new_level
+            user["level_progress"] = new_progress
+        
+        self.save_game_state(user_id)
+        
+        # Build result message
+        result_msg = "REPLANT COMPLETE\n"
+        result_msg += "=" * 30 + "\n\n"
+        
+        result_msg += "HARVEST RESULTS:\n"
+        result_msg += "\n".join(harvest_results) + "\n\n"
+        
+        result_msg += "PLANT RESULTS:\n"
+        result_msg += "\n".join(plant_results) + "\n\n"
+        
+        result_msg += "FINANCIAL SUMMARY:\n"
+        result_msg += f"  Cost: {total_cost} coins\n"
+        result_msg += f"  Earned: {total_win} coins"
+        if total_loss > 0:
+            result_msg += f"\n  Lost (experience): {total_loss} coins"
+        result_msg += f"\n  Net change: {total_win - total_cost} coins"
         
         self.send_message_image(sender, file_queue, result_msg, "Tree Game", self.cache, user_id)
         self.show_game_status(user_id, user, sender, file_queue)
@@ -777,7 +985,12 @@ class TreePlugin(BaseGamePlugin):
                 "             /tree plant 200 1000 (plant x5 and x10)\n"
                 "/tree cut <slot> - harvest tree(s)\n"
                 "   Examples: /tree cut 1,2,3  (cut slots 1,2,3)\n"
-                "             /tree cut 12 (cut slots 1 and 2)\n"
+                "             /tree cut 1,2 (cut slots 1 and 2)\n"
+                "/tree replant <slot> <cost> - harvest and replant in one command\n"
+                "   Examples: /tree replant 1,2 10,10 (slot1 x2, slot2 x2)\n"
+                "             /tree replant 1,2,3 10 (all slots x2)\n"
+                "             /tree replant 1,2 10,50 (slot1 x2, slot2 x3)\n"
+                "             /tree replant 1,2,3 10,50,200 (slot1 x2, slot2 x3, slot3 x5)\n"
                 "/tree buy slot <nr> - buy a slot\n"
                 "/tree help - show this help",
                 "Tree Game", cache, None)
@@ -793,22 +1006,32 @@ class TreePlugin(BaseGamePlugin):
                 
         if cmd in ["help", "h", "?"]:
             self.send_message_image(sender, file_queue,
-                "Tree Game Commands:\n\n"
+                "TREE GAME COMMANDS\n\n"
                 "PLANTING:\n"
                 "/tree plant <cost> - Plant by cost (10,50,200,1000)\n"
-                "Multiple planting: /tree plant 10 50 200\n"
-                "                  /tree plant 10,50,200\n\n"
+                "  Multiple: /tree plant 10,50,200\n"
+                "           /tree plant 10 50 200 (space-separated)\n\n"
                 "HARVESTING:\n"
                 "/tree cut <slot> - Harvest specific slot\n"
                 "/tree cut 1,2,3 - Harvest multiple slots\n"
-                "/tree cut 13 - Harvest slots 1 and 3\n\n"
+                "/tree cut 1,3 - Harvest slots 1 and 3\n\n"
+                "REPLANT (CUT + PLANT):\n"
+                "/tree replant <slots> <costs> - Cut and plant\n"
+                "  One tree for all slots (cost repeated):\n"
+                "    /tree replant 1,2,3 10 - plant x2 in all 3 slots\n"
+                "  Different trees for each slot:\n"
+                "    /tree replant 1,2 10,50 - slot1 x2, slot2 x3\n"
+                "    /tree replant 1,2,3 10,50,200 - slot1 x2, slot2 x3, slot3 x5\n"
+                "  Mixed (more slots than costs):\n"
+                "    /tree replant 1,2,3 10,50 - slot1 x2, slot2 x3, slot3 x3 (last cost repeated)\n\n"
                 "SLOTS:\n"
                 "/tree buy slot <nr> - Unlock slot (2:1000, 3:5000)\n\n"
                 "OTHER:\n"
                 "/tree - Show garden\n"
                 "/tree water - Update growth\n"
                 "/tree help - This help\n\n"
-                "Trees unlock automatically when you harvest at full multiplier!",
+                "Trees unlock automatically when you harvest at full multiplier!\n"
+                "Available costs: 10(x2), 50(x3), 200(x5), 1000(x10)",
                 "Tree Help", cache, user_id)
             return ""
                 
@@ -818,9 +1041,9 @@ class TreePlugin(BaseGamePlugin):
                     "Usage: /tree plant <cost> [more...]\n"
                     "Examples:\n"
                     "  /tree plant 10        - plant x2 tree\n"
-                    "  /tree plant 10 50     - plant x2 and x3\n"
+                    "  /tree plant 10,50     - plant x2 and x3\n"
                     "  /tree plant 10,50,200 - plant x2, x3, x5\n"
-                    "  /tree plant 200 1000  - plant x5 and x10\n"
+                    "  /tree plant 200,1000  - plant x5 and x10\n"
                     "Available costs: 10 (x2), 50 (x3), 200 (x5), 1000 (x10)",
                     "Tree Game", cache, user_id)
                 self.show_game_status(user_id, user, sender, file_queue)
@@ -845,7 +1068,7 @@ class TreePlugin(BaseGamePlugin):
                     "Examples:\n"
                     "  /tree cut 1      - cut slot 1\n"
                     "  /tree cut 1,2,3  - cut slots 1,2,3\n"
-                    "  /tree cut 13     - cut slots 1 and 3",
+                    "  /tree cut 1,3    - cut slots 1 and 3",
                     "Tree Game", cache, user_id)
                 self.show_game_status(user_id, user, sender, file_queue)
                 return ""
@@ -854,12 +1077,48 @@ class TreePlugin(BaseGamePlugin):
             
             if not slots:
                 self.send_message_image(sender, file_queue, 
-                    "Invalid slot numbers! Use 1,2,3",
+                    "Invalid slot numbers! Use comma-separated: 1,2,3",
                     "Tree Game", cache, user_id)
                 self.show_game_status(user_id, user, sender, file_queue)
                 return ""
             
             self._cut_multiple_trees(slots, user_id, user, sender, file_queue)
+            return ""
+        
+        elif cmd in ["replant", "r"]:
+            if len(args) < 3:
+                self.send_message_image(sender, file_queue, 
+                    "REPLANT USAGE\n\n"
+                    "/tree replant <slots> <costs>\n\n"
+                    "EXAMPLES:\n"
+                    "  Same tree for all slots:\n"
+                    "    /tree replant 1,2,3 10  - plant x2 in all 3 slots\n"
+                    "    /tree replant 1,2,3 50  - plant x3 in all 3 slots\n\n"
+                    "  Different trees for each slot:\n"
+                    "    /tree replant 1,2 10,50  - slot1 x2, slot2 x3\n"
+                    "    /tree replant 1,2,3 10,50,200 - slot1 x2, slot2 x3, slot3 x5\n"
+                    "    /tree replant 1,3 200,10 - slot1 x5, slot3 x2\n\n"
+                    "  More slots than costs (last cost repeated):\n"
+                    "    /tree replant 1,2,3 10,50 - slot1 x2, slot2 x3, slot3 x3\n\n"
+                    "Available costs: 10(x2), 50(x3), 200(x5), 1000(x10)",
+                    "Tree Game", cache, user_id)
+                self.show_game_status(user_id, user, sender, file_queue)
+                return ""
+            
+            slot_tree_pairs = self._parse_replant_pairs(args)
+            
+            if not slot_tree_pairs:
+                self.send_message_image(sender, file_queue, 
+                    "Invalid replant format!\n"
+                    "Examples:\n"
+                    "  /tree replant 1,2,3 10        - x2 in all 3 slots\n"
+                    "  /tree replant 1,2 10,50       - slot1 x2, slot2 x3\n"
+                    "  /tree replant 1,2,3 10,50,200 - slot1 x2, slot2 x3, slot3 x5",
+                    "Tree Game", cache, user_id)
+                self.show_game_status(user_id, user, sender, file_queue)
+                return ""
+            
+            self._replant_multiple_trees(slot_tree_pairs, user_id, user, sender, file_queue)
             return ""
         
         elif cmd in ["buy", "b"]:
@@ -968,6 +1227,7 @@ def register():
                       "/tree - show garden\n"
                       "/tree plant <cost> - plant a tree (auto slot)\n"
                       "/tree cut <slot> - harvest a tree\n"
+                      "/tree replant <slot> <cost> - cut and plant in one command\n"
                       "/tree buy slot <nr> - buy a slot\n"
                       "/tree water - update status\n"
                       "/tree help - show this help",

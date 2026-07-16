@@ -131,17 +131,6 @@ class PokerHand:
 
 
 class TexasHoldemGame:
-    FEE_PERCENT = 0.10
-
-    def _apply_fee_to_net_win(self, net_win: int) -> int:
-        try:
-            net_value = int(net_win)
-        except (TypeError, ValueError):
-            return 0
-        if net_value <= 0:
-            return net_value
-        fee = int(net_value * self.FEE_PERCENT)
-        return max(0, net_value - fee)
     def __init__(
         self,
         user_id: str,
@@ -445,10 +434,8 @@ class TexasHoldemGame:
         self.status = "finished"
         self.winner = "player"
         self.finish_reason = "bot_fold"
-        gross_payout = self.pot
-        gross_net = gross_payout - self.player_committed
-        self.net_win = self._apply_fee_to_net_win(gross_net)
-        self.payout = max(0, self.player_committed + self.net_win)
+        self.net_win = self.pot - self.player_committed
+        self.payout = self.pot
         self.message = f"Bot folds. You win the pot of {self.pot}"
 
     def finish_showdown(self):
@@ -461,11 +448,9 @@ class TexasHoldemGame:
 
         if player_hand.score > bot_hand.score:
             self.winner = "player"
-            gross_payout = self.pot
-            gross_net = gross_payout - self.player_committed
-            self.net_win = self._apply_fee_to_net_win(gross_net)
-            self.payout = max(0, self.player_committed + self.net_win)
-            self.message = f"Showdown! You win with {player_hand.label} (-10%)."
+            self.net_win = self.pot - self.player_committed
+            self.payout = self.pot
+            self.message = f"Showdown! You win with {player_hand.label}!"
         elif player_hand.score < bot_hand.score:
             self.winner = "bot"
             self.payout = 0
@@ -809,7 +794,7 @@ class PokerTableRenderer:
                 action = "CHECK / BET <AMOUNT> / FOLD"
         else:
             if game.winner == "player":
-                action = f"PAYOUT {game.payout} | NET +{game.net_win} (-10%)"
+                action = f"PAYOUT {game.payout} | NET +{game.net_win}"
             elif game.winner == "tie":
                 action = f"SPLIT POT | NET {game.net_win}"
             else:
