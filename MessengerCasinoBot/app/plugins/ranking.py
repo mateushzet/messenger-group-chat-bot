@@ -169,6 +169,56 @@ class RankingPlugin(BaseGamePlugin):
         
         return None, None
 
+    def _parse_ranking_args(self, args):
+        ranking_type = "balance"
+        page = 1
+        args = args or []
+        skip_next = False
+
+        for index, raw_arg in enumerate(args):
+            if skip_next:
+                skip_next = False
+                continue
+
+            arg = str(raw_arg).lower().strip()
+            if arg in ["level", "lvl", "levels"]:
+                ranking_type = "level"
+                continue
+
+            if arg in ["money", "balance", "bal", "cash", "coins"]:
+                ranking_type = "balance"
+                continue
+
+            if arg in ["page", "p"] and index + 1 < len(args):
+                try:
+                    page = int(args[index + 1])
+                except (TypeError, ValueError):
+                    page = 1
+                skip_next = True
+                continue
+
+            try:
+                page = int(arg)
+            except (TypeError, ValueError):
+                continue
+
+        return ranking_type, max(1, page)
+
+    def _get_ranking_page(self, ranking, requested_page=1, page_size=10):
+        page_size = max(1, int(page_size or 10))
+        total_users = len(ranking)
+        total_pages = max(1, (total_users + page_size - 1) // page_size)
+        page = min(max(1, int(requested_page or 1)), total_pages)
+
+        start_index = (page - 1) * page_size
+        end_index = min(start_index + page_size, total_users)
+        page_users = ranking[start_index:end_index]
+
+        if not page_users:
+            return page_users, page, total_pages, 0, 0
+
+        return page_users, page, total_pages, start_index + 1, end_index
+
     def _render_text_with_shadow(self, text, font_size, color, shadow_color=(0, 0, 0, 180)):
         return self.text_renderer.render_text(
             text=text,
@@ -181,13 +231,14 @@ class RankingPlugin(BaseGamePlugin):
             shadow_offset=(2, 2)
         )
 
-    def create_ranking_image(self, output_path, cache, user_id=None, ranking_type="balance"):
+    def create_ranking_image(self, output_path, cache, user_id=None, ranking_type="balance", page=1, page_size=10):
         for rt in ["balance", "level"]:
             ranking = self.get_sorted_ranking(cache, rt)
             leader_id = ranking[0]['id'] if ranking else None
             self._update_leader_record(cache, leader_id, rt)
 
         ranking = self.get_sorted_ranking(cache, ranking_type)
+        page_users, page, total_pages, start_rank, end_rank = self._get_ranking_page(ranking, page, page_size)
 
         leader_id = ranking[0]['id'] if ranking else None
         leader_time, leader_record = self._update_leader_record(cache, leader_id, ranking_type)
@@ -195,19 +246,22 @@ class RankingPlugin(BaseGamePlugin):
         AVATAR_SIZE = 70
         ROW_HEIGHT = 100
         MARGIN = 20
-        MAX_ROWS = 10
+        MAX_ROWS = page_size
+        headers_y = MARGIN + 75
+        start_y = headers_y + 50
+        footer_height = 110
         
-        total_height = (ROW_HEIGHT * min(len(ranking), MAX_ROWS) + 
-                    MARGIN * 3 + 130)
+        total_height = start_y + (ROW_HEIGHT * len(page_users)) + footer_height
+        total_height = max(total_height, 260)
         total_width = 900
         
         img = Image.new('RGBA', (total_width, total_height), (30, 30, 30, 255))
         draw = ImageDraw.Draw(img)
         
         if ranking_type == "level":
-            title_text = "LEVEL RANKING"
+            title_text = f"LEVEL RANKING - PAGE {page}/{total_pages}"
         else:
-            title_text = "BALANCE RANKING"
+            title_text = f"BALANCE RANKING - PAGE {page}/{total_pages}"
             
         title_img = self._render_text_with_shadow(
             text=title_text,
@@ -217,8 +271,6 @@ class RankingPlugin(BaseGamePlugin):
         
         title_x = (total_width - title_img.width) // 2
         img.alpha_composite(title_img, (title_x, MARGIN + 10))
-        
-        headers_y = MARGIN + 75
         
         rank_text_img = self.text_renderer.render_text(
             text="RANK",
@@ -279,9 +331,8 @@ class RankingPlugin(BaseGamePlugin):
         draw.line([(MARGIN, headers_y + 30), (total_width - MARGIN, headers_y + 30)], 
                 fill=(100, 100, 120, 180), width=2)
         
-        start_y = headers_y + 50
-
-        for i, user in enumerate(ranking[:MAX_ROWS]):
+        for i, user in enumerate(page_users[:MAX_ROWS]):
+            absolute_rank = start_rank + i
             y_pos = start_y + (i * ROW_HEIGHT)
             
             user_bg_img = None
@@ -350,8 +401,8 @@ class RankingPlugin(BaseGamePlugin):
             
             img.paste(row_img, (MARGIN, y_pos), row_img)
             
-            rank_text = f"#{i+1}"
-            rank_color = (255, 215, 0) if i == 0 else (220, 220, 240) if i == 1 else (205, 127, 50) if i == 2 else (180, 180, 200)
+            rank_text = f"#{absolute_rank}"
+            rank_color = (255, 215, 0) if absolute_rank == 1 else (220, 220, 240) if absolute_rank == 2 else (205, 127, 50) if absolute_rank == 3 else (180, 180, 200)
             
             rank_img = self.text_renderer.render_text(
                 text=rank_text,
@@ -393,7 +444,7 @@ class RankingPlugin(BaseGamePlugin):
             name_y = y_pos + 20
             img.alpha_composite(name_img, (name_x, name_y))
             
-            if i == 0 and leader_time > 0:
+            if absolute_rank == 1 and leader_time > 0:
                 time_text = f"{self._format_duration(leader_time)}"
                 time_img = self.text_renderer.render_text(
                     text=time_text,
@@ -463,31 +514,48 @@ class RankingPlugin(BaseGamePlugin):
             balance_y_pos = y_pos + (ROW_HEIGHT - balance_img.height) // 2 - 5
             img.alpha_composite(balance_img, (balance_x_pos, balance_y_pos))
         
-        if user_id and len(ranking) > MAX_ROWS:
+        footer_y = start_y + (len(page_users) * ROW_HEIGHT) + 10
+        draw.line([(MARGIN, footer_y - 8), (total_width - MARGIN, footer_y - 8)],
+                fill=(100, 100, 120, 180), width=2)
+
+        footer_lines = []
+        total_users = len(ranking)
+        if total_users:
+            footer_lines.append(f"Page {page}/{total_pages} | Players {start_rank}-{end_rank} of {total_users}")
+        else:
+            footer_lines.append("No ranked players yet.")
+
+        rank_command = "rank level" if ranking_type == "level" else "rank balance"
+        page_hints = []
+        if page > 1:
+            page_hints.append(f"Previous: /{rank_command} {page - 1}")
+        if page < total_pages:
+            page_hints.append(f"Next: /{rank_command} {page + 1}")
+        if page_hints:
+            footer_lines.append(" | ".join(page_hints))
+
+        if user_id and total_users:
             position, user_data = self.get_user_position(cache, user_id, ranking_type)
-            if position and position > MAX_ROWS:
-                info_y = start_y + (MAX_ROWS * ROW_HEIGHT) + 20
-                
-                info_bg = Image.new('RGBA', (total_width - MARGIN*2, 60), (40, 40, 50, 255))
-                img.paste(info_bg, (MARGIN, info_y), info_bg)
-                draw.rounded_rectangle([MARGIN, info_y, total_width - MARGIN, info_y + 60], 
-                                    radius=10, outline=(0, 0, 0), width=2)
-                
-                info_text = f"Your position: #{position}"
-                info_img = self.text_renderer.render_text(
-                    text=info_text,
-                    font_size=20,
-                    color=(255, 200, 100, 255),
-                    stroke_width=1,
-                    stroke_color=(0, 0, 0, 255),
-                    shadow=True,
-                    shadow_color=(0, 0, 0, 150),
-                    shadow_offset=(1, 1)
-                )
-                
-                info_x = (total_width - info_img.width) // 2
-                info_y_pos = info_y + 20
-                img.alpha_composite(info_img, (info_x, info_y_pos))
+            if position:
+                user_page = ((position - 1) // max(1, page_size)) + 1
+                if start_rank <= position <= end_rank:
+                    footer_lines.append(f"Your position: #{position}/{total_users}")
+                else:
+                    footer_lines.append(f"Your position: #{position}/{total_users} (page {user_page})")
+
+        for line_index, footer_text in enumerate(footer_lines[:3]):
+            footer_img = self.text_renderer.render_text(
+                text=footer_text,
+                font_size=18 if line_index == 0 else 16,
+                color=(255, 200, 100, 255) if footer_text.startswith("Your position") else (220, 220, 235, 255),
+                stroke_width=1,
+                stroke_color=(0, 0, 0, 255),
+                shadow=True,
+                shadow_color=(0, 0, 0, 150),
+                shadow_offset=(1, 1)
+            )
+            footer_x = (total_width - footer_img.width) // 2
+            img.alpha_composite(footer_img, (footer_x, footer_y + line_index * 28))
         
         img.save(output_path, format='WEBP', quality=90, optimize=True)
         logger.info(f"[Ranking] Ranking image saved to: {output_path}")
@@ -508,17 +576,10 @@ class RankingPlugin(BaseGamePlugin):
             )
             return None
         
-        ranking_type = "balance"
+        ranking_type, page = self._parse_ranking_args(args)
         
-        if args:
-            arg = args[0].lower()
-            if arg in ["level", "lvl", "levels"]:
-                ranking_type = "level"
-            elif arg in ["money", "balance", "bal", "cash", "coins"]:
-                ranking_type = "balance"
-        
-        img_path = os.path.join(self.results_folder, f"ranking_{ranking_type}_{user_id}.webp")
-        self.create_ranking_image(img_path, cache, user_id, ranking_type)
+        img_path = os.path.join(self.results_folder, f"ranking_{ranking_type}_p{page}_{user_id}.webp")
+        self.create_ranking_image(img_path, cache, user_id, ranking_type, page=page)
         
         file_queue.put(img_path)
         
@@ -572,6 +633,6 @@ def register():
     return {
         "name": "ranking",
         "aliases": ["/ranking", "/rank"],
-        "description": "Player Rankings & Leaderboards\n\n**Commands:**\n- `/rank` or `/ranking` - Balance ranking (default)\n- `/rank balance` - Players ranked by coins\n- `/rank level` - Players ranked by level\n\n**Features:**\n• Top 10 players with avatars and backgrounds\n• Your current position highlighted\n• Leader duration tracking for top players",
+        "description": "Player Rankings & Leaderboards\n\n**Commands:**\n- `/rank` or `/ranking` - Balance ranking page 1 (default)\n- `/rank 2` - Balance ranking page 2\n- `/rank balance 2` - Players ranked by coins, page 2\n- `/rank level 2` - Players ranked by level, page 2\n\n**Features:**\n- 10 players per page with avatars and backgrounds\n- Your current position highlighted\n- Leader duration tracking for top players",
         "execute": plugin.execute_game
     }
