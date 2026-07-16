@@ -36,8 +36,9 @@ class AdminPlugin(BaseGamePlugin):
                             "6. addMoney <amount> <name_or_id> - Add coins to user\n" \
                             "7. listUsers - List all users (detailed)\n" \
                             "8. resetAvatar <user_id> - Mark user avatar for update\n" \
-                            "9. kill - Stop the bot\n" \
-                            "10. restart - Restart the bot\n\n" \
+                            "9. buycoins <user_id> <amount_pln> <pool_percent> - Manual coin purchase\n" \
+                            "10. kill - Stop the bot\n" \
+                            "11. restart - Restart the bot\n\n" \
                             "Admin access only",
                             "Admin Commands", cache, None)
             return ""
@@ -232,6 +233,66 @@ class AdminPlugin(BaseGamePlugin):
                     self.send_message_image(sender, file_queue, f"ERROR: {message}", "Admin - Error", cache, None)
                 return ""
 
+            elif subcommand == "buycoins":
+                if len(args) < 4:
+                    self.send_message_image(sender, file_queue, 
+                                    "Usage: /admin buycoins <user_id> <amount_pln> <pool_percent>\n\n" \
+                                    "Examples:\n" \
+                                    "/admin buycoins 18 10 50 - gives user 18 10,000 coins and adds 5 PLN to pool\n" \
+                                    "/admin buycoins 5 25 30 - gives user 5 25,000 coins and adds 7.5 PLN to pool\n\n" \
+                                    "pool_percent: % of PLN that goes to withdrawal pool (0-100)",
+                                    "Admin - Buy Coins", cache, None)
+                    return ""
+                
+                user_id_str = args[1]
+                amount_pln_str = args[2]
+                pool_percent_str = args[3]
+                
+                try:
+                    user_id = int(user_id_str)
+                except ValueError:
+                    self.send_message_image(sender, file_queue, 
+                                    "Invalid user ID!\n\nPlease provide a valid numeric user ID.",
+                                    "Admin - Error", cache, None)
+                    return ""
+                
+                try:
+                    amount_pln = float(amount_pln_str.replace(',', '.'))
+                except ValueError:
+                    self.send_message_image(sender, file_queue, 
+                                    "Invalid amount!\n\nPlease provide a valid amount in PLN.",
+                                    "Admin - Error", cache, None)
+                    return ""
+                
+                if amount_pln <= 0:
+                    self.send_message_image(sender, file_queue, 
+                                    "Amount must be greater than 0.",
+                                    "Admin - Error", cache, None)
+                    return ""
+                
+                try:
+                    pool_percent = float(pool_percent_str.replace(',', '.'))
+                except ValueError:
+                    self.send_message_image(sender, file_queue, 
+                                    "Invalid pool percent!\n\nPlease provide a valid number (0-100).",
+                                    "Admin - Error", cache, None)
+                    return ""
+                
+                if pool_percent < 0 or pool_percent > 100:
+                    self.send_message_image(sender, file_queue, 
+                                    "Pool percent must be between 0 and 100.",
+                                    "Admin - Error", cache, None)
+                    return ""
+                
+                success, message = self.admin_buy_coins(user_manager, user_id, amount_pln, pool_percent)
+                if success:
+                    logger.info(f"[Admin] Admin {sender} bought {amount_pln} PLN worth of coins for user {user_id} with {pool_percent}% to pool")
+                    self.send_message_image(sender, file_queue, f"SUCCESS: {message}", "Admin - Coins Purchased", cache, None)
+                else:
+                    logger.error(f"[Admin] Failed to buy coins: {message}")
+                    self.send_message_image(sender, file_queue, f"ERROR: {message}", "Admin - Error", cache, None)
+                return ""
+
             elif subcommand == "kill":
                 try:
                     cache.save_to_disk()
@@ -269,6 +330,7 @@ class AdminPlugin(BaseGamePlugin):
                     logger.error(f"[Admin] Restart command not processed successfully", exc_info=True)
                     pass
                 return ""
+                
             elif subcommand == "resetavatar":
                 if len(args) < 2:
                     self.send_message_image(sender, file_queue, 
@@ -411,7 +473,7 @@ User: {actual_name}
 ID: {user_id}
 Balance: ${balance}
 Level: {level} ({level_progress}%)
- Admin: {admin_status}
+Admin: {admin_status}
 Avatar: {avatar}
 Background: {background}
 Experience: {experience}
@@ -467,7 +529,57 @@ Created: {created_at}
         logger.info(f"[Admin] Added {amount} balance to {name_or_id}")
 
         return True, f"Added ${amount} to user {name_or_id} (ID: {user_id}). New balance: ${new_balance}"
-    
+
+    def admin_buy_coins(self, user_manager, user_id, amount_pln, pool_percent):
+        try:
+            user_id, user_data = user_manager.find_user_by_id(user_id)
+            if not user_data:
+                return False, f"User with ID {user_id} not found"
+            
+            user_name = user_data.get('name', str(user_id))
+            
+            coins_to_add = int(amount_pln * 1000)
+            
+            old_balance = user_data.get('balance', 0)
+            new_balance = old_balance + coins_to_add
+            user_manager.cache.update_user(user_id, balance=new_balance)
+            
+            pool_pln = amount_pln * (pool_percent / 100.0)
+            
+            if pool_pln > 0:
+                try:
+                    from plugins.shop import ShopPlugin
+                    shop_plugin = ShopPlugin()
+                    shop_plugin.cache = user_manager.cache
+                    
+                    pool = shop_plugin.get_withdrawal_pool()
+                    pool["total_pln"] += pool_pln
+                    shop_plugin.save_withdrawal_pool(pool)
+                    
+                    logger.info(f"[Admin] Added {pool_pln:.2f} PLN to withdrawal pool ({pool_percent}% of {amount_pln} PLN)")
+                except Exception as e:
+                    logger.error(f"[Admin] Failed to add to withdrawal pool: {e}")
+                    return True, f"Added {coins_to_add} coins to {user_name} (ID: {user_id}).\nNew balance: {new_balance} coins.\n⚠️ Failed to add to withdrawal pool: {e}"
+            
+            logger.info(f"[Admin] Manual purchase: {user_name} ({user_id}) - {amount_pln} PLN = {coins_to_add} coins, {pool_pln:.2f} PLN to pool ({pool_percent}%)")
+            
+            message = (
+                f"Manual purchase successful!\n"
+                f"----------------------------\n"
+                f"Player: {user_name} (ID: {user_id})\n"
+                f"Amount: {amount_pln:.2f} PLN\n"
+                f"Coins added: {coins_to_add}\n"
+                f"New balance: {new_balance} coins\n"
+                f"\n"
+                f"Withdrawal pool: +{pool_pln:.2f} PLN ({pool_percent}%)"
+            )
+            
+            return True, message
+            
+        except Exception as e:
+            logger.error(f"[Admin] Error in admin_buy_coins: {e}", exc_info=True)
+            return False, f"Error: {e}"
+
 def register():
     plugin = AdminPlugin()
     return {
@@ -481,6 +593,7 @@ def register():
                     "/admin addMoney <amount> <name_or_id> - Add coins to user\n" \
                     "/admin listUsers - List all users (detailed)\n" \
                     "/admin resetAvatar <user_id> - Mark user avatar for update\n" \
+                    "/admin buycoins <user_id> <amount_pln> <pool_percent> - Manual coin purchase\n" \
                     "/admin kill - Stop the bot\n" \
                     "/admin restart - Restart the bot",
         "execute": plugin.execute
