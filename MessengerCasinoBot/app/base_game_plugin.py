@@ -1,4 +1,4 @@
-import os
+﻿import os
 from typing import Dict, List, Tuple, Optional
 from PIL import Image, ImageDraw
 from animation_generator import AnimationGenerator, GenerationRequest, UserInfo, GenerationOptions
@@ -42,7 +42,7 @@ class BaseGamePlugin:
                          last_frame_multiplier=1.0, custom_overlay_kwargs=None, 
                          show_win_text=True, font_scale=1.0, avatar_size=85, 
                          show_bet_amount=True, win_text_height=-1, final_frames_start_index=-1,
-                         win_text_scale=-1, overlay_position="bottom"):
+                         win_text_scale=-1, overlay_position="bottom", quality=90):
         avatar_path = None
         bg_path = None
         
@@ -90,7 +90,8 @@ class BaseGamePlugin:
             custom_overlay_kwargs=custom_overlay_kwargs,
             final_frames_start_index=final_frames_start_index,
             win_text_scale=win_text_scale,
-            overlay_position=overlay_position
+            overlay_position=overlay_position,
+            quality=quality
         )
         
         request = GenerationRequest(
