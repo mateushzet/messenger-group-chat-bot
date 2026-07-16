@@ -7,27 +7,15 @@ from plugins._linkedin_minigames import (
     ensure_daily_state,
     get_daily_zip_puzzle,
     parse_tile_numbers,
+    render_zip_image,
     save_daily_state,
+    save_minigame_image,
 )
 
 
 class ZipPlugin(BaseGamePlugin):
     def __init__(self):
         super().__init__(game_name="zip")
-
-    def _compose_message(self, puzzle, path, status_text):
-        board = puzzle.format_board()
-        current_path = " -> ".join(f"{tile:02d}" for tile in path) if path else "empty"
-        return (
-            f"{status_text}\n\n"
-            f"Board:\n{board}\n\n"
-            f"Clues: {puzzle.format_clues()}\n"
-            f"Current path: {current_path}\n\n"
-            "Rules: draw one path through every tile, moving up/down/left/right, "
-            "and visit clues in order.\n"
-            "Commands: /zip <full path>, /zip add <tiles>, /zip clear\n"
-            f"Reward: {DAILY_COMPLETION_REWARD} coins once per day."
-        )
 
     def execute_game(self, command_name, args, file_queue, cache=None, sender=None, avatar_url=None):
         self.cache = cache
@@ -89,8 +77,9 @@ class ZipPlugin(BaseGamePlugin):
                 else:
                     status_text = f"Path length: {len(path)}/{puzzle.cell_count}."
 
-        message = self._compose_message(puzzle, path, status_text)
-        self.send_message_image(sender, file_queue, message, "Zip", cache, user_id)
+        image = render_zip_image(puzzle, path, status_text)
+        image_path = save_minigame_image(image, self.results_folder, "zip", user_id)
+        file_queue.put(image_path)
         return ""
 
 
@@ -100,7 +89,7 @@ def register():
         "name": "zip",
         "aliases": ["/zp"],
         "description": (
-            "Daily Zip puzzle. Submit a numbered path through every tile.\n"
+            "Daily Zip puzzle with a graphical board. Submit a numbered path through every tile.\n"
             "Commands: /zip <full path>, /zip add <tiles>, /zip clear\n"
             f"Reward: {DAILY_COMPLETION_REWARD} coins once per day."
         ),

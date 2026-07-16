@@ -828,10 +828,10 @@ QUEENS:
 name: Queens
 command: /queens
 aliases: /queen, /qn
-description: Daily LinkedIn-style Queens puzzle. Players use numbered tiles to place queens and earn a completion reward.
+description: Daily LinkedIn-style Queens puzzle with a graphical board. Players use numbered tiles to place queens and earn a completion reward.
 
 COMMAND_LIST:
-- /queens - Show today's board.
+- /queens - Show today's graphical board.
 - /queens <tile> - Toggle one numbered tile.
 - /queens set <tile1> <tile2> ... - Submit all queen placements.
 - /queens clear - Clear current placements.
@@ -851,10 +851,10 @@ TANGO:
 name: Tango
 command: /tango
 aliases: /tg
-description: Daily LinkedIn-style Tango puzzle. Players fill numbered cells with sun or moon symbols and earn a completion reward.
+description: Daily LinkedIn-style Tango puzzle with a graphical board. Players fill numbered cells with sun or moon symbols and earn a completion reward.
 
 COMMAND_LIST:
-- /tango - Show today's board.
+- /tango - Show today's graphical board.
 - /tango <tile> <sun|moon> - Fill one tile.
 - /tango <tile1> <sun|moon> <tile2> <sun|moon> - Fill multiple tiles.
 - /tango clear <tile> - Clear one filled tile.
@@ -876,10 +876,10 @@ ZIP:
 name: Zip
 command: /zip
 aliases: /zp
-description: Daily LinkedIn-style Zip puzzle. Players submit a numbered path through every tile and earn a completion reward.
+description: Daily LinkedIn-style Zip puzzle with a graphical board. Players submit a numbered path through every tile and earn a completion reward.
 
 COMMAND_LIST:
-- /zip - Show today's board.
+- /zip - Show today's graphical board.
 - /zip <tile1> <tile2> ... - Replace the current path with a full or partial path.
 - /zip add <tile1> <tile2> ... - Append tiles to the current path.
 - /zip clear - Clear the current path.

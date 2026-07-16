@@ -8,26 +8,15 @@ from plugins._linkedin_minigames import (
     get_daily_tango_puzzle,
     normalize_tango_assignments,
     parse_tango_symbol,
+    render_tango_image,
     save_daily_state,
+    save_minigame_image,
 )
 
 
 class TangoPlugin(BaseGamePlugin):
     def __init__(self):
         super().__init__(game_name="tango")
-
-    def _compose_message(self, puzzle, assignments, status_text):
-        board = puzzle.format_board(assignments)
-        links = puzzle.format_links()
-        return (
-            f"{status_text}\n\n"
-            f"Board:\n{board}\n\n"
-            f"{links}\n\n"
-            "S = sun, M = moon, * = fixed cell.\n"
-            "Rules: each row and column has equal suns and moons, never three in a row.\n"
-            "Commands: /tango <tile> <sun|moon>, /tango clear <tile>\n"
-            f"Reward: {DAILY_COMPLETION_REWARD} coins once per day."
-        )
 
     def execute_game(self, command_name, args, file_queue, cache=None, sender=None, avatar_url=None):
         self.cache = cache
@@ -120,8 +109,9 @@ class TangoPlugin(BaseGamePlugin):
             else:
                 status_text = f"Filled {len(assignments)}/{puzzle.cell_count} cells."
 
-        message = self._compose_message(puzzle, assignments, status_text)
-        self.send_message_image(sender, file_queue, message, "Tango", cache, user_id)
+        image = render_tango_image(puzzle, assignments, status_text)
+        image_path = save_minigame_image(image, self.results_folder, "tango", user_id)
+        file_queue.put(image_path)
         return ""
 
 
@@ -131,7 +121,7 @@ def register():
         "name": "tango",
         "aliases": ["/tg"],
         "description": (
-            "Daily Tango puzzle. Fill numbered cells with sun or moon.\n"
+            "Daily Tango puzzle with a graphical board. Fill numbered cells with sun or moon.\n"
             "Commands: /tango <tile> <sun|moon>, /tango clear <tile>\n"
             f"Reward: {DAILY_COMPLETION_REWARD} coins once per day."
         ),

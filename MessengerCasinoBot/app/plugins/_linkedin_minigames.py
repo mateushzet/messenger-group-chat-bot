@@ -1,9 +1,28 @@
+import os
+import time
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
+from PIL import Image, ImageDraw, ImageFont
+
 
 DAILY_COMPLETION_REWARD = 30
+
+CANVAS_WIDTH = 720
+CANVAS_HEIGHT = 820
+TEXT_DARK = (22, 27, 37)
+TEXT_LIGHT = (245, 248, 252)
+MUTED = (169, 178, 194)
+PANEL = (31, 38, 52)
+
+QUEENS_REGION_COLORS = {
+    "A": (231, 117, 116),
+    "B": (245, 189, 92),
+    "C": (113, 198, 151),
+    "D": (103, 169, 229),
+    "E": (183, 139, 229),
+}
 
 
 @dataclass(frozen=True)
@@ -282,6 +301,295 @@ def _has_three_in_a_row(values: Sequence[Optional[str]]) -> bool:
         if window[0] and window[0] == window[1] == window[2]:
             return True
     return False
+
+
+def _font(size: int, bold: bool = False):
+    names = ("arialbd.ttf", "Arial Bold.ttf", "arial.ttf", "Arial.ttf") if bold else (
+        "arial.ttf",
+        "Arial.ttf",
+    )
+
+    for name in names:
+        try:
+            return ImageFont.truetype(name, size)
+        except Exception:
+            continue
+
+    return ImageFont.load_default()
+
+
+def _text_size(draw: ImageDraw.ImageDraw, text: str, font) -> Tuple[int, int]:
+    bbox = draw.textbbox((0, 0), text, font=font)
+    return bbox[2] - bbox[0], bbox[3] - bbox[1]
+
+
+def _draw_centered_text(draw: ImageDraw.ImageDraw, box, text: str, font, fill) -> None:
+    width, height = _text_size(draw, text, font)
+    x1, y1, x2, y2 = box
+    x = x1 + ((x2 - x1) - width) / 2
+    y = y1 + ((y2 - y1) - height) / 2
+    draw.text((x, y), text, font=font, fill=fill)
+
+
+def _draw_wrapped_text(draw: ImageDraw.ImageDraw, text: str, x: int, y: int,
+                       max_width: int, font, fill, line_spacing: int = 6) -> int:
+    line_height = _text_size(draw, "Ag", font)[1] + line_spacing
+
+    for paragraph in text.split("\n"):
+        if not paragraph.strip():
+            y += line_height
+            continue
+
+        words = paragraph.split()
+        line = ""
+        for word in words:
+            candidate = f"{line} {word}".strip()
+            if _text_size(draw, candidate, font)[0] <= max_width:
+                line = candidate
+                continue
+
+            if line:
+                draw.text((x, y), line, font=font, fill=fill)
+                y += line_height
+            line = word
+
+        if line:
+            draw.text((x, y), line, font=font, fill=fill)
+            y += line_height
+
+    return y
+
+
+def _new_canvas(title: str, status_text: str, accent: Tuple[int, int, int],
+                height: int = CANVAS_HEIGHT):
+    img = Image.new("RGB", (CANVAS_WIDTH, height), (18, 23, 33))
+    draw = ImageDraw.Draw(img)
+
+    draw.rectangle([0, 0, CANVAS_WIDTH, 118], fill=accent)
+    draw.rectangle([0, 96, CANVAS_WIDTH, 118], fill=(18, 23, 33))
+    _draw_centered_text(
+        draw,
+        (40, 22, CANVAS_WIDTH - 40, 64),
+        title,
+        _font(34, bold=True),
+        TEXT_DARK,
+    )
+
+    status_y = _draw_wrapped_text(
+        draw,
+        status_text,
+        48,
+        132,
+        CANVAS_WIDTH - 96,
+        _font(22, bold=True),
+        TEXT_LIGHT,
+        line_spacing=7,
+    )
+
+    return img, draw, max(205, status_y + 24)
+
+
+def _draw_footer(draw: ImageDraw.ImageDraw, text: str) -> None:
+    footer_top = CANVAS_HEIGHT - 100
+    draw.rounded_rectangle(
+        [42, footer_top, CANVAS_WIDTH - 42, CANVAS_HEIGHT - 34],
+        radius=18,
+        fill=PANEL,
+        outline=(67, 78, 98),
+        width=2,
+    )
+    _draw_wrapped_text(
+        draw,
+        text,
+        66,
+        footer_top + 17,
+        CANVAS_WIDTH - 132,
+        _font(17),
+        MUTED,
+        line_spacing=4,
+    )
+
+
+def render_queens_image(puzzle: QueensPuzzle, placements: Iterable[int],
+                        status_text: str) -> Image.Image:
+    img, draw, board_y = _new_canvas("QUEENS", status_text, (244, 206, 82))
+    selected = set(placements)
+    cell = 86
+    gap = 8
+    board_size = puzzle.size * cell + (puzzle.size - 1) * gap
+    board_x = (CANVAS_WIDTH - board_size) // 2
+
+    for row in range(puzzle.size):
+        for col in range(puzzle.size):
+            tile = row * puzzle.size + col + 1
+            region = puzzle.regions[tile - 1]
+            x = board_x + col * (cell + gap)
+            y = board_y + row * (cell + gap)
+            color = QUEENS_REGION_COLORS.get(region, (160, 165, 178))
+
+            draw.rounded_rectangle(
+                [x, y, x + cell, y + cell],
+                radius=16,
+                fill=color,
+                outline=(15, 18, 25),
+                width=3,
+            )
+            draw.text((x + 9, y + 7), f"{tile:02d}", font=_font(18, bold=True), fill=TEXT_DARK)
+            draw.text((x + cell - 25, y + cell - 28), region, font=_font(20, bold=True), fill=TEXT_DARK)
+
+            if tile in selected:
+                draw.ellipse(
+                    [x + 20, y + 20, x + cell - 20, y + cell - 20],
+                    fill=(21, 26, 36),
+                    outline=(255, 255, 255),
+                    width=3,
+                )
+                _draw_centered_text(
+                    draw,
+                    (x + 20, y + 20, x + cell - 20, y + cell - 20),
+                    "Q",
+                    _font(34, bold=True),
+                    TEXT_LIGHT,
+                )
+
+    _draw_footer(
+        draw,
+        "Komendy: /queens <pole>, /queens set <pola>, /queens clear. "
+        "Nagroda: 30 coins raz dziennie.",
+    )
+    return img
+
+
+def render_tango_image(puzzle: TangoPuzzle, assignments: Dict[int, str],
+                       status_text: str) -> Image.Image:
+    img, draw, board_y = _new_canvas("TANGO", status_text, (112, 207, 173))
+    cell = 100
+    gap = 12
+    board_size = puzzle.size * cell + (puzzle.size - 1) * gap
+    board_x = (CANVAS_WIDTH - board_size) // 2
+    centers: Dict[int, Tuple[int, int]] = {}
+
+    for row in range(puzzle.size):
+        for col in range(puzzle.size):
+            tile = row * puzzle.size + col + 1
+            x = board_x + col * (cell + gap)
+            y = board_y + row * (cell + gap)
+            centers[tile] = (x + cell // 2, y + cell // 2)
+            value = assignments.get(tile)
+            outline = (245, 248, 252) if tile in puzzle.givens else (72, 84, 106)
+
+            draw.rounded_rectangle(
+                [x, y, x + cell, y + cell],
+                radius=18,
+                fill=(42, 51, 68),
+                outline=outline,
+                width=3,
+            )
+            draw.text((x + 10, y + 8), f"{tile:02d}", font=_font(18, bold=True), fill=MUTED)
+
+            if tile in puzzle.givens:
+                draw.text((x + cell - 24, y + 8), "*", font=_font(22, bold=True), fill=TEXT_LIGHT)
+
+            if value:
+                if value == "S":
+                    fill = (252, 203, 88)
+                    text = "S"
+                    text_fill = TEXT_DARK
+                else:
+                    fill = (83, 139, 231)
+                    text = "M"
+                    text_fill = TEXT_LIGHT
+
+                draw.ellipse(
+                    [x + 24, y + 24, x + cell - 24, y + cell - 24],
+                    fill=fill,
+                    outline=(255, 255, 255),
+                    width=2,
+                )
+                _draw_centered_text(
+                    draw,
+                    (x + 24, y + 24, x + cell - 24, y + cell - 24),
+                    text,
+                    _font(30, bold=True),
+                    text_fill,
+                )
+
+    for links, marker, fill in (
+        (puzzle.same_links, "=", (252, 203, 88)),
+        (puzzle.different_links, "x", (238, 112, 118)),
+    ):
+        for first, second in links:
+            x1, y1 = centers[first]
+            x2, y2 = centers[second]
+            mx = (x1 + x2) // 2
+            my = (y1 + y2) // 2
+            draw.ellipse([mx - 17, my - 17, mx + 17, my + 17], fill=fill, outline=(18, 23, 33), width=3)
+            _draw_centered_text(draw, (mx - 17, my - 17, mx + 17, my + 17), marker, _font(22, bold=True), TEXT_DARK)
+
+    _draw_footer(
+        draw,
+        "Komendy: /tango <pole> sun|moon, /tango clear <pole>. "
+        "S=Sun, M=Moon, *=pole stale. Nagroda: 30 coins raz dziennie.",
+    )
+    return img
+
+
+def render_zip_image(puzzle: ZipPuzzle, path: Sequence[int],
+                     status_text: str) -> Image.Image:
+    img, draw, board_y = _new_canvas("ZIP", status_text, (124, 174, 244))
+    cell = 100
+    gap = 12
+    board_size = puzzle.size * cell + (puzzle.size - 1) * gap
+    board_x = (CANVAS_WIDTH - board_size) // 2
+    centers: Dict[int, Tuple[int, int]] = {}
+    clue_lookup = {tile: clue for clue, tile in puzzle.clues.items()}
+
+    for row in range(puzzle.size):
+        for col in range(puzzle.size):
+            tile = row * puzzle.size + col + 1
+            x = board_x + col * (cell + gap)
+            y = board_y + row * (cell + gap)
+            centers[tile] = (x + cell // 2, y + cell // 2)
+            draw.rounded_rectangle(
+                [x, y, x + cell, y + cell],
+                radius=18,
+                fill=(42, 51, 68),
+                outline=(72, 84, 106),
+                width=3,
+            )
+            draw.text((x + 10, y + 8), f"{tile:02d}", font=_font(18, bold=True), fill=MUTED)
+
+    valid_path = [tile for tile in path if 1 <= tile <= puzzle.cell_count]
+    if len(valid_path) > 1:
+        points = [centers[tile] for tile in valid_path]
+        draw.line(points, fill=(252, 203, 88), width=9)
+
+    for step, tile in enumerate(valid_path, start=1):
+        cx, cy = centers[tile]
+        draw.ellipse([cx - 20, cy - 20, cx + 20, cy + 20], fill=(252, 203, 88), outline=(18, 23, 33), width=3)
+        _draw_centered_text(draw, (cx - 20, cy - 20, cx + 20, cy + 20), str(step), _font(16, bold=True), TEXT_DARK)
+
+    for tile, clue in clue_lookup.items():
+        cx, cy = centers[tile]
+        draw.ellipse([cx - 31, cy - 31, cx + 31, cy + 31], outline=(255, 255, 255), width=4)
+        draw.ellipse([cx - 24, cy - 24, cx + 24, cy + 24], fill=(83, 139, 231))
+        _draw_centered_text(draw, (cx - 24, cy - 24, cx + 24, cy + 24), str(clue), _font(26, bold=True), TEXT_LIGHT)
+
+    _draw_footer(
+        draw,
+        "Komendy: /zip <pelna sciezka>, /zip add <pola>, /zip clear. "
+        "Sciezka musi przejsc przez wszystkie pola i wskazowki po kolei.",
+    )
+    return img
+
+
+def save_minigame_image(image: Image.Image, output_folder: str, prefix: str, user_id: str) -> str:
+    os.makedirs(output_folder, exist_ok=True)
+    safe_user_id = str(user_id).replace("\\", "_").replace("/", "_")
+    filename = f"{prefix}_{safe_user_id}_{int(time.time() * 1000)}.png"
+    output_path = os.path.join(output_folder, filename)
+    image.save(output_path, "PNG")
+    return output_path
 
 
 def _today_key(today: Optional[date] = None) -> str:

@@ -7,24 +7,15 @@ from plugins._linkedin_minigames import (
     ensure_daily_state,
     get_daily_queens_puzzle,
     parse_tile_numbers,
+    render_queens_image,
     save_daily_state,
+    save_minigame_image,
 )
 
 
 class QueensPlugin(BaseGamePlugin):
     def __init__(self):
         super().__init__(game_name="queens")
-
-    def _compose_message(self, puzzle, placements, status_text):
-        board = puzzle.format_board(placements)
-        return (
-            f"{status_text}\n\n"
-            f"Board:\n{board}\n\n"
-            "Cells show tile number + region letter. Q means selected queen.\n"
-            "Rules: place one queen in each row, column, and region. Queens cannot touch.\n"
-            "Commands: /queens <tile>, /queens set <tiles>, /queens clear\n"
-            f"Reward: {DAILY_COMPLETION_REWARD} coins once per day."
-        )
 
     def execute_game(self, command_name, args, file_queue, cache=None, sender=None, avatar_url=None):
         self.cache = cache
@@ -94,8 +85,9 @@ class QueensPlugin(BaseGamePlugin):
                 else:
                     status_text = f"Selected {len(placements)}/{puzzle.size} queens."
 
-        message = self._compose_message(puzzle, placements, status_text)
-        self.send_message_image(sender, file_queue, message, "Queens", cache, user_id)
+        image = render_queens_image(puzzle, placements, status_text)
+        image_path = save_minigame_image(image, self.results_folder, "queens", user_id)
+        file_queue.put(image_path)
         return ""
 
 
@@ -105,7 +97,7 @@ def register():
         "name": "queens",
         "aliases": ["/queen", "/qn"],
         "description": (
-            "Daily Queens puzzle. Use numbered tiles to place queens.\n"
+            "Daily Queens puzzle with a graphical board. Use numbered tiles to place queens.\n"
             "Commands: /queens <tile>, /queens set <tiles>, /queens clear\n"
             f"Reward: {DAILY_COMPLETION_REWARD} coins once per day."
         ),
