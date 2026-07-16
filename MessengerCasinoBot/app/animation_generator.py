@@ -6,6 +6,7 @@ from datetime import datetime
 import hashlib
 from logger import logger
 import time
+import uuid
 
 @dataclass
 class GenerationOptions:
@@ -94,7 +95,8 @@ class GenerationRequest:
         
         ext = f".{self.options.output_format.lower()}"
         
-        filename = f"{self.game_name}_{self.user_before.user_id}_{self.timestamp.strftime('%Y%m%d_%H%M%S')}{ext}"
+        unique_id = str(uuid.uuid4())[:8]
+        filename = f"{self.game_name}_{self.user_before.user_id}_{self.timestamp.strftime('%Y%m%d_%H%M%S')}_{unique_id}{ext}"
         
         if self.cache_path:
             return os.path.join(self.cache_path, filename)
