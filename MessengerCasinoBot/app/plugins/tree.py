@@ -4,6 +4,7 @@ import time
 from PIL import Image, ImageDraw
 from base_game_plugin import BaseGamePlugin
 from logger import logger
+from plugins.monthly import record_monthly_win
 class TreeGame:
     
     TREES = [
@@ -744,6 +745,7 @@ class TreePlugin(BaseGamePlugin):
             new_balance = user["balance"] + total_win
             self.update_user_balance(user_id, new_balance)
             user["balance"] = new_balance
+            record_monthly_win(self.cache, user_id, "tree", total_win)
         
         if total_loss < 0:
             new_level, new_progress = self.cache.add_experience(

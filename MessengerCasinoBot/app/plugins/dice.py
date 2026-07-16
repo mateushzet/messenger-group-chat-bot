@@ -6,6 +6,7 @@ from typing import List, Dict, Optional
 from PIL import Image, ImageDraw, ImageSequence
 from base_game_plugin import BaseGamePlugin
 from logger import logger
+from plugins.monthly import record_monthly_win
 from plugins.weekly import record_weekly_win
 
 class DiceGame:
@@ -898,6 +899,7 @@ class DicePlugin(BaseGamePlugin):
                 self.cache.add_experience(user_id, win_amount, sender, file_queue)
             record_weekly_win(self.cache, user_id, "dice", win_amount)
             record_weekly_win(self.cache, user_id, "dice", win_amount)
+            record_monthly_win(self.cache, user_id, "dice", win_amount)
         elif game.winner == "tie":
             self.update_user_balance(user_id, final_balance)
         

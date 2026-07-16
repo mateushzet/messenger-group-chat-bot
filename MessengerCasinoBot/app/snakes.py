@@ -7,6 +7,7 @@ from PIL import Image, ImageDraw
 
 from base_game_plugin import BaseGamePlugin
 from logger import logger
+from plugins.monthly import record_monthly_win
 from plugins.weekly import record_weekly_win
 
 
@@ -961,6 +962,7 @@ class SnakesPlugin(BaseGamePlugin):
                     logger.error(f"[Snakes] Balance update failed on max payout: {e}")
                 if net_win > 0:
                     record_weekly_win(self.cache, user_id, "snakes", net_win)
+                    record_monthly_win(self.cache, user_id, "snakes", net_win)
 
                 try:
                     new_level, new_progress = self.cache.add_experience(user_id, net_win, sender_display, file_queue)
@@ -1026,6 +1028,7 @@ class SnakesPlugin(BaseGamePlugin):
 
             if net_win > 0:
                 record_weekly_win(self.cache, user_id, "snakes", net_win)
+                record_monthly_win(self.cache, user_id, "snakes", net_win)
 
             try:
                 new_level, new_progress = self.cache.add_experience(user_id, net_win, sender_display, file_queue)
@@ -1180,6 +1183,7 @@ class SnakesPlugin(BaseGamePlugin):
                 logger.error(f"[Snakes] Balance update failed on max payout: {e}")
             if net_win > 0:
                 record_weekly_win(self.cache, user_id, "snakes", net_win)
+                record_monthly_win(self.cache, user_id, "snakes", net_win)
             
             if anim_path:
                 self._send_animation(sender_display, file_queue, cache, user_id, user, 

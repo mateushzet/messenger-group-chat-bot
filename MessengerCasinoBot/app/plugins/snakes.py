@@ -6,6 +6,7 @@ from typing import Dict, Optional, Tuple, List
 
 from base_game_plugin import BaseGamePlugin
 from logger import logger
+from plugins.monthly import record_monthly_win
 from plugins.weekly import record_weekly_win
 
 
@@ -466,6 +467,7 @@ class SnakesPlugin(BaseGamePlugin):
                     logger.error(f"[Snakes] Balance update failed: {e}")
                 if net_win > 0:
                     record_weekly_win(self.cache, user_id, "snakes", net_win)
+                    record_monthly_win(self.cache, user_id, "snakes", net_win)
 
                 try:
                     self.cache.add_experience(user_id, net_win, sender_display, file_queue)
@@ -561,6 +563,7 @@ class SnakesPlugin(BaseGamePlugin):
 
             if net_win > 0:
                 record_weekly_win(self.cache, user_id, "snakes", net_win)
+                record_monthly_win(self.cache, user_id, "snakes", net_win)
 
             try:
                 self.cache.add_experience(user_id, net_win, sender_display, file_queue)
@@ -739,6 +742,7 @@ class SnakesPlugin(BaseGamePlugin):
                 pass
             if net_win > 0:
                 record_weekly_win(self.cache, user_id, "snakes", net_win)
+                record_monthly_win(self.cache, user_id, "snakes", net_win)
             
             user_info_before = self.create_user_info(sender_display, bet, 0, balance_after_bet, user)
             user_info_after = self.create_user_info(sender_display, bet, net_win, new_balance, user)

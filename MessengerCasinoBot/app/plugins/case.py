@@ -5,6 +5,7 @@ import time
 from base_game_plugin import BaseGamePlugin
 from logger import logger
 from PIL import Image, ImageDraw, ImageFont
+from plugins.monthly import record_monthly_win
 from plugins.weekly import record_weekly_win
 
 class CaseBattle:
@@ -950,8 +951,10 @@ class CasePlugin(BaseGamePlugin):
 
         if creator_net_win > 0:
             record_weekly_win(self.cache, creator_user_id, "case", creator_net_win)
+            record_monthly_win(self.cache, creator_user_id, "case", creator_net_win)
         if acceptor_net_win > 0:
             record_weekly_win(self.cache, acceptor_id, "case", acceptor_net_win)
+            record_monthly_win(self.cache, acceptor_id, "case", acceptor_net_win)
         
         creator_user_info_before = self._create_battle_user_info_before(
             battle.get('creator_name'), 
@@ -1237,6 +1240,7 @@ class CasePlugin(BaseGamePlugin):
         if net_win > 0:
             result_status = f"WIN +${net_win}"
             record_weekly_win(self.cache, user_id, "case", net_win)
+            record_monthly_win(self.cache, user_id, "case", net_win)
         elif net_win < 0:
             result_status = f"LOSE -${abs(net_win)}"
         else:

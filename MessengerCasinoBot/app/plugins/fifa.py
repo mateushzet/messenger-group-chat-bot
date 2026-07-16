@@ -7,6 +7,7 @@ from PIL import Image, ImageDraw, ImageSequence
 
 from base_game_plugin import BaseGamePlugin
 from logger import logger
+from plugins.monthly import record_monthly_win
 
 
 class FifaPackOpeningPlugin(BaseGamePlugin):
@@ -410,6 +411,9 @@ class FifaPackOpeningPlugin(BaseGamePlugin):
             user["level_progress"] = new_progress
         except Exception as e:
             logger.warning(f"[Fifa] add_experience failed: {e}")
+
+        if net > 0:
+            record_monthly_win(self.cache, user_id, "fifa", net)
 
         out = self._save_pack_animation(self.PACK_NAME, picks, pack_cost=pack_cost)
         if not out or not os.path.exists(out):

@@ -4,6 +4,7 @@ import time
 from base_game_plugin import BaseGamePlugin
 from logger import logger
 from PIL import Image, ImageDraw
+from plugins.monthly import record_monthly_win
 from plugins.weekly import record_weekly_win
 
 class ColorsPlugin(BaseGamePlugin):
@@ -482,6 +483,7 @@ class ColorsPlugin(BaseGamePlugin):
         
         if net_win > 0:
             record_weekly_win(self.cache, user_id, "colors", net_win)
+            record_monthly_win(self.cache, user_id, "colors", net_win)
         
         user_info_before = self.create_user_info(sender, amount, 0, balance_before, user.copy())
         

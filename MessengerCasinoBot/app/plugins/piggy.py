@@ -7,6 +7,7 @@ from PIL import Image, ImageDraw
 
 from base_game_plugin import BaseGamePlugin
 from logger import logger
+from plugins.monthly import record_monthly_win
 
 
 class PiggyBank:
@@ -293,6 +294,7 @@ class PiggyPlugin(BaseGamePlugin):
             amount = int(info["claimed_amount"])
             new_balance = self.cache.update_balance(user_id, amount)
             user["balance"] = new_balance
+            record_monthly_win(self.cache, user_id, "piggy", amount)
 
             logger.info(f"[Piggy] {sender} smashed piggy for {amount} coins")
 

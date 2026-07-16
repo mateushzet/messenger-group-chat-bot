@@ -4,6 +4,7 @@ from PIL import Image, ImageDraw
 from base_game_plugin import BaseGamePlugin
 from logger import logger
 import time
+from plugins.monthly import record_monthly_win
 from plugins.weekly import record_weekly_win
 
 class BlackjackTableGenerator:
@@ -1257,6 +1258,7 @@ class BlackjackPlugin(BaseGamePlugin):
                 net_profit = win_amount - bet
                 if net_profit > 0:
                     record_weekly_win(self.cache, user_id, "blackjack", net_profit)
+                    record_monthly_win(self.cache, user_id, "blackjack", net_profit)
                 
                 self.active_games.pop(user_id, None)
             else:
@@ -1396,6 +1398,7 @@ class BlackjackPlugin(BaseGamePlugin):
                     net_profit = win_amount - total_bets
                     if net_profit > 0:
                         record_weekly_win(self.cache, user_id, "blackjack", net_profit)
+                        record_monthly_win(self.cache, user_id, "blackjack", net_profit)
                 
                 self.active_games.pop(user_id, None)
                 if hasattr(self, 'cache') and self.cache:

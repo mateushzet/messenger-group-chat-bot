@@ -2,6 +2,7 @@ import random
 import os
 from base_game_plugin import BaseGamePlugin
 from logger import logger
+from plugins.monthly import record_monthly_win
 from plugins.weekly import record_weekly_win
 import glob
 
@@ -223,6 +224,7 @@ class SlotsPlugin(BaseGamePlugin):
         user["level_progress"] = newLevelProgress
         if net_win > 0:
             record_weekly_win(self.cache, user_id, "slots", net_win)
+            record_monthly_win(self.cache, user_id, "slots", net_win)
         user_info_after = self.create_user_info(sender, bet_amount, net_win, new_balance, user)
         
         result_path, error = self.generate_animation(

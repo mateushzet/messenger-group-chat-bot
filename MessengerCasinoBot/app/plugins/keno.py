@@ -4,6 +4,7 @@ import time
 from PIL import Image, ImageDraw
 from base_game_plugin import BaseGamePlugin
 from logger import logger
+from plugins.monthly import record_monthly_win
 from plugins.weekly import record_weekly_win
 
 
@@ -549,6 +550,7 @@ class KenoPlugin(BaseGamePlugin):
         
         if net_win > 0:
             record_weekly_win(self.cache, user_id, "keno", net_win)
+            record_monthly_win(self.cache, user_id, "keno", net_win)
         
         frames = self._generate_animation_frames(game, user_id_str, user, bet, net_win, new_balance, static)
         

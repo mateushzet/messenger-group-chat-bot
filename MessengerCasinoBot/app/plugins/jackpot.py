@@ -5,6 +5,7 @@ import threading
 from datetime import datetime
 from base_game_plugin import BaseGamePlugin
 from logger import logger
+from plugins.monthly import record_monthly_win
 from PIL import Image, ImageDraw
 class JackpotGame:
     ACTIVE_KEY = "active_jackpot"
@@ -103,6 +104,9 @@ class JackpotGame:
                         player_net = total_pot - player_bet
                     else:
                         player_net = -player_bet
+
+                    if player_net > 0:
+                        record_monthly_win(self.plugin.cache, player_id, "jackpot", player_net)
                     
                     self.plugin.cache.add_experience(
                         player_id,

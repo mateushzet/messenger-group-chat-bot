@@ -9,6 +9,7 @@ from PIL import Image, ImageDraw
 
 from base_game_plugin import BaseGamePlugin
 from logger import logger
+from plugins.monthly import record_monthly_win
 from plugins.weekly import record_weekly_win
 
 hilo_logger = logging.getLogger("hilo_debug")
@@ -1126,6 +1127,7 @@ class HiLoPlugin(BaseGamePlugin):
         user["level_progress"] = new_progress
         if net_win > 0:
             record_weekly_win(self.cache, user_id, "hilo", net_win)
+            record_monthly_win(self.cache, user_id, "hilo", net_win)
             
             self._clear_game(user_id)
             self._send_game_image(user_id, user, sender, game, file_queue, win_amount=net_win, final_balance=new_balance, show_win_text=True)

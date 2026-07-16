@@ -4,6 +4,7 @@ import time
 from PIL import Image, ImageDraw, ImageSequence
 from base_game_plugin import BaseGamePlugin
 from logger import logger
+from plugins.monthly import record_monthly_win
 from plugins.weekly import record_weekly_win
 
 class PlinkoPlugin(BaseGamePlugin):
@@ -513,6 +514,7 @@ class PlinkoPlugin(BaseGamePlugin):
         
         if net_win > 0:
             record_weekly_win(self.cache, user_id, "plinko", net_win)
+            record_monthly_win(self.cache, user_id, "plinko", net_win)
         
         user_info_before = self.create_user_info(sender, total_bet, 0, balance_before, user.copy())
         

@@ -5,6 +5,7 @@ from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 from base_game_plugin import BaseGamePlugin
 from logger import logger
+from plugins.monthly import record_monthly_win
 from plugins.weekly import record_weekly_win
 
 class MinesGame:
@@ -646,6 +647,7 @@ class MinesPlugin(BaseGamePlugin):
             
             if net_win > 0:
                 record_weekly_win(self.cache, user_id, "mines", net_win)
+                record_monthly_win(self.cache, user_id, "mines", net_win)
             img_path = os.path.join(self.results_folder, f"mines_{user_id}_cashout.webp")
             game.get_game_state_image(img_path, self.elements_folder, "WIN", net_win)
             
