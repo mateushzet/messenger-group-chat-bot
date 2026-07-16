@@ -43,17 +43,34 @@ class EmailMonitor:
         
         logger.info("[EmailMonitor] Initialized")
     
+    def _find_config_path(self):
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        for _ in range(5):
+            possible_paths = [
+                os.path.join(current_dir, 'config', 'config.ini'),
+                os.path.join(current_dir, 'app', 'config', 'config.ini'),
+                os.path.join(current_dir, 'MessengerCasinoBot', 'app', 'config', 'config.ini'),
+            ]
+            
+            for path in possible_paths:
+                if os.path.exists(path):
+                    logger.info(f"[EmailMonitor] Found config at: {path}")
+                    return path
+            
+            current_dir = os.path.dirname(current_dir)
+        
+        return None
+    
     def _load_config(self):
         try:
-            app_path = os.path.dirname(os.path.abspath(__file__))
-            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(app_path)))
-            config_path = os.path.join(base_dir, 'MessengerCasinoBot', 'app', 'config', 'config.ini')
+            config_path = self._find_config_path()
+            
+            if not config_path:
+                logger.error("[EmailMonitor] Config file not found")
+                raise Exception("Config file not found")
             
             logger.info(f"[EmailMonitor] Reading config from: {config_path}")
-            
-            if not os.path.exists(config_path):
-                logger.error(f"[EmailMonitor] Config file not found")
-                raise Exception("Config file not found")
             
             config = configparser.ConfigParser()
             config.read(config_path, encoding='utf-8')
