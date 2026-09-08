@@ -1,5 +1,6 @@
 import calendar
 import os
+import random
 from datetime import date, datetime
 
 from PIL import Image, ImageDraw
@@ -29,9 +30,11 @@ MONTHLY_QUESTS = {
     "tree": ("Tree", 100),
 }
 
+MAX_ACTIVE_QUESTS = 15
+
 
 class MonthlyQuestManager:
-    REWARD = 2000
+    REWARD = 2500
 
     def __init__(self):
         self.quests = {
@@ -46,8 +49,13 @@ class MonthlyQuestManager:
         today = datetime.now().date()
         return date(today.year, today.month, 1)
 
-    def _normalize_progress(self, existing_progress):
-        normalized = {game_key: 0 for game_key in self.quests}
+    def _select_active_quests(self):
+        all_keys = list(self.quests.keys())
+        random.shuffle(all_keys)
+        return all_keys[:MAX_ACTIVE_QUESTS]
+
+    def _normalize_progress(self, existing_progress, active_quests):
+        normalized = {game_key: 0 for game_key in active_quests}
         if not existing_progress:
             return normalized
 
@@ -75,17 +83,27 @@ class MonthlyQuestManager:
         monthly = user.get("monthly_quests")
 
         if not monthly or monthly.get("month_start") != month_key:
+            active_quests = self._select_active_quests()
             monthly = {
                 "month_start": month_key,
-                "progress": {game_key: 0 for game_key in self.quests},
+                "active_quests": active_quests,
+                "progress": {game_key: 0 for game_key in active_quests},
                 "claimed": False,
             }
             user["monthly_quests"] = monthly
             cache.update_user(user_id, monthly_quests=monthly)
             return user, monthly
 
+        active_quests = monthly.get("active_quests", [])
+        if not active_quests:
+            active_quests = self._select_active_quests()
+            monthly["active_quests"] = active_quests
+            monthly["progress"] = {game_key: monthly.get("progress", {}).get(game_key, 0) for game_key in active_quests}
+            user["monthly_quests"] = monthly
+            cache.update_user(user_id, monthly_quests=monthly)
+
         progress = monthly.get("progress", {})
-        normalized = self._normalize_progress(progress)
+        normalized = self._normalize_progress(progress, active_quests)
         if normalized != progress:
             monthly["progress"] = normalized
             user["monthly_quests"] = monthly
@@ -98,15 +116,16 @@ class MonthlyQuestManager:
             return
 
         base = self._base_game_key(game_key)
-        if base not in self.quests:
-            return
-
         user, monthly = self._ensure_monthly(cache, user_id)
         if not monthly:
             return
 
-        progress = monthly.get("progress", {})
+        active_quests = monthly.get("active_quests", [])
+        if base not in active_quests:
+            return
+
         target = self.quests[base]["target"]
+        progress = monthly.get("progress", {})
         current = int(progress.get(base, 0) or 0)
         addition = int(round(amount))
         if addition <= 0:
@@ -121,18 +140,62 @@ class MonthlyQuestManager:
         user["monthly_quests"] = monthly
         cache.update_user(user_id, monthly_quests=monthly)
 
+    def skip_quest(self, cache, user_id, quest_to_skip):
+        user, monthly = self._ensure_monthly(cache, user_id)
+        if not monthly or not user:
+            return False, "Monthly data missing"
+
+        if monthly.get("claimed", False):
+            return False, "Cannot skip quests after claiming reward"
+
+        active_quests = monthly.get("active_quests", [])
+        
+        if quest_to_skip.isdigit():
+            idx = int(quest_to_skip) - 1
+            if idx < 0 or idx >= len(active_quests):
+                return False, f"Invalid quest number. Use 1-{len(active_quests)}"
+            quest_to_skip = active_quests[idx]
+        elif quest_to_skip not in active_quests:
+            return False, f"Quest '{quest_to_skip}' is not active"
+
+        progress = monthly.get("progress", {})
+        if progress.get(quest_to_skip, 0) >= self.quests[quest_to_skip]["target"]:
+            return False, "Cannot skip a completed quest"
+
+        available_quests = [q for q in self.quests.keys() if q not in active_quests]
+        if not available_quests:
+            return False, "No other quests available"
+
+        new_quest = random.choice(available_quests)
+        
+        active_quests.remove(quest_to_skip)
+        active_quests.append(new_quest)
+        
+        if quest_to_skip in progress:
+            del progress[quest_to_skip]
+        progress[new_quest] = 0
+        
+        monthly["active_quests"] = active_quests
+        monthly["progress"] = progress
+        user["monthly_quests"] = monthly
+        cache.update_user(user_id, monthly_quests=monthly)
+        
+        return True, f"Replaced '{quest_to_skip}' with '{new_quest}'"
+
     def get_status(self, cache, user_id):
         user, monthly = self._ensure_monthly(cache, user_id)
         if not monthly:
             return None
 
+        active_quests = monthly.get("active_quests", [])
         progress = monthly.get("progress", {})
         targets = {}
         labels = {}
         completed = {}
         completed_count = 0
 
-        for game_key, entry in self.quests.items():
+        for game_key in active_quests:
+            entry = self.quests[game_key]
             target = int(entry["target"])
             current = int(progress.get(game_key, 0) or 0)
             is_done = current >= target
@@ -143,11 +206,12 @@ class MonthlyQuestManager:
             if is_done:
                 completed_count += 1
 
-        completed_all = completed_count == len(self.quests)
+        completed_all = completed_count == len(active_quests)
 
         return {
             "month_start": monthly.get("month_start"),
-            "game_order": list(self.quests.keys()),
+            "active_quests": active_quests,
+            "all_quests_count": len(self.quests),
             "progress": progress,
             "targets": targets,
             "labels": labels,
@@ -157,7 +221,7 @@ class MonthlyQuestManager:
             "can_claim": completed_all and not monthly.get("claimed", False),
             "reward": self.REWARD,
             "completed_count": completed_count,
-            "total_count": len(self.quests),
+            "total_count": len(active_quests),
         }
 
     def claim_reward(self, cache, user_id):
@@ -168,10 +232,12 @@ class MonthlyQuestManager:
         if monthly.get("claimed", False):
             return False, "Monthly reward already claimed"
 
+        active_quests = monthly.get("active_quests", [])
         progress = monthly.get("progress", {})
-        for game_key, entry in self.quests.items():
-            if int(progress.get(game_key, 0) or 0) < int(entry["target"]):
-                return False, "Complete all monthly tasks first"
+        
+        for game_key in active_quests:
+            if int(progress.get(game_key, 0) or 0) < int(self.quests[game_key]["target"]):
+                return False, "Complete all active quests first"
 
         balance = user.get("balance", 0) + self.REWARD
         monthly["claimed"] = True
@@ -241,25 +307,29 @@ class MonthlyPlugin(BaseGamePlugin):
         lines = [
             f"Monthly Quests ({month_start} - {month_end})",
             "",
+            f"Active quests: {status.get('total_count', 0)}/{status.get('all_quests_count', 0)}",
+            "",
         ]
 
-        for game_key in status.get("game_order", []):
+        for idx, game_key in enumerate(status.get("active_quests", []), 1):
             label = status.get("labels", {}).get(game_key, game_key.title())
             target = status.get("targets", {}).get(game_key, 0)
             progress = status.get("progress", {}).get(game_key, 0)
             percent = int(min(100, (progress / target) * 100)) if target else 100
             status_mark = "DONE" if progress >= target else "PENDING"
-            lines.append(f"- {label}: {progress}/{target} ({percent}%) {status_mark}")
+            lines.append(f"{idx}. {label}: {progress}/{target} ({percent}%) {status_mark}")
 
         lines.append("")
         lines.append(f"Completed: {status.get('completed_count', 0)}/{status.get('total_count', 0)}")
+        lines.append("")
+        lines.append("Skip a quest: /monthly skip <number> or /monthly skip <game>")
 
         if status.get("can_claim"):
             lines.append(f"Reward ready: +{self.reward_amount} coins. Claim it with /monthly claim")
         elif status.get("claimed"):
             lines.append("Reward already claimed. Reset happens on the first day of next month.")
         else:
-            lines.append(f"Finish every monthly quest to unlock +{self.reward_amount} coins.")
+            lines.append(f"Finish every active quest to unlock +{self.reward_amount} coins.")
 
         return "\n".join(lines)
 
@@ -311,20 +381,31 @@ class MonthlyPlugin(BaseGamePlugin):
             month_start, month_end = self._format_month_dates(status.get("month_start"))
             title_img = self.text_renderer.render_text(
                 text=f"Monthly Quests ({month_start} - {month_end})",
-                font_size=24,
+                font_size=22,
                 color=(255, 255, 255, 255),
                 stroke_width=2,
                 stroke_color=(0, 0, 0, 255),
                 shadow=True,
             )
 
+            info_text = f"Active: {status.get('total_count', 0)}/{status.get('all_quests_count', 0)}"
+            info_img = self.text_renderer.render_text(
+                text=info_text,
+                font_size=14,
+                color=(200, 200, 200, 255),
+                stroke_width=1,
+                stroke_color=(0, 0, 0, 255),
+                shadow=True,
+            )
+
             rows = []
-            for game_key in status.get("game_order", []):
+            for idx, game_key in enumerate(status.get("active_quests", []), 1):
                 label = status.get("labels", {}).get(game_key, game_key.title())
                 target = int(status.get("targets", {}).get(game_key, 0) or 0)
                 progress = int(status.get("progress", {}).get(game_key, 0) or 0)
                 percent = 100 if target <= 0 else int(max(0, min(100, (progress / target) * 100)))
                 rows.append({
+                    "number": idx,
                     "game_key": game_key,
                     "label": label,
                     "target": target,
@@ -332,7 +413,7 @@ class MonthlyPlugin(BaseGamePlugin):
                     "percent": percent,
                 })
 
-            body_top = header_y + title_img.height + 12
+            body_top = header_y + title_img.height + info_img.height + 8
             body_h = len(rows) * row_h + max(0, len(rows) - 1) * row_gap
             footer_lines = [
                 f"Completed: {status.get('completed_count', 0)}/{status.get('total_count', 0)}",
@@ -342,7 +423,7 @@ class MonthlyPlugin(BaseGamePlugin):
             elif status.get("claimed"):
                 footer_lines.append("Reward already claimed. Reset happens next month.")
             else:
-                footer_lines.append(f"Finish all quests to unlock +{self.reward_amount} coins.")
+                footer_lines.append(f"Finish all active quests to unlock +{self.reward_amount} coins.")
 
             footer_imgs = [
                 self.text_renderer.render_text(
@@ -366,12 +447,23 @@ class MonthlyPlugin(BaseGamePlugin):
                 shadow=True,
             )
 
-            image_h = body_top + body_h + 16 + footer_h + 12 + nick_img.height + 16
+            skip_info = "To skip a quest, use: /monthly skip <number> or /monthly skip <game>"
+            skip_img = self.text_renderer.render_text(
+                text=skip_info,
+                font_size=12,
+                color=(180, 180, 180, 255),
+                stroke_width=1,
+                stroke_color=(0, 0, 0, 255),
+                shadow=True,
+            )
+
+            image_h = body_top + body_h + 16 + footer_h + 12 + nick_img.height + 12 + skip_img.height + 16
             bg = Image.open(background_path).convert("RGB").resize((image_width, image_h), Image.Resampling.LANCZOS)
             canvas = bg.convert("RGBA")
             draw = ImageDraw.Draw(canvas)
 
             canvas.alpha_composite(title_img, ((image_width - title_img.width) // 2, header_y))
+            canvas.alpha_composite(info_img, ((image_width - info_img.width) // 2, header_y + title_img.height + 2))
 
             row_x = padding_x
             row_w = image_width - padding_x * 2
@@ -386,8 +478,17 @@ class MonthlyPlugin(BaseGamePlugin):
                     fill=(8, 8, 12, 238),
                 )
 
+                number_img = self.text_renderer.render_text(
+                    text=str(row["number"]),
+                    font_size=14,
+                    color=(150, 150, 170, 255),
+                    stroke_width=1,
+                    stroke_color=(0, 0, 0, 255),
+                )
+                canvas.alpha_composite(number_img, (row_x + 8, y + 4))
+
                 icon = self._load_game_icon(row["game_key"], size=icon_size)
-                icon_x = row_x + 10
+                icon_x = row_x + 32
                 icon_y = y + (row_h - icon_size) // 2
                 canvas.alpha_composite(icon, (icon_x, icon_y))
 
@@ -452,6 +553,8 @@ class MonthlyPlugin(BaseGamePlugin):
             draw.line([(0, sep_y), (image_width, sep_y)], fill=(30, 30, 40, 220), width=2)
             nick_y = sep_y + 10
             canvas.alpha_composite(nick_img, ((image_width - nick_img.width) // 2, nick_y))
+            
+            canvas.alpha_composite(skip_img, ((image_width - skip_img.width) // 2, nick_y + nick_img.height + 8))
 
             if notice:
                 headline = str(notice.get("headline") or "")
@@ -529,18 +632,36 @@ class MonthlyPlugin(BaseGamePlugin):
             self._respond(sender, file_queue, "You must be registered before using monthly quests.", cache, user_id)
             return ""
 
-        if args and args[0].lower() in {"claim", "c"}:
-            success, payload = monthly_manager.claim_reward(cache, user_id)
-            status = monthly_manager.get_status(cache, user_id)
-            message = self._build_status_message(status)
-            notice = None
-            if success:
-                message = f"Claimed monthly reward: +{payload} coins.\n\n{message}"
-                notice = {"headline": "REWARD CLAIMED", "subline": f"+{payload} COINS"}
-            elif payload:
-                message = f"{payload}\n\n{message}"
-            self._respond(sender, file_queue, message, cache, user_id, status=status, notice=notice)
-            return ""
+        if args:
+            action = args[0].lower()
+            
+            if action in {"claim", "c"}:
+                success, payload = monthly_manager.claim_reward(cache, user_id)
+                status = monthly_manager.get_status(cache, user_id)
+                message = self._build_status_message(status)
+                notice = None
+                if success:
+                    message = f"Claimed monthly reward: +{payload} coins.\n\n{message}"
+                    notice = {"headline": "REWARD CLAIMED", "subline": f"+{payload} COINS"}
+                elif payload:
+                    message = f"{payload}\n\n{message}"
+                self._respond(sender, file_queue, message, cache, user_id, status=status, notice=notice)
+                return ""
+            
+            elif action in {"skip", "reroll", "s"}:
+                if len(args) < 2:
+                    self._respond(sender, file_queue, "Usage: /monthly skip <number> or /monthly skip <game>", cache, user_id)
+                    return ""
+                
+                quest_to_skip = args[1].lower()
+                success, message = monthly_manager.skip_quest(cache, user_id, quest_to_skip)
+                status = monthly_manager.get_status(cache, user_id)
+                full_message = f"{message}\n\n{self._build_status_message(status)}"
+                notice = None
+                if success:
+                    notice = {"headline": "", "subline": "Quest replaced"}
+                self._respond(sender, file_queue, full_message, cache, user_id, status=status, notice=notice)
+                return ""
 
         status = monthly_manager.get_status(cache, user_id)
         auto_claimed = False
@@ -570,8 +691,9 @@ def register():
         "name": "monthly",
         "aliases": ["/monthly", "/mq", "/month"],
         "description": (
-            "Track monthly quests for every casino game. Reach each game's monthly target "
-            "to claim a 2000 coin reward. Use /monthly to view status or /monthly claim."
+            "Track monthly quests for every casino game. Each month you get 15 random quests. "
+            "Reach each game's monthly target to claim a 2500 coin reward. "
+            "Use /monthly skip <number> or /monthly skip <game> to reroll a quest."
         ),
         "execute": plugin.execute_game,
     }
