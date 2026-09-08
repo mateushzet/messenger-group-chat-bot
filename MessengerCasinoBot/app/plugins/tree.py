@@ -4,6 +4,7 @@ import time
 from PIL import Image, ImageDraw
 from base_game_plugin import BaseGamePlugin
 from logger import logger
+from plugins.monthly import record_monthly_win
 
 class TreeGame:
     
@@ -810,7 +811,7 @@ class TreePlugin(BaseGamePlugin):
         self.send_message_image(sender, file_queue, result_msg, "Tree Game", self.cache, user_id)
         self.show_game_status(user_id, user, sender, file_queue)
         return True
-    
+        
     def _cut_multiple_trees(self, slots, user_id, user, sender, file_queue):
         game = self.load_game_state(user_id)
         game.water_plants()
@@ -843,6 +844,11 @@ class TreePlugin(BaseGamePlugin):
             new_balance = user["balance"] + total_win
             self.update_user_balance(user_id, new_balance)
             user["balance"] = new_balance
+            
+            try:
+                record_monthly_win(self.cache, user_id, "tree", total_win)
+            except Exception as e:
+                logger.error(f"[Tree] Error recording weekly/monthly wins for {user_id}: {e}")
         
         if total_loss < 0:
             new_level, new_progress = self.cache.add_experience(
@@ -939,6 +945,13 @@ class TreePlugin(BaseGamePlugin):
         new_balance = user["balance"] - total_cost + total_win
         self.update_user_balance(user_id, new_balance)
         user["balance"] = new_balance
+        
+        if total_win > 0:
+            try:
+                record_monthly_win(self.cache, user_id, "tree", total_win)
+                logger.info(f"[Tree] Recorded weekly/monthly wins for {user_id}: {total_win}")
+            except Exception as e:
+                logger.error(f"[Tree] Error recording weekly/monthly wins for {user_id}: {e}")
         
         if total_loss > 0:
             new_level, new_progress = self.cache.add_experience(

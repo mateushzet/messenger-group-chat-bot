@@ -16,7 +16,7 @@ class PiggyBank:
     MAX_FREEZE_SECONDS = 2 * 60 * 60
     MIN_GROWTH_SPEED = 0.80
     MAX_GROWTH_SPEED = 1.25
-    MAX_FREEZES_PER_CYCLE = 3
+    MAX_FREEZES_PER_CYCLE = 10
 
     def __init__(self, plugin):
         self.plugin = plugin

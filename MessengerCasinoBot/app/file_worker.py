@@ -6,8 +6,11 @@ from logger import logger
 from auth import MessengerAuth
 from utils import take_info_screenshot
 from utils import take_error_screenshot
-import time
+
+current_page = None
+
 def file_worker(file_queue: Queue):
+    global current_page
     max_retries = 3
     retry_delay = 1
     sent_startup_avatar = False
@@ -16,6 +19,8 @@ def file_worker(file_queue: Queue):
         try:
             auth = MessengerAuth()
             page, browser, playwright = auth.log_in_to_messenger()
+            
+            current_page = page
     
             if not page:
                 logger.critical("[FileWorker] Failed to log in")
@@ -49,6 +54,11 @@ def file_worker(file_queue: Queue):
 
             while True:
                 file_path = file_queue.get()
+
+                if file_path == "TAKE_SCREENSHOT":
+                    take_screenshot_and_queue_in_thread(file_queue)
+                    file_queue.task_done()
+                    continue
 
                 if file_path is None:
                     logger.critical("[FileWorker] Received shutdown signal")
@@ -187,3 +197,30 @@ def file_worker(file_queue: Queue):
             time.sleep(10)
 
     logger.critical("[FileWorker] File worker stopped")
+
+def take_screenshot_and_queue_in_thread(file_queue):
+    global current_page
+    
+    if not current_page:
+        logger.error("[FileWorker] no page to take screenshot")
+        return None
+    
+    try:
+        screenshot_dir = os.path.join(os.path.dirname(__file__), "screenshots")
+        os.makedirs(screenshot_dir, exist_ok=True)
+        
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        filename = f"screenshot_{timestamp}.png"
+        filepath = os.path.join(screenshot_dir, filename)
+        
+        current_page.screenshot(path=filepath, full_page=True)
+        
+        logger.info(f"[FileWorker] screenshot saved: {filepath}")
+        
+        file_queue.put(filepath)
+        
+        return filepath
+        
+    except Exception as e:
+        logger.error(f"[FileWorker] screenshot error: {e}", exc_info=True)
+        return None
