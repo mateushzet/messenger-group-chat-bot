@@ -1,85 +1,63 @@
 import os
 import random
 import re
-from collections import Counter
 from typing import List, Dict, Optional
 from PIL import Image, ImageDraw, ImageSequence
 from base_game_plugin import BaseGamePlugin
 from logger import logger
 from plugins.monthly import record_monthly_win
 from plugins.weekly import record_weekly_win
+from decimal import Decimal, ROUND_HALF_UP
+
+DICE_MULTIPLIERS = {
+    "five_of_a_kind": 9,
+    "four_of_a_kind": 3,
+    "straight": 3,
+    "full_house": 2,
+    "three_of_a_kind": 0.5,
+    "two_pair": 0,
+    "one_pair": 0,
+    "high_card": 0
+}
 
 class DiceGame:
     def __init__(self, user_id: str, sender_name: str, bet: int):
         self.user_id = user_id
         self.sender_name = sender_name
         self.bet = bet
-        self.player_dice = []
-        self.croupier_dice = []
-        self.game_status = "initial_roll"
-        self.message = "Rolling dice..."
-        self.player_rerolls_used = 0
-        self.croupier_rerolls_used = 0
+        self.dice = []
+        self.game_status = "waiting"
+        self.message = "Roll dice to start!"
+        self.win_amount = 0.0
+        self.multiplier = 0
+        self.hand_type = "high_card"
+        self.rerolls_used = 0
         self.max_rerolls = 1
-        self.winner = None
-        self.win_amount = 0
-        
-        self.roll_history = {
-            'initial': {'player': None, 'croupier': None},
-            'player_rerolls': [],
-            'croupier_rerolls': []
-        }
+        self.finished = False
+        self.rolled = False
+        self.cashed_out = False
     
-    def roll_dice(self, initial=False, player_indices=None, croupier_indices=None, save_history=True):
-        if initial:
-            self.player_dice = [random.randint(1, 6) for _ in range(5)]
-            self.croupier_dice = [random.randint(1, 6) for _ in range(5)]
-            
-            if save_history:
-                self.roll_history['initial']['player'] = self.player_dice.copy()
-                self.roll_history['initial']['croupier'] = self.croupier_dice.copy()
-        else:
-            if player_indices:
-                old_player = self.player_dice.copy()
-                for idx in player_indices:
-                    if 0 <= idx < len(self.player_dice):
-                        self.player_dice[idx] = random.randint(1, 6)
-                
-                if save_history:
-                    self.roll_history['player_rerolls'].append({
-                        'indices': player_indices.copy(),
-                        'before': old_player,
-                        'after': self.player_dice.copy()
-                    })
-            
-            if croupier_indices:
-                old_croupier = self.croupier_dice.copy()
-                for idx in croupier_indices:
-                    if 0 <= idx < len(self.croupier_dice):
-                        self.croupier_dice[idx] = random.randint(1, 6)
-                
-                if save_history:
-                    self.roll_history['croupier_rerolls'].append({
-                        'indices': croupier_indices.copy(),
-                        'before': old_croupier,
-                        'after': self.croupier_dice.copy()
-                    })
-        
-        self.check_game_status()
+    def roll_dice(self):
+        self.dice = [random.randint(1, 6) for _ in range(5)]
+        self._evaluate_hand()
+        self.rolled = True
+        self.game_status = "waiting_for_reroll"
+        self.finished = False
+        self.cashed_out = False
     
-    def player_reroll(self, indices_str: str) -> bool:
-        if self.game_status != "player_turn":
-            self.message = "It's not your turn!"
+    def reroll(self, indices_str: str) -> bool:
+        if self.rerolls_used >= self.max_rerolls:
+            self.message = "You've used all rerolls!"
             return False
         
-        if self.player_rerolls_used >= self.max_rerolls:
-            self.message = f"You've used all {self.max_rerolls} rerolls!"
+        if self.finished:
+            self.message = "Game already finished!"
             return False
         
         indices = self._parse_indices(indices_str)
         
         if not indices:
-            self.message = "Invalid dice numbers! Use: /dice 1,2,3 or /dice 1 2 3"
+            self.message = "Invalid dice numbers! Use: /dice 1 2 3"
             return False
         
         zero_based = [i-1 for i in indices if 1 <= i <= 5]
@@ -88,210 +66,107 @@ class DiceGame:
             self.message = "Dice numbers must be between 1 and 5"
             return False
         
-        self.player_rerolls_used += 1
-        self.roll_dice(player_indices=zero_based)
-        
-        if self.game_status == "player_turn":
-            self.game_status = "croupier_turn"
-            self.message = "Croupier's turn..."
-        
-        return True
-    
-    def player_stand(self) -> bool:
-        if self.game_status != "player_turn":
-            self.message = "It's not your turn!"
+        if len(zero_based) > 5:
+            self.message = "You can only reroll up to 5 dice"
             return False
         
-        self.game_status = "croupier_turn"
-        self.message = "Croupier's turn..."
+        self.rerolls_used += 1
+        
+        for idx in zero_based:
+            if 0 <= idx < len(self.dice):
+                self.dice[idx] = random.randint(1, 6)
+        
+        self._evaluate_hand()
+        self.game_status = "finished"
+        self.finished = True
         return True
     
-    def croupier_turn(self):
-        if self.game_status != "croupier_turn":
-            return
-        
-        while self.croupier_rerolls_used < self.max_rerolls:
-            player_score = self._evaluate_hand(self.player_dice)
-            
-            indices_to_reroll = self._get_reroll_indices(self.croupier_dice, player_score)
-            
-            if not indices_to_reroll:
-                break
-            
-            self.croupier_rerolls_used += 1
-            self.roll_dice(croupier_indices=indices_to_reroll)
+    def cashout(self) -> bool:
+        if self.finished:
+            return False
+        if not self.rolled:
+            return False
         
         self.game_status = "finished"
-        self._determine_winner()
+        self.finished = True
+        self.cashed_out = True
+        return True
     
-    def _determine_winner(self):
-        player_score = self._evaluate_hand(self.player_dice)
-        croupier_score = self._evaluate_hand(self.croupier_dice)
-        
-        if croupier_score > player_score:
-            self.winner = "croupier"
-            self.message = "Croupier wins!"
-            self.win_amount = -self.bet
-        elif player_score > croupier_score:
-            self.winner = "player"
-            self.message = "You win!"
-            self.win_amount = self.bet
-        else:
-            self.winner = "tie"
-            self.message = "It's a tie!"
-            self.win_amount = 0
-
-    def check_game_status(self):
-        
-        if self._is_perfect_hand(self.player_dice):
-            self.game_status = "finished"
-            self.winner = "player"
-            self.message = "Perfect hand! You win immediately!"
-            self.win_amount = self.bet
-            return
-        
-        if self.game_status == "initial_roll":
-            self.game_status = "player_turn"
-            self.message = "Your turn - select dice to reroll or wait"
-            return
-        
-        if self.game_status == "player_turn":
-            return
-        
-        if self.game_status == "croupier_turn":
-            if self.croupier_rerolls_used < self.max_rerolls:
-                pass
-            return
-        
     def _parse_indices(self, indices_str: str) -> List[int]:
         indices = []
+        cleaned = re.sub(r'[,\s]+', ' ', indices_str)
+        parts = cleaned.split()
         
-        if ',' in indices_str:
-            parts = indices_str.split(',')
-            for part in parts:
-                part = part.strip()
-                if part.isdigit():
-                    indices.append(int(part))
-        else:
-            parts = indices_str.split()
-            for part in parts:
-                part = part.strip()
-                if part.isdigit():
-                    indices.append(int(part))
+        for part in parts:
+            if part.isdigit():
+                indices.append(int(part))
         
         return indices
-    
-    def _evaluate_hand(self, dice: List[int]) -> int:
-        counts = Counter(dice)
-        sorted_dice = sorted(dice)
+
+    def _evaluate_hand(self):
+        self.hand_type = self._get_hand_type(self.dice)
+        self.multiplier = DICE_MULTIPLIERS.get(self.hand_type, 0)
         
-        if len(counts) == 1:
-            return 9000 + dice[0] * 100
-        if 4 in counts.values():
-            four_value = [k for k, v in counts.items() if v == 4][0]
-            return 8000 + four_value * 100
-        if 3 in counts.values() and 2 in counts.values():
-            three_value = [k for k, v in counts.items() if v == 3][0]
-            return 7000 + three_value * 100
-        if self._is_straight(sorted_dice):
-            return 6000 + max(dice) * 100
-        if 3 in counts.values():
-            three_value = [k for k, v in counts.items() if v == 3][0]
-            return 5000 + three_value * 100
-        if list(counts.values()).count(2) == 2:
-            pairs = sorted([k for k, v in counts.items() if v == 2], reverse=True)
-            return 4000 + pairs[0] * 100 + pairs[1] * 10
-        if 2 in counts.values():
-            pair_value = [k for k, v in counts.items() if v == 2][0]
-            return 3000 + pair_value * 100
-        return 2000 + max(dice) * 100 + sum(dice) % 100
-    
+        # OBLICZANIE Z ZAOKRĄGLENIEM DO LICZB CAŁKOWITYCH
+        raw_win = float(self.bet * self.multiplier)
+        
+        # Zaokrąglenie do najbliższej liczby całkowitej (0.5 zaokrągla w górę)
+        self.win_amount = int(Decimal(str(raw_win)).quantize(Decimal('1'), rounding=ROUND_HALF_UP))
+        
+        hand_display = self.hand_type.replace('_', ' ').title()
+        
+        if self.multiplier > 1:
+            self.message = f"{hand_display}! +${self.win_amount} (x{self.multiplier})!"
+        elif self.multiplier == 1:
+            self.message = f"{hand_display}! Break even! +${self.win_amount}"
+        elif self.multiplier > 0 and self.multiplier < 1:
+            net_loss = self.bet - self.win_amount
+            self.message = f"{hand_display}! Won ${self.win_amount} (lost ${net_loss} net)"
+        else:
+            self.message = f"{hand_display}! Lost ${self.bet}"        
+
+
     def _get_hand_type(self, dice: List[int]) -> str:
-        counts = Counter(dice)
-        sorted_dice = sorted(dice)
+        counts = {}
+        for d in dice:
+            counts[d] = counts.get(d, 0) + 1
         
-        if len(counts) == 1:
-            return f"Five of a Kind ({dice[0]})"
-        if 4 in counts.values():
-            return "Four of a Kind"
-        if 3 in counts.values() and 2 in counts.values():
-            return "Full House"
-        if self._is_straight(sorted_dice):
-            return "Straight"
-        if 3 in counts.values():
-            return "Three of a Kind"
-        if list(counts.values()).count(2) == 2:
-            return "Two Pair"
-        if 2 in counts.values():
-            return "One Pair"
-        return "High Card"
+        values = list(counts.values())
+        
+        if 5 in values:
+            return "five_of_a_kind"
+        if 4 in values:
+            return "four_of_a_kind"
+        if 3 in values and 2 in values:
+            return "full_house"
+        if self._is_straight(sorted(dice)):
+            return "straight"
+        if 3 in values:
+            return "three_of_a_kind"
+        if values.count(2) == 2:
+            return "two_pair"
+        if 2 in values:
+            return "one_pair"
+        return "high_card"
     
     def _is_straight(self, sorted_dice: List[int]) -> bool:
         return all(sorted_dice[i] == sorted_dice[0] + i for i in range(5))
     
-    def _is_perfect_hand(self, dice: List[int]) -> bool:
-        return len(set(dice)) == 1
-
-    def _get_reroll_indices(self, dice: List[int], player_score: int) -> List[int]:
-        counts = Counter(dice)
-        current_score = self._evaluate_hand(dice)
-        
-        if current_score > player_score:
-            return []
-        
-        if len(counts) == 1:
-            return []
-        
-        if 4 in counts.values():
-            keep_value = [k for k, v in counts.items() if v == 4][0]
-            return [i for i, val in enumerate(dice) if val != keep_value]
-        
-        if 3 in counts.values() and 2 in counts.values():
-            
-            if player_score >= 8000:
-                three_value = [k for k, v in counts.items() if v == 3][0]
-                pair_value = [k for k, v in counts.items() if v == 2][0]
-                return [i for i, val in enumerate(dice) if val == pair_value]
-            else:
-                return []
-        
-        if 3 in counts.values():
-            keep_value = [k for k, v in counts.items() if v == 3][0]
-            return [i for i, val in enumerate(dice) if val != keep_value]
-        
-        if list(counts.values()).count(2) == 2:
-            if player_score >= 7000:
-                pairs = [k for k, v in counts.items() if v == 2]
-                higher_pair = max(pairs)
-                lower_pair = min(pairs)
-                return [i for i, val in enumerate(dice) if val == lower_pair]
-            else:
-                pair_values = [k for k, v in counts.items() if v == 2]
-                return [i for i, val in enumerate(dice) if val not in pair_values]
-        
-        if 2 in counts.values():
-            pair_value = [k for k, v in counts.items() if v == 2][0]
-            return [i for i, val in enumerate(dice) if val != pair_value]
-        
-        sorted_with_idx = sorted([(val, i) for i, val in enumerate(dice)], reverse=True)
-        return [idx for val, idx in sorted_with_idx[1:]]
-
     def get_game_state(self) -> Dict:
         return {
-            'player_dice': self.player_dice.copy(),
-            'croupier_dice': self.croupier_dice.copy(),
-            'player_hand': self._get_hand_type(self.player_dice),
-            'croupier_hand': self._get_hand_type(self.croupier_dice),
-            'player_score': self._evaluate_hand(self.player_dice),
-            'croupier_score': self._evaluate_hand(self.croupier_dice),
+            'dice': self.dice.copy(),
+            'hand_type': self.hand_type,
+            'hand_display': self.hand_type.replace('_', ' ').title(),
+            'multiplier': self.multiplier,
+            'win_amount': self.win_amount,
+            'bet': self.bet,
             'game_status': self.game_status,
             'message': self.message,
-            'bet': self.bet,
-            'player_rerolls_left': self.max_rerolls - self.player_rerolls_used,
-            'croupier_rerolls_left': self.max_rerolls - self.croupier_rerolls_used,
-            'winner': self.winner,
-            'win_amount': self.win_amount,
-            'roll_history': self.roll_history
+            'rerolls_used': self.rerolls_used,
+            'max_rerolls': self.max_rerolls,
+            'finished': self.finished,
+            'rolled': self.rolled,
+            'cashed_out': self.cashed_out
         }
 
 
@@ -300,48 +175,58 @@ class DiceAnimationGenerator:
         self.text_renderer = text_renderer
         self.dice_animations = dice_animations
         self.dice_animation_frames = {}
-        
         self._load_animation_frames()
         
-        self.CARD_WIDTH = 500
-        self.CARD_HEIGHT = 400
-        self.DICE_SIZE = 70
-        self.DICE_SPACING = 10
-        self.PADDING = 30
+        self.CARD_WIDTH = 300
+        self.CARD_HEIGHT = 250
+        self.DICE_SIZE = 40
+        self.DICE_SPACING = 5
+        self.PADDING = 5
         
         self.COLORS = {
             'bg_dark': (10, 10, 20, 255),
-            'player_area': (30, 40, 50, 200),
-            'croupier_area': (40, 30, 50, 200),
             'text_primary': (255, 255, 255, 255),
             'text_secondary': (180, 180, 180, 255),
             'text_success': (80, 200, 120, 255),
             'text_danger': (255, 80, 80, 255),
             'text_highlight': (255, 215, 0, 255),
             'border': (70, 70, 90, 255),
-            'highlight_reroll': (100, 200, 255, 150),
-            'hand_bg': (0, 0, 0, 180)
+            'hand_bg': (0, 0, 0, 180),
+            'table_bg': (0, 0, 0, 200),
+            'table_border': (100, 100, 120, 255),
+            'row_even': (20, 20, 30, 200),
+            'row_odd': (30, 30, 45, 200),
+            'row_highlight': (60, 40, 20, 220),
+            'number_bg': (0, 0, 0, 150),
+            'dice_mat': (255, 255, 255, 90)  # Przezroczysta podkładka pod kostki
         }
+        
+        self.table_data = [
+            ("five_of_a_kind", "Five of a Kind", "x9"),
+            ("four_of_a_kind", "Four of a Kind", "x3"),
+            ("straight", "Straight", "x3"),
+            ("full_house", "Full House", "x2"),
+            ("three_of_a_kind", "Three of a Kind", "x0.5"),
+            ("two_pair", "Two Pair", "x0"),
+            ("one_pair", "One Pair", "x0"),
+            ("high_card", "High Card", "x0")
+        ]
     
     def _load_animation_frames(self):
         for value, path in self.dice_animations.items():
             try:
                 frames = []
-                
                 if not os.path.exists(path):
                     logger.error(f"[Dice] File does not exist: {path}")
                     self.dice_animation_frames[value] = []
                     continue
                 
                 with Image.open(path) as img:
-                    frame_count = 0
                     for frame in ImageSequence.Iterator(img):
                         frame_rgba = frame.convert('RGBA')
                         frames.append(frame_rgba)
-                        frame_count += 1
                 
                 self.dice_animation_frames[value] = frames
-                
             except Exception as e:
                 logger.error(f"[Dice] Failed to load animation for dice_{value}: {e}", exc_info=True)
                 self.dice_animation_frames[value] = []
@@ -359,71 +244,141 @@ class DiceAnimationGenerator:
         
         return Image.new('RGBA', (self.CARD_WIDTH, self.CARD_HEIGHT), self.COLORS['bg_dark'])
     
-    def draw_areas(self, img):
+    def draw_dice_mat(self, img):
+        """Rysuje przezroczystą podkładkę pod kostkami."""
         draw = ImageDraw.Draw(img)
         
-        croupier_y = self.PADDING
-        croupier_height = 150
-        draw.rectangle([self.PADDING, croupier_y, self.CARD_WIDTH - self.PADDING, croupier_y + croupier_height],
-                      fill=self.COLORS['croupier_area'], outline=self.COLORS['border'], width=2)
+        # Oblicz pozycję podkładki
+        total_width = 5 * self.DICE_SIZE + 4 * self.DICE_SPACING
+        start_x = (self.CARD_WIDTH - total_width) // 2
+        y = self._get_dice_y()
         
-        player_y = self.CARD_HEIGHT - self.PADDING - 150
-        player_height = 150
-        draw.rectangle([self.PADDING, player_y, self.CARD_WIDTH - self.PADDING, player_y + player_height],
-                      fill=self.COLORS['player_area'], outline=self.COLORS['border'], width=2)
+        # Dodaj padding do podkładki
+        mat_padding = 8
+        mat_x = start_x - mat_padding
+        mat_y = y - mat_padding
+        mat_width = total_width + mat_padding * 2
+        mat_height = self.DICE_SIZE + mat_padding * 2
         
-        if self.text_renderer:
-            croupier_label = self.text_renderer.render_text("CROUPIER", 20, self.COLORS['text_secondary'])
-            img.alpha_composite(croupier_label, (self.PADDING + 10, croupier_y + 5))
-            
-            player_label = self.text_renderer.render_text("PLAYER", 20, self.COLORS['text_secondary'])
-            img.alpha_composite(player_label, (self.PADDING + 10, player_y + 5))
+        # Rysuj zaokrąglony prostokąt z przezroczystością
+        draw.rounded_rectangle(
+            [mat_x, mat_y, mat_x + mat_width, mat_y + mat_height],
+            radius=10,
+            fill=self.COLORS['dice_mat'],
+            outline=(255, 255, 255, 60),  # Lekko widoczna obwódka
+            width=1
+        )
+        
+        # Dodaj delikatny cień pod kostkami - mały gradient
+        shadow_height = 3
+        for i in range(shadow_height):
+            alpha = int(20 * (1 - i / shadow_height))
+            draw.rounded_rectangle(
+                [mat_x, mat_y + mat_height + i, mat_x + mat_width, mat_y + mat_height + i + 1],
+                radius=2,
+                fill=(0, 0, 0, alpha)
+            )
     
-    def draw_hand_label(self, img, hand_text: str, is_croupier: bool):
+    def draw_multiplier_table(self, img, highlight_hand=None):
         if not self.text_renderer:
             return
         
-        if is_croupier:
-            area_y = self.PADDING
-            area_height = 150
-        else:
-            area_y = self.CARD_HEIGHT - self.PADDING - 150
-            area_height = 150
+        table_width = self.CARD_WIDTH - self.PADDING * 2
+        table_height = len(self.table_data) * 10 + 14
+        table_x = self.PADDING
+        table_y = self.CARD_HEIGHT - table_height - self.PADDING - 2
         
-        hand_display = f"{hand_text}"
-        text_img = self.text_renderer.render_text(hand_display, 16, self.COLORS['text_highlight'])
+        draw = ImageDraw.Draw(img)
+        draw.rounded_rectangle(
+            [table_x, table_y, table_x + table_width, table_y + table_height],
+            radius=2,
+            fill=self.COLORS['table_bg'],
+            outline=self.COLORS['table_border'],
+            width=1
+        )
         
-        padding = 5
-        bg_width = text_img.width + padding * 2
+        title = self.text_renderer.render_text("MULTIPLIERS", 5, self.COLORS['text_highlight'])
+        img.alpha_composite(title, (table_x + (table_width - title.width) // 2, table_y + 1))
+        
+        y = table_y + 11
+        for hand_type, hand, mult in self.table_data:
+            if highlight_hand and hand_type == highlight_hand:
+                bg_color = self.COLORS['row_highlight']
+                text_color = self.COLORS['text_highlight']
+                mult_color = self.COLORS['text_success']
+            else:
+                bg_color = self.COLORS['row_even'] if (self.table_data.index((hand_type, hand, mult)) % 2 == 0) else self.COLORS['row_odd']
+                text_color = self.COLORS['text_secondary']
+                mult_color = self.COLORS['text_highlight']
+            
+            draw.rectangle(
+                [table_x + 2, y, table_x + table_width - 2, y + 8],
+                fill=bg_color
+            )
+            
+            hand_text = self.text_renderer.render_text(hand, 4, text_color)
+            img.alpha_composite(hand_text, (table_x + 2, y))
+            
+            mult_text = self.text_renderer.render_text(mult, 4, mult_color)
+            img.alpha_composite(mult_text, (table_x + table_width - mult_text.width - 2, y))
+            
+            y += 10
+    
+    def draw_dice_numbers(self, img):
+        if not self.text_renderer:
+            return
+        
+        y = self._get_dice_y() + self.DICE_SIZE + 2
+        
+        for i in range(5):
+            x = self._get_dice_x(i) + self.DICE_SIZE // 2 - 3
+            
+            num_text = self.text_renderer.render_text(str(i+1), 4, self.COLORS['text_secondary'])
+            
+            padding = 1
+            bg_width = num_text.width + padding * 2
+            bg_height = num_text.height + padding * 2
+            
+            bg = Image.new('RGBA', (bg_width, bg_height), self.COLORS['number_bg'])
+            img.alpha_composite(bg, (x - padding + 1, y - padding))
+            img.alpha_composite(num_text, (x + 1, y))
+    
+    def draw_info_text(self, img, text: str, color=(255, 215, 0, 255)):
+        if not self.text_renderer:
+            return
+        
+        text_img = self.text_renderer.render_text(text, 6, color)
+        
+        padding = 2
+        bg_width = min(text_img.width + padding * 2, self.CARD_WIDTH - 20)
         bg_height = text_img.height + padding * 2
         
         bg = Image.new('RGBA', (bg_width, bg_height), self.COLORS['hand_bg'])
         
-        x = self.CARD_WIDTH - self.PADDING - bg_width - 10
-        y = area_y + 10
+        x = (self.CARD_WIDTH - bg_width) // 2
+        y = 30
         
         img.alpha_composite(bg, (x, y))
         img.alpha_composite(text_img, (x + padding, y + padding))
     
-    def draw_single_dice(self, img, value, x, y, frame_idx=0, use_last_frame=False, is_rerolling=False):
+    def draw_single_dice(self, img, value, x, y, frame_idx=0, use_last_frame=False, is_rolling=False):
         if value == 0:
             return
         
         frames = self.dice_animation_frames.get(value, [])
         
         if not frames:
-            logger.warning(f"[Dice] No frames for value {value}, using fallback")
             draw = ImageDraw.Draw(img)
             draw.ellipse([x, y, x + self.DICE_SIZE, y + self.DICE_SIZE], 
-                        fill=(255, 255, 255, 255), outline=(0, 0, 0, 255), width=2)
+                        fill=(255, 255, 255, 255), outline=(0, 0, 0, 255), width=1)
             if self.text_renderer:
-                text_img = self.text_renderer.render_text(str(value), 30, (0, 0, 0, 255))
+                text_img = self.text_renderer.render_text(str(value), 14, (0, 0, 0, 255))
                 text_x = x + (self.DICE_SIZE - text_img.width) // 2
                 text_y = y + (self.DICE_SIZE - text_img.height) // 2
                 img.alpha_composite(text_img, (text_x, text_y))
             return
         
-        if not is_rerolling or use_last_frame:
+        if not is_rolling or use_last_frame:
             dice_img = frames[-1]
         else:
             idx = frame_idx % len(frames)
@@ -432,257 +387,226 @@ class DiceAnimationGenerator:
         dice_img = dice_img.resize((self.DICE_SIZE, self.DICE_SIZE))
         img.alpha_composite(dice_img, (x, y))
     
-    def _get_dice_x(self, index: int, is_croupier: bool) -> int:
+    def _get_dice_x(self, index: int) -> int:
         total_width = 5 * self.DICE_SIZE + 4 * self.DICE_SPACING
         start_x = (self.CARD_WIDTH - total_width) // 2
         return start_x + index * (self.DICE_SIZE + self.DICE_SPACING)
     
-    def _get_dice_y(self, is_croupier: bool) -> int:
-        if is_croupier:
-            area_y = self.PADDING
-            area_height = 150
-        else:
-            area_y = self.CARD_HEIGHT - self.PADDING - 150
-            area_height = 150
-        
-        return area_y + (area_height - self.DICE_SIZE) // 2
+    def _get_dice_y(self) -> int:
+        return (self.CARD_HEIGHT - self.DICE_SIZE) // 2 - 15
     
-    def generate_dice_animation_frames(self, game_state, action_type, player_reroll_indices=None, 
-                                      croupier_reroll_indices=None, user_background_path=None) -> str:
-        logger.info(f"[Dice] Generating animation for action: {action_type}")
+    def generate_dice_animation_frames(self, game_state, user_background_path=None, is_reroll=False, reroll_indices=None, show_result=True, cashout=False, static=False) -> str:
+        logger.info(f"[Dice] Generating dice roll animation")
         frames = []
         
-        ANIMATION_LENGTH = 20
+        dice = game_state['dice']
+        hand_type = game_state['hand_type']
+        
+        if static or cashout:
+            img = self.create_base_image(user_background_path)
+            self.draw_dice_mat(img)  # Dodaj podkładkę
+            self.draw_multiplier_table(img, highlight_hand=hand_type)
+            self.draw_dice_numbers(img)
+            
+            for i in range(5):
+                x = self._get_dice_x(i)
+                y = self._get_dice_y()
+                self.draw_single_dice(
+                    img, dice[i], x, y, 
+                    use_last_frame=True
+                )
+            
+            frames.append(img)
+            
+            temp_path = os.path.join(os.path.dirname(__file__), "..", "results", 
+                                    f"dice_{random.randint(1000,9999)}.webp")
+            try:
+                os.makedirs(os.path.dirname(temp_path), exist_ok=True)
+                
+                frames[0].save(
+                    temp_path,
+                    format='WEBP',
+                    quality=90
+                )
+                return temp_path
+            except Exception as e:
+                logger.error(f"[Dice] Error saving image: {e}")
+                return None
+        
+        if is_reroll and reroll_indices:
+            old_dice = game_state.get('old_dice', dice)
+            
+            for _ in range(3):
+                img = self.create_base_image(user_background_path)
+                self.draw_dice_mat(img)  # Dodaj podkładkę
+                self.draw_info_text(img, "REROLLING...", self.COLORS['text_highlight'])
+                self.draw_multiplier_table(img, highlight_hand=None)
+                self.draw_dice_numbers(img)
+                
+                for i in range(5):
+                    x = self._get_dice_x(i)
+                    y = self._get_dice_y()
+                    self.draw_single_dice(
+                        img, old_dice[i] if i < len(old_dice) else 1, x, y, 
+                        use_last_frame=True
+                    )
+                
+                frames.append(img)
+            
+            ANIMATION_LENGTH = 50
+            HOLD_FRAMES = 8
+            
+            for frame_idx in range(ANIMATION_LENGTH):
+                img = self.create_base_image(user_background_path)
+                self.draw_dice_mat(img)  # Dodaj podkładkę
+                
+                if frame_idx < 35:
+                    dice_revealed = min(len(reroll_indices), frame_idx // 7 + 1)
+                    
+                    self.draw_info_text(img, "REROLLING...", self.COLORS['text_highlight'])
+                    
+                    self.draw_multiplier_table(img, highlight_hand=None)
+                    self.draw_dice_numbers(img)
+                    
+                    for i in range(5):
+                        x = self._get_dice_x(i)
+                        y = self._get_dice_y()
+                        
+                        if i in reroll_indices:
+                            idx_in_reroll = list(reroll_indices).index(i)
+                            if idx_in_reroll < dice_revealed:
+                                self.draw_single_dice(
+                                    img, dice[i], x, y, 
+                                    use_last_frame=True
+                                )
+                            else:
+                                self.draw_single_dice(
+                                    img, random.randint(1, 6), x, y, 
+                                    frame_idx=frame_idx, is_rolling=True
+                                )
+                        else:
+                            self.draw_single_dice(
+                                img, old_dice[i] if i < len(old_dice) else 1, x, y, 
+                                use_last_frame=True
+                            )
+                else:
+                    self.draw_multiplier_table(img, highlight_hand=hand_type)
+                    self.draw_dice_numbers(img)
+                    
+                    for i in range(5):
+                        x = self._get_dice_x(i)
+                        y = self._get_dice_y()
+                        self.draw_single_dice(
+                            img, dice[i], x, y, 
+                            use_last_frame=True
+                        )
+                
+                frames.append(img)
+            
+            for _ in range(HOLD_FRAMES):
+                img = self.create_base_image(user_background_path)
+                self.draw_dice_mat(img)  # Dodaj podkładkę
+                
+                self.draw_multiplier_table(img, highlight_hand=hand_type)
+                self.draw_dice_numbers(img)
+                
+                for i in range(5):
+                    x = self._get_dice_x(i)
+                    y = self._get_dice_y()
+                    self.draw_single_dice(
+                        img, dice[i], x, y, 
+                        use_last_frame=True
+                    )
+                
+                frames.append(img)
+            
+            if frames:
+                temp_path = os.path.join(os.path.dirname(__file__), "..", "results", 
+                                        f"dice_{random.randint(1000,9999)}.webp")
+                try:
+                    os.makedirs(os.path.dirname(temp_path), exist_ok=True)
+                    
+                    frames[0].save(
+                        temp_path,
+                        format='WEBP',
+                        save_all=True,
+                        append_images=frames[1:],
+                        duration=50,
+                        loop=0,
+                        quality=90
+                    )
+                    return temp_path
+                except Exception as e:
+                    logger.error(f"[Dice] Error saving animation: {e}")
+                    return None
+            
+            return None
+        
+        ANIMATION_LENGTH = 50
         HOLD_FRAMES = 8
         
-        player_dice = game_state['player_dice']
-        croupier_dice = game_state['croupier_dice']
-        
-        if action_type == 'initial':
-            for frame_idx in range(ANIMATION_LENGTH):
-                img = self.create_base_image(user_background_path)
-                self.draw_areas(img)
-                
-                for i in range(5):
-                    x = self._get_dice_x(i, True)
-                    y = self._get_dice_y(True)
-                    self.draw_single_dice(
-                        img, random.randint(1, 6), x, y, 
-                        frame_idx=frame_idx, is_rerolling=True
-                    )
-                
-                frames.append(img)
+        for frame_idx in range(ANIMATION_LENGTH):
+            img = self.create_base_image(user_background_path)
+            self.draw_dice_mat(img)  # Dodaj podkładkę
             
-            for frame_idx in range(ANIMATION_LENGTH):
-                img = self.create_base_image(user_background_path)
-                self.draw_areas(img)
+            if frame_idx < 35:
+                dice_revealed = min(5, frame_idx // 7 + 1)
+                
+                self.draw_info_text(img, "ROLLING...", self.COLORS['text_highlight'])
+                
+                self.draw_multiplier_table(img, highlight_hand=None)
+                self.draw_dice_numbers(img)
                 
                 for i in range(5):
-                    x = self._get_dice_x(i, True)
-                    y = self._get_dice_y(True)
-                    self.draw_single_dice(
-                        img, croupier_dice[i], x, y, 
-                        use_last_frame=True
-                    )
-                
-                for i in range(5):
-                    x = self._get_dice_x(i, False)
-                    y = self._get_dice_y(False)
-                    self.draw_single_dice(
-                        img, random.randint(1, 6), x, y, 
-                        frame_idx=frame_idx, is_rerolling=True
-                    )
-                
-                self.draw_hand_label(img, game_state['croupier_hand'], True)
-                
-                frames.append(img)
-            
-            for _ in range(HOLD_FRAMES):
-                img = self.create_base_image(user_background_path)
-                self.draw_areas(img)
-                
-                for i in range(5):
-                    x = self._get_dice_x(i, True)
-                    y = self._get_dice_y(True)
-                    self.draw_single_dice(
-                        img, croupier_dice[i], x, y, 
-                        use_last_frame=True
-                    )
-                
-                for i in range(5):
-                    x = self._get_dice_x(i, False)
-                    y = self._get_dice_y(False)
-                    self.draw_single_dice(
-                        img, player_dice[i], x, y, 
-                        use_last_frame=True
-                    )
-                
-                self.draw_hand_label(img, game_state['player_hand'], False)
-                self.draw_hand_label(img, game_state['croupier_hand'], True)
-                
-                frames.append(img)
-        
-        elif action_type == 'full_turn' and player_reroll_indices is not None:
-            history = game_state.get('roll_history', {})
-            
-            player_before = game_state['player_dice'].copy()
-            croupier_before = game_state['croupier_dice'].copy()
-            
-            player_rerolls = history.get('player_rerolls', [])
-            if player_rerolls:
-                player_before = player_rerolls[-1].get('before', player_before)
-            
-            croupier_rerolls = history.get('croupier_rerolls', [])
-            if croupier_rerolls:
-                croupier_before = croupier_rerolls[-1].get('before', croupier_before)
-                if 'indices' in croupier_rerolls[-1]:
-                    croupier_reroll_indices = croupier_rerolls[-1]['indices']
-            
-            for _ in range(HOLD_FRAMES):
-                img = self.create_base_image(user_background_path)
-                self.draw_areas(img)
-                
-                for i in range(5):
-                    x = self._get_dice_x(i, True)
-                    y = self._get_dice_y(True)
-                    self.draw_single_dice(
-                        img, croupier_before[i], x, y, 
-                        use_last_frame=True
-                    )
-                
-                for i in range(5):
-                    x = self._get_dice_x(i, False)
-                    y = self._get_dice_y(False)
-                    self.draw_single_dice(
-                        img, player_before[i], x, y, 
-                        use_last_frame=True
-                    )
-                
-                self.draw_hand_label(img, game_state.get('player_hand_before', '?'), False)
-                self.draw_hand_label(img, game_state.get('croupier_hand_before', '?'), True)
-                
-                frames.append(img)
-            
-            for frame_idx in range(ANIMATION_LENGTH):
-                img = self.create_base_image(user_background_path)
-                self.draw_areas(img)
-                
-                for i in range(5):
-                    x = self._get_dice_x(i, True)
-                    y = self._get_dice_y(True)
-                    self.draw_single_dice(
-                        img, croupier_before[i], x, y, 
-                        use_last_frame=True
-                    )
-                
-                for i in range(5):
-                    x = self._get_dice_x(i, False)
-                    y = self._get_dice_y(False)
-                    is_rerolling = i in player_reroll_indices
+                    x = self._get_dice_x(i)
+                    y = self._get_dice_y()
                     
-                    if is_rerolling:
+                    if i < dice_revealed:
                         self.draw_single_dice(
-                            img, random.randint(1, 6), x, y, 
-                            frame_idx=frame_idx, is_rerolling=True
+                            img, dice[i], x, y, 
+                            use_last_frame=True
                         )
                     else:
                         self.draw_single_dice(
-                            img, player_before[i], x, y, 
-                            use_last_frame=True
+                            img, random.randint(1, 6), x, y, 
+                            frame_idx=frame_idx, is_rolling=True
                         )
+            else:
+                self.draw_info_text(img, "Use /dice 1 2 3 or /dice cashout", self.COLORS['text_highlight'])
+                self.draw_multiplier_table(img, highlight_hand=hand_type)
+                self.draw_dice_numbers(img)
                 
-                self.draw_hand_label(img, '?', False)
-                self.draw_hand_label(img, game_state.get('croupier_hand_before', '?'), True)
-                
-                frames.append(img)
+                for i in range(5):
+                    x = self._get_dice_x(i)
+                    y = self._get_dice_y()
+                    self.draw_single_dice(
+                        img, dice[i], x, y, 
+                        use_last_frame=True
+                    )
             
-            for _ in range(HOLD_FRAMES // 2):
-                img = self.create_base_image(user_background_path)
-                self.draw_areas(img)
-                
-                for i in range(5):
-                    x = self._get_dice_x(i, True)
-                    y = self._get_dice_y(True)
-                    self.draw_single_dice(
-                        img, croupier_before[i], x, y, 
-                        use_last_frame=True
-                    )
-                
-                for i in range(5):
-                    x = self._get_dice_x(i, False)
-                    y = self._get_dice_y(False)
-                    self.draw_single_dice(
-                        img, player_dice[i], x, y, 
-                        use_last_frame=True
-                    )
-                
-                self.draw_hand_label(img, game_state['player_hand'], False)
-                self.draw_hand_label(img, game_state.get('croupier_hand_before', '?'), True)
-                
-                frames.append(img)
+            frames.append(img)
+        
+        for _ in range(HOLD_FRAMES):
+            img = self.create_base_image(user_background_path)
+            self.draw_dice_mat(img)  # Dodaj podkładkę
             
-            if croupier_rerolls and croupier_reroll_indices is not None:
-                for frame_idx in range(ANIMATION_LENGTH):
-                    img = self.create_base_image(user_background_path)
-                    self.draw_areas(img)
-                    
-                    for i in range(5):
-                        x = self._get_dice_x(i, True)
-                        y = self._get_dice_y(True)
-                        is_rerolling = i in croupier_reroll_indices
-                        
-                        if is_rerolling:
-                            self.draw_single_dice(
-                                img, random.randint(1, 6), x, y, 
-                                frame_idx=frame_idx, is_rerolling=True
-                            )
-                        else:
-                            self.draw_single_dice(
-                                img, croupier_before[i], x, y, 
-                                use_last_frame=True
-                            )
-                    
-                    for i in range(5):
-                        x = self._get_dice_x(i, False)
-                        y = self._get_dice_y(False)
-                        self.draw_single_dice(
-                            img, player_dice[i], x, y, 
-                            use_last_frame=True
-                        )
-                    
-                    self.draw_hand_label(img, game_state['player_hand'], False)
-                    self.draw_hand_label(img, '?', True)
-                    
-                    frames.append(img)
+            self.draw_info_text(img, "Use /dice 1 2 3 or /dice cashout", self.COLORS['text_highlight'])
+            self.draw_multiplier_table(img, highlight_hand=hand_type)
+            self.draw_dice_numbers(img)
             
-            for _ in range(HOLD_FRAMES):
-                img = self.create_base_image(user_background_path)
-                self.draw_areas(img)
-                
-                for i in range(5):
-                    x = self._get_dice_x(i, True)
-                    y = self._get_dice_y(True)
-                    self.draw_single_dice(
-                        img, croupier_dice[i], x, y, 
-                        use_last_frame=True
-                    )
-                
-                for i in range(5):
-                    x = self._get_dice_x(i, False)
-                    y = self._get_dice_y(False)
-                    self.draw_single_dice(
-                        img, player_dice[i], x, y, 
-                        use_last_frame=True
-                    )
-                
-                self.draw_hand_label(img, game_state['player_hand'], False)
-                self.draw_hand_label(img, game_state['croupier_hand'], True)
-                
-                frames.append(img)
+            for i in range(5):
+                x = self._get_dice_x(i)
+                y = self._get_dice_y()
+                self.draw_single_dice(
+                    img, dice[i], x, y, 
+                    use_last_frame=True
+                )
+            
+            frames.append(img)
         
         if frames:
             temp_path = os.path.join(os.path.dirname(__file__), "..", "results", 
-                                    f"dice_{action_type}_{random.randint(1000,9999)}.webp")
+                                    f"dice_{random.randint(1000,9999)}.webp")
             try:
                 os.makedirs(os.path.dirname(temp_path), exist_ok=True)
                 
@@ -706,11 +630,10 @@ class DiceAnimationGenerator:
 class DicePlugin(BaseGamePlugin):
     def __init__(self):
         super().__init__(game_name="dice")
-        self.active_games = {}
-        self.min_bet = 10
+        self.min_bet = 1
         self.dice_animations = {}
         self.animation_generator = None
-        
+        self.active_games = {}
         self._load_dice_animations()
         self.animation_generator = DiceAnimationGenerator(self.text_renderer, self.dice_animations)
     
@@ -719,11 +642,6 @@ class DicePlugin(BaseGamePlugin):
         if not os.path.exists(dice_folder):
             logger.error(f"[Dice] Dice folder not found: {dice_folder}")
             return
-        
-        try:
-            files = os.listdir(dice_folder)
-        except Exception as e:
-            logger.error(f"[Dice] Error listing dice folder: {e}")
         
         for i in range(1, 7):
             animation_path = os.path.join(dice_folder, f"dice_{i}.webp")
@@ -743,190 +661,80 @@ class DicePlugin(BaseGamePlugin):
         
         return None
     
-    def get_custom_overlay(self, **kwargs):
-        try:
-            frame_width = kwargs.get('frame_width', 500)
-            frame_height = kwargs.get('frame_height', 400)
-            
-            overlay = Image.new('RGBA', (frame_width, frame_height), (0, 0, 0, 0))
-            
-            return {
-                'before': {
-                    'image': overlay,
-                    'position': (0, 0),
-                    'type': 'before',
-                    'per_frame': True
-                },
-                'after': {
-                    'image': overlay,
-                    'position': (0, 0),
-                    'type': 'after',
-                    'per_frame': True
-                }
-            }
-            
-        except Exception as e:
-            logger.error(f"[Dice] Error in get_custom_overlay: {e}", exc_info=True)
-            return None
-        
-    def _is_reroll_pattern(self, cmd: str, args: List[str]) -> bool:
-        first_arg = args[0] if args else ""
-        
-        # Format "/dice 1,2,3" lub "/dice 1 2 3" lub "/dice 123"
-        if re.match(r'^[\d,\s]+$', first_arg):
-            return True
-        
-        # Format "/dice r 1,2,3" lub "/dice reroll 1,2,3"
-        if len(args) >= 2 and cmd in ["r", "reroll", "roll"]:
-            return True
-        
-        return False
-
-    def _parse_dice_indices(self, args: List[str]) -> Optional[List[int]]:
-        indices = []
-        
-        full_args = ' '.join(args)
-        
-        full_args = re.sub(r'^(r|reroll|roll)\s+', '', full_args, flags=re.IGNORECASE)
-        
-        digits_only = re.sub(r'[^\d]', '', full_args)
-        
-        if digits_only:
-            return [int(d) for d in digits_only if 1 <= int(d) <= 5]
-        
-        return None
-   
-    def _handle_status_or_help(self, sender: str, file_queue, cache, avatar_url: str) -> str:
-        user_id, user, error = self.validate_user(cache, sender, avatar_url)
-        
-        if error:
-            self.send_message_image(sender, file_queue, error, "Dice Error", cache, user_id)
-            return ""
-        
-        if user_id in self.active_games:
-            game = self.active_games[user_id]
-            return self._show_game_status(game, sender, file_queue, cache, user_id, user)
-        else:
-            help_text = self._get_help_text()
-            self.send_message_image(sender, file_queue, help_text, "Dice Help", cache, user_id)
-            return ""
-
-    def execute_game(self, command_name: str, args: List[str], file_queue, 
-                    cache=None, sender: str = None, avatar_url: str = None) -> str:
-        self.cache = cache
-        
-        static_mode = False
-        if args and args[-1].lower() == 'x':
-            static_mode = True
-            args = args[:-1]
-        
-        if len(args) == 0:
-            return self._handle_status_or_help(sender, file_queue, cache, avatar_url, static_mode)
-        
-        cmd = args[0].lower()
-        user_id, user, error = self.validate_user(cache, sender, avatar_url)
-        
-        if error:
-            self.send_message_image(sender, file_queue, error, "Dice Error", cache, user_id)
-            return ""
-        
-        if cmd in ["start", "s", "bet", "b"]:
-            return self._handle_start_command(args, sender, file_queue, cache, avatar_url, user_id, user, static_mode)
-        
-        if user_id not in self.active_games:
-            self.send_message_image(sender, file_queue, 
-                                "You don't have an active game! Start one with /dice start <bet>", 
-                                "No Game", cache, user_id)
-            return ""
-        
-        game = self.active_games[user_id]
-        
-        if self._is_reroll_pattern(cmd, args):
-            return self._handle_reroll_command(args, game, sender, file_queue, cache, user_id, user, static_mode)
-        
-        if cmd in ["stand", "wait", "check", "cashout", "stop", "pass"]:
-            return self._handle_stand_command(game, sender, file_queue, cache, user_id, user, static_mode)
-        
-        return self._show_game_status(game, sender, file_queue, cache, user_id, user, static_mode)
-
-    def _handle_reroll_command(self, args: List[str], game, sender: str, file_queue, 
-                            cache, user_id: str, user: Dict, static_mode: bool = False) -> str:
-        
-        if game.game_status != "player_turn":
-            return ""
-        
-        if game.player_rerolls_used >= game.max_rerolls:
-            return ""
-        
-        indices = self._parse_dice_indices(args)
-        
-        if not indices:
-            return ""
-        
-        zero_based = [i-1 for i in indices if 1 <= i <= 5]
-        
-        if not zero_based:
-            return ""
-        
-        zero_based = list(set(zero_based))
-        old_player_dice = game.player_dice.copy()
-        old_croupier_dice = game.croupier_dice.copy()
-        
-        success = game.player_reroll(','.join(str(i+1) for i in zero_based))
-        
-        if not success:
-            return ""
-        
-        if game.game_status == "croupier_turn":
-            game.croupier_turn()
-        
-        final_balance = user["balance"]
-        win_amount = 0
-        
-        if game.winner == "player":
-            win_amount = game.win_amount
-            final_balance = user["balance"] + 2 * win_amount
-        elif game.winner == "croupier":
-            win_amount = -game.bet
-            final_balance = user["balance"]
-        else:
-            final_balance = user["balance"] + game.bet
-            win_amount = 0
-        
-        if game.winner == "player":
-            self.update_user_balance(user_id, final_balance)
-            if win_amount < 0:
-                self.cache.add_experience(user_id, win_amount, sender, file_queue)
-            record_weekly_win(self.cache, user_id, "dice", win_amount)
-            record_weekly_win(self.cache, user_id, "dice", win_amount)
-            record_monthly_win(self.cache, user_id, "dice", win_amount)
-        elif game.winner == "tie":
-            self.update_user_balance(user_id, final_balance)
-        
+    def _get_help_text(self) -> str:
+        return (
+            "DICE GAME\n\n"
+            "How to play:\n"
+            "Roll 5 dice and get a winning combination!\n"
+            "You have 1 reroll or you can cashout\n\n"
+            "Multipliers:\n"
+            "Five of a Kind: x9\n"
+            "Four of a Kind: x3\n"
+            "Straight: x3\n"
+            "Full House: x2\n"
+            "Three of a Kind: x0.5\n"
+            "Two Pair: x0\n"
+            "One Pair: x0\n"
+            "High Card: x0\n\n"
+            "Commands:\n"
+            "/dice bet <amount> - Roll dice with bet\n"
+            "/dice - Roll dice (default bet 10)\n"
+            "/dice 1 2 3 - Reroll selected dice\n"
+            "/dice roll 1 2 3 - Reroll selected dice (same)\n"
+            "/dice cashout - End game and take result"
+        )
+    
+    def _finish_game(self, user_id, game, sender, file_queue, cache, user, win_amount, final_balance, is_reroll=False, reroll_indices=None, cashout=False, static=False):
         fresh_user = cache.get_user(user_id)
         if fresh_user:
             user = fresh_user
         
         game_state = game.get_game_state()
-        game_state['player_hand_before'] = game._get_hand_type(old_player_dice)
-        game_state['croupier_hand_before'] = game._get_hand_type(old_croupier_dice)
+        game_state['old_dice'] = game.dice.copy() if is_reroll else None
         
-        user_info_before = self.create_user_info(sender, game.bet, 0, user["balance"] - game.win_amount if game.winner == "player" else user["balance"], user)
-        user_info_after = self.create_user_info(sender, game.bet, win_amount, final_balance, user)
+        bet = float(game.bet)
+        win_amount = float(win_amount)
         
-        action_type = 'initial' if static_mode else 'full_turn'
-        player_indices = None if static_mode else zero_based
+        # Tworzymy user_info z odpowiednim opisem
+        if win_amount > bet:
+            # WYGRAŁ - zysk
+            profit = win_amount - bet
+            result_text = f"WON +${int(profit)}"
+            user_info_before = self.create_user_info(sender, int(bet), 0, int(user["balance"] + bet), user)
+            user_info_after = self.create_user_info(sender, int(bet), int(profit), int(final_balance), user)
+        elif win_amount == bet:
+            # BREAK EVEN
+            result_text = f"BREAK EVEN (${int(win_amount)})"
+            user_info_before = self.create_user_info(sender, int(bet), 0, int(user["balance"] + bet), user)
+            user_info_after = self.create_user_info(sender, int(bet), 0, int(final_balance), user)
+        elif win_amount > 0:
+            # CZĘŚCIOWA STRATA (np. 0.5x) - przekazujemy ujemną wartość
+            net_loss = bet - win_amount
+            result_text = f"LOST ${int(net_loss)} (won ${int(win_amount)})"
+            user_info_before = self.create_user_info(sender, int(bet), 0, int(user["balance"] + bet), user)
+            # Przekazujemy ujemną wartość, żeby pokazać stratę
+            user_info_after = self.create_user_info(sender, int(bet), -int(net_loss), int(final_balance), user)
+        else:
+            # PEŁNA PRZEGRANA (0x) - przekazujemy ujemną wartość
+            result_text = f"LOST ${int(bet)}"
+            user_info_before = self.create_user_info(sender, int(bet), 0, int(user["balance"] + bet), user)
+            # Przekazujemy ujemną wartość, żeby pokazać stratę
+            user_info_after = self.create_user_info(sender, int(bet), -int(bet), int(final_balance), user)
         
         anim_path = self.animation_generator.generate_dice_animation_frames(
-            game_state, action_type,
-            player_reroll_indices=player_indices,
-            user_background_path=self.get_user_background_path(user_id, user)
+            game_state,
+            user_background_path=self.get_user_background_path(user_id, user),
+            is_reroll=is_reroll,
+            reroll_indices=reroll_indices,
+            show_result=True,
+            cashout=cashout,
+            static=static
         )
         
         if anim_path:
             custom_kwargs = {
-                'custom_text': f"DICE GAME",
-                'result_text': ""
+                'custom_text': f"DICE",
+                'result_text': result_text
             }
             
             result_path, error = self.generate_animation(
@@ -935,14 +743,15 @@ class DicePlugin(BaseGamePlugin):
                 user=user,
                 user_info_before=user_info_before,
                 user_info_after=user_info_after,
-                animated=not static_mode,
-                frame_duration=50,
-                last_frame_multiplier=130,
+                animated=not static and not cashout,
+                frame_duration=50 if not static and not cashout else 0,
+                last_frame_multiplier=130 if not static and not cashout else 0,
                 custom_overlay_kwargs=custom_kwargs,
                 show_win_text=True,
-                win_text_height=180,
-                font_scale=0.9,
-                avatar_size=60
+                win_text_height=35,
+                font_scale=0.45,
+                avatar_size=45,
+                overlay_position='top'
             )
             
             if result_path:
@@ -952,207 +761,26 @@ class DicePlugin(BaseGamePlugin):
                 os.remove(anim_path)
             except:
                 pass
-        
-        if game.game_status == "finished":
-            self.active_games.pop(user_id, None)
-        
-        return ""
-
-    def _handle_stand_command(self, game, sender: str, file_queue, cache, 
-                            user_id: str, user: Dict, static_mode: bool = False) -> str:
-                
-        if game.game_status != "player_turn":
-            return ""
-        
-        old_croupier_dice = game.croupier_dice.copy()
-        
-        success = game.player_stand()
-        
-        if not success:
-            return ""
-        
-        game.croupier_turn()
-        
-        final_balance = user["balance"]
-        win_amount = 0
-        
-        if game.winner == "player":
-            win_amount = game.win_amount
-            final_balance = user["balance"] + 2 * win_amount
-        elif game.winner == "croupier":
-            win_amount = -game.bet
-            final_balance = user["balance"]
-        else:
-            final_balance = user["balance"] + game.bet
-            win_amount = 0
-        
-        if game.winner == "player":
-            self.update_user_balance(user_id, final_balance)
-            if win_amount < 0:
-                self.cache.add_experience(user_id, win_amount, sender, file_queue)
-        elif game.winner == "tie":
-            self.update_user_balance(user_id, final_balance)
-        
-        fresh_user = cache.get_user(user_id)
-        if fresh_user:
-            user = fresh_user
-        
-        game_state = game.get_game_state()
-        game_state['croupier_hand_before'] = game._get_hand_type(old_croupier_dice)
-        
-        user_info_before = self.create_user_info(sender, game.bet, 0, user["balance"] - game.win_amount if game.winner == "player" else user["balance"], user)
-        user_info_after = self.create_user_info(sender, game.bet, win_amount, final_balance, user)
-        
-        action_type = 'initial' if static_mode else 'full_turn'
-        player_indices = None if static_mode else []
-        
-        anim_path = self.animation_generator.generate_dice_animation_frames(
-            game_state, action_type,
-            player_reroll_indices=player_indices,
-            user_background_path=self.get_user_background_path(user_id, user)
-        )
-        
-        if anim_path:
-            custom_kwargs = {
-                'custom_text': f"DICE GAME",
-                'result_text': ""
-            }
-            
-            result_path, error = self.generate_animation(
-                base_animation_path=anim_path,
-                user_id=user_id,
-                user=user,
-                user_info_before=user_info_before,
-                user_info_after=user_info_after,
-                animated=not static_mode,
-                frame_duration=50,
-                last_frame_multiplier=130,
-                custom_overlay_kwargs=custom_kwargs,
-                show_win_text=True,
-                win_text_height=180,
-                font_scale=0.9,
-                avatar_size=60
-            )
-            
-            if result_path:
-                file_queue.put(result_path)
-            
-            try:
-                os.remove(anim_path)
-            except:
-                pass
-        
-        if game.game_status == "finished":
-            self.active_games.pop(user_id, None)
-        
-        return ""
-
-    def _handle_start_command(self, args: List[str], sender: str, file_queue, 
-                            cache, avatar_url: str, user_id: str, user: Dict, static_mode: bool = False) -> str:
-        
-        if len(args) < 2:
-            self.send_message_image(sender, file_queue, 
-                                "Usage: /dice start <bet>", 
-                                "Dice Error", cache, user_id)
-            return ""
-        
-        try:
-            bet = int(args[1])
-        except ValueError:
-            self.send_message_image(sender, file_queue, 
-                                "Bet must be a number!", 
-                                "Dice Error", cache, user_id)
-            return ""
-        
-        if bet < self.min_bet:
-            self.send_message_image(sender, file_queue, 
-                                f"Minimum bet is ${self.min_bet}!", 
-                                "Dice Error", cache, user_id)
-            return ""
         
         if user_id in self.active_games:
-            self.send_message_image(sender, file_queue, 
-                                "You already have an active game! Use /dice to see status.", 
-                                "Dice Error", cache, user_id)
-            return ""
-        
-        if user["balance"] < bet:
-            self.send_message_image(sender, file_queue, 
-                                f"Insufficient funds! You have ${user['balance']}, need ${bet}", 
-                                "Dice Error", cache, user_id)
-            return ""
-        
-        balance_before = user["balance"]
-        new_balance = balance_before - bet
-        self.update_user_balance(user_id, new_balance)
-        
-        game = DiceGame(user_id, sender, bet)
-        game.max_rerolls = 1
-        game.roll_dice(initial=True)
-        self.active_games[user_id] = game
-        
+            del self.active_games[user_id]
+    
+    def _show_waiting_state(self, user_id, game, sender, file_queue, cache, user, static=False):
         game_state = game.get_game_state()
-        user_info_after = self.create_user_info(sender, bet, 0, new_balance, user)
+        
+        user_info = self.create_user_info(sender, game.bet, 0, user["balance"], user)
         
         anim_path = self.animation_generator.generate_dice_animation_frames(
-            game_state, 'initial',
-            user_background_path=self.get_user_background_path(user_id, user)
+            game_state,
+            user_background_path=self.get_user_background_path(user_id, user),
+            show_result=False,
+            static=static
         )
         
         if anim_path:
             custom_kwargs = {
-                'custom_text': f"NEW GAME - BET: ${bet}",
-                'result_text': "Rolling dice..."
-            }
-            
-            result_path, error = self.generate_animation(
-                base_animation_path=anim_path,
-                user_id=user_id,
-                user=user,
-                user_info_before=user_info_after,
-                user_info_after=user_info_after,
-                animated=not static_mode,
-                frame_duration=50,
-                last_frame_multiplier=130,
-                custom_overlay_kwargs=custom_kwargs,
-                show_win_text=False,
-                font_scale=0.9,
-                avatar_size=60
-            )
-            
-            if result_path:
-                file_queue.put(result_path)
-            
-            try:
-                os.remove(anim_path)
-            except:
-                pass
-        
-        if game.game_status == "finished":
-            self._finish_game(game, sender, file_queue, cache, user_id, user)
-        
-        return f"Game started! Bet: ${bet}"
-
-    def _show_game_status(self, game, sender: str, file_queue, cache, user_id: str, user: Dict, static_mode: bool = False) -> str:
-        game_state = game.get_game_state()
-        
-        anim_path = self.animation_generator.generate_dice_animation_frames(
-            game_state, 'initial',
-            user_background_path=self.get_user_background_path(user_id, user)
-        )
-        
-        if anim_path:
-            user_info = self.create_user_info(sender, game.bet, 0, user["balance"], user)
-            
-            status_message = f"Game Status"
-            if game.game_status == "player_turn":
-                status_message = f"Your turn! Rerolls left: {game.max_rerolls - game.player_rerolls_used}"
-            elif game.game_status == "finished":
-                status_message = game.message
-            
-            custom_kwargs = {
-                'custom_text': f"GAME STATUS",
-                'result_text': status_message
+                'custom_text': f"DICE",
+                'result_text': ""
             }
             
             result_path, error = self.generate_animation(
@@ -1161,13 +789,14 @@ class DicePlugin(BaseGamePlugin):
                 user=user,
                 user_info_before=user_info,
                 user_info_after=user_info,
-                animated=False,
-                frame_duration=0,
-                last_frame_multiplier=130,
+                animated=not static,
+                frame_duration=50 if not static else 0,
+                last_frame_multiplier=130 if not static else 0,
                 custom_overlay_kwargs=custom_kwargs,
                 show_win_text=False,
-                font_scale=0.9,
-                avatar_size=60
+                font_scale=0.45,
+                avatar_size=45,
+                overlay_position='top'
             )
             
             if result_path:
@@ -1177,26 +806,291 @@ class DicePlugin(BaseGamePlugin):
                 os.remove(anim_path)
             except:
                 pass
+    
+    def execute_game(self, command_name: str, args: List[str], file_queue, 
+                    cache=None, sender: str = None, avatar_url: str = None) -> str:
+        self.cache = cache
         
-        return ""
-
-    def _get_help_text(self) -> str:
-        return (
-            "DICE GAME\n\n"
-            f"Minimum bet: ${self.min_bet}\n\n"
-            "**How to play:**\n"
-            "1. Both players roll 5 dice\n"
-            "2. You see croupier's dice\n"
-            "3. You can reroll selected dice (1 reroll max)\n"
-            "4. Croupier rerolls (1 reroll max) to try to beat you\n\n"
-            "**Commands:**\n"
-            "• /dice start <bet> - Start new game\n"
-            "• /dice 1,2,3 - Reroll selected dice\n"
-            "• /dice 1 2 3 - Reroll selected dice\n"
-            "• /dice 123 - Reroll selected dice\n"
-            "• /dice stand - Stop rerolling and let croupier play\n"
-            "• /dice - Show current game status"
-        )
+        user_id, user, error = self.validate_user(cache, sender, avatar_url)
+        
+        if error:
+            self.send_message_image(sender, file_queue, error, "Dice Error", cache, user_id)
+            return ""
+        
+        if len(args) == 0:
+            bet = 10
+            if user["balance"] < bet:
+                self.send_message_image(sender, file_queue, 
+                                    f"Insufficient funds! You have ${user['balance']}, need ${bet}", 
+                                    "Dice Error", cache, user_id)
+                return ""
+            
+            if user_id in self.active_games:
+                game = self.active_games[user_id]
+                if not game.finished:
+                    self.send_message_image(sender, file_queue, 
+                                        "You already have an active game! Use /dice 1 2 3 or /dice cashout", 
+                                        "Dice Error", cache, user_id)
+                    return ""
+                else:
+                    del self.active_games[user_id]
+            
+            balance_before = user["balance"]
+            new_balance = balance_before - bet
+            self.update_user_balance(user_id, new_balance)
+            
+            game = DiceGame(user_id, sender, bet)
+            game.roll_dice()
+            self.active_games[user_id] = game
+            
+            self._show_waiting_state(user_id, game, sender, file_queue, cache, user)
+            return ""
+        
+        static = False
+        if args and args[-1].lower() == "x":
+            static = True
+            args = args[:-1]
+        
+        if len(args) == 0:
+            help_text = self._get_help_text()
+            self.send_message_image(sender, file_queue, help_text, "Dice Help", cache, user_id)
+            return ""
+        
+        cmd = args[0].lower()
+        
+        is_roll_command = False
+        if cmd == "roll" or cmd == "reroll" or cmd == "r":
+            is_roll_command = True
+            args = args[1:]
+        elif len(args) >= 1:
+            all_digits = True
+            for arg in args:
+                cleaned = re.sub(r'[,\s]+', '', arg)
+                if not cleaned.isdigit():
+                    all_digits = False
+                    break
+            if all_digits:
+                is_roll_command = True
+        
+        if is_roll_command:
+            if user_id not in self.active_games:
+                self.send_message_image(sender, file_queue, 
+                                    "No active game! Start one with /dice bet <amount> or /dice", 
+                                    "Dice Error", cache, user_id)
+                return ""
+            
+            game = self.active_games[user_id]
+            
+            if game.finished:
+                self.send_message_image(sender, file_queue, 
+                                    "Game already finished! Start a new one with /dice bet <amount>", 
+                                    "Dice Error", cache, user_id)
+                return ""
+            
+            if game.rerolls_used >= game.max_rerolls:
+                self.send_message_image(sender, file_queue, 
+                                    "You've used all rerolls! Use /dice cashout", 
+                                    "Dice Error", cache, user_id)
+                return ""
+            
+            if not game.rolled:
+                self.send_message_image(sender, file_queue, 
+                                    "Roll dice first! Use /dice bet <amount>", 
+                                    "Dice Error", cache, user_id)
+                return ""
+            
+            all_digits_list = []
+            for arg in args:
+                cleaned = re.sub(r'[,\s]+', '', arg)
+                if cleaned.isdigit():
+                    all_digits_list.extend([int(d) for d in cleaned])
+            
+            if not all_digits_list:
+                self.send_message_image(sender, file_queue, 
+                                    "Usage: /dice 1 2 3 or /dice roll 1 2 3", 
+                                    "Dice Error", cache, user_id)
+                return ""
+            
+            if len(all_digits_list) > 5:
+                self.send_message_image(sender, file_queue, 
+                                    "You can only reroll up to 5 dice! Use numbers 1-5", 
+                                    "Dice Error", cache, user_id)
+                return ""
+            
+            zero_based = [i-1 for i in all_digits_list if 1 <= i <= 5]
+            
+            if not zero_based:
+                self.send_message_image(sender, file_queue, 
+                                    "Invalid dice numbers! Use numbers 1-5", 
+                                    "Dice Error", cache, user_id)
+                return ""
+            
+            old_dice = game.dice.copy()
+            
+            indices_str = ' '.join(str(i) for i in all_digits_list)
+            success = game.reroll(indices_str)
+            
+            if not success:
+                self.send_message_image(sender, file_queue, 
+                                    game.message, 
+                                    "Dice Error", cache, user_id)
+                return ""
+            
+            win_amount = game.win_amount
+            final_balance = user["balance"] + win_amount
+            
+            if win_amount > 0:
+                self.update_user_balance(user_id, final_balance)
+                record_weekly_win(self.cache, user_id, "dice", win_amount)
+                record_monthly_win(self.cache, user_id, "dice", win_amount)
+            else:
+                self.update_user_balance(user_id, final_balance)
+            
+            self._finish_game(user_id, game, sender, file_queue, cache, user, win_amount, final_balance, True, zero_based, False, static)
+            return ""
+        
+        if cmd == "bet":
+            if len(args) < 2:
+                self.send_message_image(sender, file_queue, 
+                                    "Usage: /dice bet <amount>", 
+                                    "Dice Error", cache, user_id)
+                return ""
+            
+            try:
+                bet = int(args[1])
+            except ValueError:
+                self.send_message_image(sender, file_queue, 
+                                    "Bet must be a number!", 
+                                    "Dice Error", cache, user_id)
+                return ""
+            
+            if bet < 1:
+                self.send_message_image(sender, file_queue, 
+                                    "Bet must be at least 1 coin!", 
+                                    "Dice Error", cache, user_id)
+                return ""
+            
+            if user["balance"] < bet:
+                self.send_message_image(sender, file_queue, 
+                                    f"Insufficient funds! You have ${user['balance']}, need ${bet}", 
+                                    "Dice Error", cache, user_id)
+                return ""
+            
+            if user_id in self.active_games:
+                game = self.active_games[user_id]
+                if not game.finished:
+                    self.send_message_image(sender, file_queue, 
+                                        "You already have an active game! Use /dice 1 2 3 or /dice cashout", 
+                                        "Dice Error", cache, user_id)
+                    return ""
+                else:
+                    del self.active_games[user_id]
+            
+            balance_before = user["balance"]
+            new_balance = balance_before - bet
+            self.update_user_balance(user_id, new_balance)
+            
+            game = DiceGame(user_id, sender, bet)
+            game.roll_dice()
+            self.active_games[user_id] = game
+            
+            self._show_waiting_state(user_id, game, sender, file_queue, cache, user, static)
+            return ""
+        
+        if cmd in ["cashout", "cash", "c"]:
+            if user_id not in self.active_games:
+                self.send_message_image(sender, file_queue, 
+                                    "No active game! Start one with /dice bet <amount>", 
+                                    "Dice Error", cache, user_id)
+                return ""
+            
+            game = self.active_games[user_id]
+            
+            if game.finished:
+                self.send_message_image(sender, file_queue, 
+                                    "Game already finished! Start a new one with /dice bet <amount>", 
+                                    "Dice Error", cache, user_id)
+                return ""
+            
+            if not game.rolled:
+                self.send_message_image(sender, file_queue, 
+                                    "Roll dice first! Use /dice bet <amount>", 
+                                    "Dice Error", cache, user_id)
+                return ""
+            
+            success = game.cashout()
+            
+            if not success:
+                self.send_message_image(sender, file_queue, 
+                                    "Cannot cashout!", 
+                                    "Dice Error", cache, user_id)
+                return ""
+            
+            win_amount = game.win_amount
+            final_balance = user["balance"] + win_amount
+            
+            if win_amount > 0:
+                self.update_user_balance(user_id, final_balance)
+                record_weekly_win(self.cache, user_id, "dice", win_amount)
+                record_monthly_win(self.cache, user_id, "dice", win_amount)
+            else:
+                self.update_user_balance(user_id, final_balance)
+            
+            self._finish_game(user_id, game, sender, file_queue, cache, user, win_amount, final_balance, False, None, True, static)
+            return ""
+        
+        if cmd in ["start", "s", "bet2", "b"]:
+            if len(args) < 2:
+                self.send_message_image(sender, file_queue, 
+                                    "Usage: /dice start <bet>", 
+                                    "Dice Error", cache, user_id)
+                return ""
+            
+            try:
+                bet = int(args[1])
+            except ValueError:
+                self.send_message_image(sender, file_queue, 
+                                    "Bet must be a number!", 
+                                    "Dice Error", cache, user_id)
+                return ""
+            
+            if bet < 1:
+                self.send_message_image(sender, file_queue, 
+                                    f"Minimum bet is 1 coin!", 
+                                    "Dice Error", cache, user_id)
+                return ""
+            
+            if user["balance"] < bet:
+                self.send_message_image(sender, file_queue, 
+                                    f"Insufficient funds! You have ${user['balance']}, need ${bet}", 
+                                    "Dice Error", cache, user_id)
+                return ""
+            
+            if user_id in self.active_games:
+                game = self.active_games[user_id]
+                if not game.finished:
+                    self.send_message_image(sender, file_queue, 
+                                        "You already have an active game! Use /dice 1 2 3 or /dice cashout", 
+                                        "Dice Error", cache, user_id)
+                    return ""
+                else:
+                    del self.active_games[user_id]
+            
+            balance_before = user["balance"]
+            new_balance = balance_before - bet
+            self.update_user_balance(user_id, new_balance)
+            
+            game = DiceGame(user_id, sender, bet)
+            game.roll_dice()
+            self.active_games[user_id] = game
+            
+            self._show_waiting_state(user_id, game, sender, file_queue, cache, user, static)
+            return ""
+        
+        else:
+            help_text = self._get_help_text()
+            self.send_message_image(sender, file_queue, help_text, "Dice Help", cache, user_id)
+            return ""
 
 
 def register():
@@ -1205,6 +1099,6 @@ def register():
     return {
         "name": "dice",
         "aliases": ["/d", "/dices"],
-        "description": "Dice Poker Game - reroll dice to beat the croupier",
+        "description": "Roll dice and win multipliers - five of a kind x9, four of a kind x3, full house x2, straight x3, three of a kind x0.5, two pair x0, one pair x0",
         "execute": plugin.execute_game
     }
