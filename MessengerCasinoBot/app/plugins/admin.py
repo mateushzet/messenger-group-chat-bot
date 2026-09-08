@@ -362,6 +362,10 @@ class AdminPlugin(BaseGamePlugin):
                 self.send_message_image(sender, file_queue, users_text, "Admin - User List", cache, None)
                 return ""
             
+            elif subcommand == "screenshot":
+                file_queue.put("TAKE_SCREENSHOT")
+                return ""
+            
             else:
                 self.send_message_image(sender, file_queue, 
                                 f"Unknown command: {subcommand}\n\n" \
