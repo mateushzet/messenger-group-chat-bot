@@ -113,7 +113,7 @@ class CrashPlugin(BaseGamePlugin):
         if cashout_multiplier is None:
             return 0, -bet_amount, crash_multiplier
         
-        if cashout_multiplier < crash_multiplier:
+        if cashout_multiplier <= crash_multiplier:
             payout_float = bet_amount * cashout_multiplier
             payout = int(math.floor(payout_float))
             net_win = payout - bet_amount
@@ -125,7 +125,7 @@ class CrashPlugin(BaseGamePlugin):
         half_bet = bet_amount // 2
         remainder = bet_amount % 2
         
-        if mult1 < crash_multiplier:
+        if mult1 <= crash_multiplier:
             win1_float = half_bet * mult1
             win1 = int(math.floor(win1_float))
             cashout1 = True
@@ -133,7 +133,7 @@ class CrashPlugin(BaseGamePlugin):
             win1 = 0
             cashout1 = False
         
-        if mult1 < crash_multiplier and mult2 < crash_multiplier:
+        if mult1 <= crash_multiplier and mult2 <= crash_multiplier:
             win2_float = (half_bet + remainder) * mult2
             win2 = int(math.floor(win2_float))
             cashout2 = True
@@ -620,7 +620,7 @@ class CrashPlugin(BaseGamePlugin):
                 cashout1, cashout2 = cashouts
                 did_win = cashout1 is not None
             else:
-                did_win = cashout_multiplier is not None and cashout_multiplier < crash_multiplier
+                did_win = cashout_multiplier is not None and cashout_multiplier <= crash_multiplier
             
             bet_amount = user_info_before.get('bet', 0)
                         
@@ -800,7 +800,7 @@ class CrashPlugin(BaseGamePlugin):
             payout, net_win, effective_multiplier = self.calculate_win(
                 amount, cashout_multiplier, crash_multiplier
             )
-            did_win = cashout_multiplier is not None and cashout_multiplier < crash_multiplier
+            did_win = cashout_multiplier is not None and cashout_multiplier <= crash_multiplier
             cashouts = [cashout_multiplier] if cashout_multiplier else [None]
         
         new_balance = balance_before + net_win
