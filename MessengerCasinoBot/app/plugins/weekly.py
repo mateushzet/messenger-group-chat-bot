@@ -288,7 +288,7 @@ class WeeklyQuestManager:
         cache.update_user(user_id, balance=balance, weekly_quests=weekly)
         return True, self.REWARD
 
-    def rotate_one_quest(self, cache, user_id, slot_index=None):
+    def rotate_one_quest(self, cache, user_id, slot_index=None, quest_name=None):
         user, weekly = self._ensure_weekly(cache, user_id)
         if not weekly:
             return False, "Weekly data missing"
@@ -303,12 +303,20 @@ class WeeklyQuestManager:
         if not active:
             return False, "No active quests to rotate"
 
+        replace_idx = None
         if slot_index is not None:
             if slot_index < 0 or slot_index >= len(active):
                 return False, f"Skip slot must be between 1 and {len(active)}."
             replace_idx = slot_index
+        elif quest_name:
+            for idx, quest in enumerate(active):
+                if quest_name.lower() in quest.lower():
+                    replace_idx = idx
+                    break
+            if replace_idx is None:
+                return False, f"Quest '{quest_name}' not found in active quests"
         else:
-            replace_idx = random.randrange(len(active))
+            return False, "Specify slot number (1-3) or quest name to skip"
 
         old_choice = active[replace_idx]
 
@@ -418,7 +426,7 @@ class WeeklyPlugin(BaseGamePlugin):
             ]
             lines.append(f"Active quests: {', '.join(active_labels)}")
             if status.get("skip_available", True):
-                lines.append("Skip one quest once/week with `/weekly skip <slot>` (1-3).")
+                lines.append("Skip a quest: /weekly skip <number> (1-3) or /weekly skip <game>")
             lines.append("")
 
         for game_key, label in status.get("labels", {}).items():
@@ -531,7 +539,7 @@ class WeeklyPlugin(BaseGamePlugin):
             total_active = len(status.get("targets", {}) or {}) or len(rows) or 3
             footer_lines.append(f"Completed: {completed_count}/{total_active}")
             if status.get("skip_available", False):
-                footer_lines.append("Skip available: /weekly skip <slot> (1-3)")
+                footer_lines.append("Skip: /weekly skip <number> (1-3) or /weekly skip <game>")
             if status.get("can_claim"):
                 footer_lines.append(f"Reward ready: +{self.reward_amount} coins")
             elif status.get("claimed"):
@@ -745,26 +753,41 @@ class WeeklyPlugin(BaseGamePlugin):
 
         if args and args[0].lower() in {"skip", "s", "rotate", "r"}:
             slot_index = None
+            quest_name = None
+            
             if len(args) > 1:
                 try:
                     slot_index = int(args[1]) - 1
                 except ValueError:
-                    self._respond(sender, file_queue, "Skip slot must be a number (1-3).", cache, user_id)
-                    return ""
-
-            success, payload = weekly_manager.rotate_one_quest(cache, user_id, slot_index=slot_index)
-
-            status = weekly_manager.get_status(cache, user_id)
-            message = self._build_status_message(status)
-            if not success and payload:
-                message = f"{payload}\n\n{message}"
-            self._respond(sender, file_queue, message, cache, user_id, status=status)
+                    quest_name = args[1]
+            
+            success, payload = weekly_manager.rotate_one_quest(
+                cache, user_id, 
+                slot_index=slot_index, 
+                quest_name=quest_name
+            )
+            
+            if success:
+                status = weekly_manager.get_status(cache, user_id)
+                message = self._build_status_message(status)
+                old_choice, new_choice, idx = payload
+                message = f"Skipped slot {idx+1}: {old_choice} -> {new_choice}\n\n{message}"
+                self._respond(sender, file_queue, message, cache, user_id, status=status)
+            else:
+                self.send_message_image(sender, file_queue, payload, "Weekly Quest", cache, user_id)
             return ""
 
         if args and args[0].lower() in {"claim", "c"}:
+            success, payload = weekly_manager.claim_reward(cache, user_id)
             status = weekly_manager.get_status(cache, user_id)
             message = self._build_status_message(status)
-            self._respond(sender, file_queue, message, cache, user_id, status=status)
+            notice = None
+            if success:
+                message = f"Claimed weekly reward: +{payload} coins.\n\n{message}"
+                notice = {"headline": "REWARD CLAIMED", "subline": f"+{payload} COINS"}
+            elif payload:
+                message = f"{payload}\n\n{message}"
+            self._respond(sender, file_queue, message, cache, user_id, status=status, notice=notice)
             return ""
 
         status = weekly_manager.get_status(cache, user_id)
@@ -785,8 +808,7 @@ class WeeklyPlugin(BaseGamePlugin):
             notice = {"headline": "REWARD CLAIMED", "subline": f"+{auto_claim_amount} COINS"}
         self._respond(sender, file_queue, message, cache, user_id, status=status, notice=notice)
         return ""
-
-
+    
 def register():
     plugin = WeeklyPlugin()
     return {
@@ -794,7 +816,7 @@ def register():
         "aliases": ["/weekly", "/wq"],
         "description": (
             "Track weekly quests (3 active quests). Use `/weekly` to view status, "
-            "and `/weekly skip <slot>` (or `/weekly rotate <slot>`) once per week to swap one active quest (1-3) for another random one."
+            "and `/weekly skip <number>` (1-3) or `/weekly skip <game>` once per week to swap one active quest for another random one."
         ),
         "execute": plugin.execute_game
     }
