@@ -37,12 +37,95 @@ class BaseGamePlugin:
     def get_custom_overlay(self, **kwargs) -> Optional[Dict]:
         return None
     
+    def _find_plugin_path(self, plugin_name: str) -> Optional[str]:
+        possible_paths = [
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'plugins', f'{plugin_name}.py'),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'app', 'plugins', f'{plugin_name}.py'),
+            os.path.join(os.getcwd(), 'MessengerCasinoBot', 'app', 'plugins', f'{plugin_name}.py'),
+            os.path.join(os.getcwd(), 'app', 'plugins', f'{plugin_name}.py'),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'plugins', f'{plugin_name}.py'),
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                logger.debug(f"Found plugin at: {path}")
+                return path
+        
+        logger.warning(f"Plugin {plugin_name} not found in any path")
+        return None
+    
+    def _get_user_effects(self, user_id: str) -> Dict:
+        try:
+            import importlib.util
+            import sys
+            
+            items_path = self._find_plugin_path('items')
+            if not items_path:
+                logger.warning("Items plugin file not found")
+                return {
+                    "icons": {},
+                    "colors": {},
+                    "frame": None,
+                    "exp_bar": None
+                }
+            
+            spec = importlib.util.spec_from_file_location("items_plugin", items_path)
+            if not spec or not spec.loader:
+                logger.warning("Could not create module spec for items plugin")
+                return {
+                    "icons": {},
+                    "colors": {},
+                    "frame": None,
+                    "exp_bar": None
+                }
+            
+            module = importlib.util.module_from_spec(spec)
+            sys.modules["items_plugin"] = module
+            spec.loader.exec_module(module)
+            
+            if not hasattr(module, 'ItemsPlugin'):
+                logger.warning("ItemsPlugin class not found in module")
+                return {
+                    "icons": {},
+                    "colors": {},
+                    "frame": None,
+                    "exp_bar": None
+                }
+            
+            ItemsPlugin = getattr(module, 'ItemsPlugin')
+            items_plugin = ItemsPlugin()
+            items_plugin.cache = self.cache
+            
+            effects = items_plugin.get_user_effects(user_id)
+            effects["_source"] = "items"
+            
+            logger.debug(f"Loaded item effects for user {user_id}: {effects}")
+            return effects
+            
+        except Exception as e:
+            logger.warning(f"Could not load items plugin: {e}")
+        
+        return {
+            "icons": {},
+            "colors": {},
+            "frame": None,
+            "exp_bar": None
+        }
+    
     def generate_animation(self, base_animation_path, user_id, user, user_info_before, 
                          user_info_after, animated=True, frame_duration=100,
                          last_frame_multiplier=1.0, custom_overlay_kwargs=None, 
                          show_win_text=True, font_scale=1.0, avatar_size=85, 
                          show_bet_amount=True, win_text_height=-1, final_frames_start_index=-1,
                          win_text_scale=-1, overlay_position="bottom", quality=90):
+        
+        item_effects = self._get_user_effects(user_id)
+        
+        if custom_overlay_kwargs is None:
+            custom_overlay_kwargs = {}
+        
+        custom_overlay_kwargs["item_effects"] = item_effects
+        
         avatar_path = None
         bg_path = None
         
@@ -124,6 +207,14 @@ class BaseGamePlugin:
                        font_scale: float = 1.0, avatar_size: int = 85,
                        win_text_scale: float = 1.0, win_text_height: int = -1) -> str:
         try:
+            user_id = user_info.get('user_id', '')
+            item_effects = self._get_user_effects(user_id)
+            
+            if custom_overlay_kwargs is None:
+                custom_overlay_kwargs = {}
+            
+            custom_overlay_kwargs["item_effects"] = item_effects
+            
             user_info_data = {
                 **user_info,
                 'avatar_path': avatar_path

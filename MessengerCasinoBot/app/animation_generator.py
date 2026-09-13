@@ -7,6 +7,7 @@ import hashlib
 from logger import logger
 import time
 import uuid
+import colorsys
 
 @dataclass
 class GenerationOptions:
@@ -132,7 +133,7 @@ class TextRenderer:
             self.default_fonts = {}
             self.icon_cache: Dict[str, Image.Image] = {}
             self._load_default_fonts()
-            self._load_icons()
+            self._load_default_icons()
             self._initialized = True
     
     def _load_default_fonts(self):
@@ -146,11 +147,14 @@ class TextRenderer:
             
             self.default_fonts[size] = font
     
-    def _load_icons(self):
+    def _load_default_icons(self):
+        self.reload_default_icons()
+
+    def reload_default_icons(self):
         try:
             app_path = os.path.dirname(__file__)
             assets_path = os.path.join(app_path, "assets")
-            
+
             bet_icon_path = os.path.join(assets_path, "bet_icon.png")
             balance_icon_path = os.path.join(assets_path, "balance_icon.png")
 
@@ -158,15 +162,30 @@ class TextRenderer:
                 bet_icon = Image.open(bet_icon_path).convert("RGBA")
                 bet_icon = bet_icon.resize((24, 24), Image.Resampling.LANCZOS)
                 self.icon_cache['bet'] = bet_icon
-            
+            else:
+                self.icon_cache['bet'] = self._create_default_icon('💰')
+
             if os.path.exists(balance_icon_path):
                 balance_icon = Image.open(balance_icon_path).convert("RGBA")
                 balance_icon = balance_icon.resize((24, 24), Image.Resampling.LANCZOS)
                 self.icon_cache['balance'] = balance_icon
-                
+            else:
+                self.icon_cache['balance'] = self._create_default_icon('🪙')
+
         except Exception as e:
-            self.icon_cache['bet'] = Image.new('RGBA', (24, 24), (0, 0, 0, 0))
-            self.icon_cache['balance'] = Image.new('RGBA', (24, 24), (0, 0, 0, 0))
+            logger.error(f"Error loading default icons: {e}")
+            self.icon_cache['bet'] = self._create_default_icon('💰')
+            self.icon_cache['balance'] = self._create_default_icon('🪙')
+    
+    def _create_default_icon(self, char: str) -> Image.Image:
+        img = Image.new('RGBA', (24, 24), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        try:
+            font = ImageFont.truetype("DejaVuSans-Bold.ttf", 20)
+        except:
+            font = ImageFont.load_default()
+        draw.text((2, 0), char, fill=(255, 255, 255, 255), font=font)
+        return img
     
     def get_font(self, font_size: int) -> ImageFont.FreeTypeFont:
         if font_size in self.default_fonts:
@@ -234,18 +253,220 @@ class AnimationGenerator:
                 'bet': (220, 160, 60, 255),
                 'balance': (240, 240, 240, 255)
             }
+            self._default_colors = dict(self.colors)
             self.custom_overlay_providers: Dict[str, callable] = {}
             self.results_folder = None
             AnimationGenerator._initialized = True
     
     def register_custom_overlay_provider(self, game_name: str, provider_func: callable):
         self.custom_overlay_providers[game_name] = provider_func
-                        
+    
+    def _load_custom_icon(self, icon_path: str) -> Optional[Image.Image]:
+        if not icon_path:
+            return None
+        
+        possible_paths = [
+            icon_path,
+            os.path.join(os.path.dirname(os.path.dirname(__file__)), icon_path),
+            os.path.join(os.getcwd(), "MessengerCasinoBot", "app", icon_path),
+            os.path.join(os.getcwd(), icon_path)
+        ]
+        
+        for path in possible_paths:
+            if os.path.exists(path):
+                try:
+                    icon = Image.open(path).convert("RGBA")
+                    icon = icon.resize((24, 24), Image.Resampling.LANCZOS)
+                    return icon
+                except Exception as e:
+                    logger.error(f"Error loading icon {path}: {e}")
+                    continue
+        
+        return None
+    
+
+    def _draw_exp_bar(self, draw, x, y, width, height, progress, effect_data):
+        bar_type = effect_data.get("bar_type", "solid")
+        fill_w = int(width * progress)
+        if fill_w <= 0:
+            return
+
+        color = effect_data.get("color")
+
+        if bar_type == "solid":
+            c = color if isinstance(color, tuple) else (255, 215, 0, 255)
+            c = c if len(c) == 4 else (*c, 255)
+            draw.rectangle([x, y, x + fill_w, y + height], fill=c)
+
+        elif bar_type == "gradient":
+            c_from = effect_data.get("from", (255, 255, 255, 255))
+            c_to = effect_data.get("to", (0, 0, 0, 255))
+            for i in range(fill_w):
+                t = i / max(1, fill_w - 1)
+                c = tuple(int(c_from[j] * (1 - t) + c_to[j] * t) for j in range(4))
+                draw.line([(x + i, y), (x + i, y + height)], fill=c, width=1)
+
+        elif bar_type == "glow":
+            c = color if isinstance(color, tuple) else (255, 215, 0, 255)
+            c = c if len(c) == 4 else (*c, 255)
+            # Poświata - 3 warstwy o malejącej alfie
+            for i, alpha in enumerate([60, 120, 200]):
+                pad = 3 - i
+                glow_c = (c[0], c[1], c[2], alpha)
+                draw.rectangle(
+                    [x - pad, y - pad, x + fill_w + pad, y + height + pad],
+                    outline=glow_c, width=1
+                )
+            draw.rectangle([x, y, x + fill_w, y + height], fill=c)
+
+        elif bar_type == "stripes":
+            c = color if isinstance(color, tuple) else (0, 200, 200, 255)
+            c = c if len(c) == 4 else (*c, 255)
+            c_stripe = effect_data.get("stripe_color", (0, 100, 100, 255))
+            c_stripe = c_stripe if len(c_stripe) == 4 else (*c_stripe, 255)
+            # Tło
+            draw.rectangle([x, y, x + fill_w, y + height], fill=c)
+            # Ukośne paski
+            stripe_w = 6
+            for i in range(-height, fill_w + height, stripe_w * 2):
+                draw.polygon(
+                    [(x + i, y), (x + i + stripe_w, y),
+                     (x + i + stripe_w - height, y + height),
+                     (x + i - height, y + height)],
+                    fill=c_stripe,
+                )
+
+        elif bar_type == "pulse":
+            c = color if isinstance(color, tuple) else (80, 80, 100, 255)
+            c = c if len(c) == 4 else (*c, 255)
+            c_bright = (min(255, c[0] + 50), min(255, c[1] + 50), min(255, c[2] + 50), 255)
+            num_segments = 10
+            gap = 1
+            seg_w = (width - (num_segments - 1) * gap) / num_segments
+            for s in range(num_segments):
+                seg_x = x + int(s * (seg_w + gap))
+                seg_end = x + int(s * (seg_w + gap) + seg_w)
+                if seg_end <= x + fill_w:
+                    draw.rectangle([seg_x, y, seg_end, y + height], fill=c_bright)
+                elif seg_x < x + fill_w:
+                    draw.rectangle([seg_x, y, x + fill_w, y + height], fill=c)
+                else:
+                    draw.rectangle([seg_x, y, seg_end, y + height], fill=(40, 40, 60, 200))
+
+        elif bar_type == "rainbow":
+            for i in range(fill_w):
+                hue = (i / max(1, width)) * 360
+                r, g, b = colorsys.hsv_to_rgb(hue / 360.0, 1.0, 1.0)
+                c = (int(r * 255), int(g * 255), int(b * 255), 255)
+                draw.line([(x + i, y), (x + i, y + height)], fill=c, width=1)
+
+        elif bar_type == "stars":
+            c = color if isinstance(color, tuple) else (40, 20, 80, 255)
+            c = c if len(c) == 4 else (*c, 255)
+            c_star = effect_data.get("star_color", (255, 255, 200, 255))
+            c_star = c_star if len(c_star) == 4 else (*c_star, 255)
+            draw.rectangle([x, y, x + fill_w, y + height], fill=c)
+            import random
+            rng = random.Random(42)
+            num_stars = max(3, fill_w // 12)
+            for _ in range(num_stars):
+                sx = rng.randint(0, max(0, fill_w - 1))
+                sy = rng.randint(0, max(0, height - 1))
+                if sx < fill_w:
+                    draw.point((x + sx, y + sy), fill=c_star)
+
+        elif bar_type == "flames":
+            c_base = color if isinstance(color, tuple) else (255, 100, 0, 255)
+            c_base = c_base if len(c_base) == 4 else (*c_base, 255)
+            c_flame = effect_data.get("flame_color", (255, 220, 0, 255))
+            c_flame = c_flame if len(c_flame) == 4 else (*c_flame, 255)
+            for j in range(height):
+                t = j / max(1, height - 1)
+                c = tuple(int(c_base[k] * (1 - t) + c_flame[k] * t) for k in range(3))
+                draw.line([(x, y + j), (x + fill_w, y + j)], fill=(*c, 255), width=1)
+            import random
+            rng = random.Random(7)
+            for i in range(0, fill_w, 4):
+                flame_h = rng.randint(2, max(3, height // 2))
+                draw.polygon(
+                    [(x + i, y), (x + i + 2, y - flame_h), (x + i + 4, y)],
+                    fill=c_flame,
+                )
+
+        elif bar_type == "lightning":
+            c = color if isinstance(color, tuple) else (120, 80, 255, 255)
+            c = c if len(c) == 4 else (*c, 255)
+            c_bolt = effect_data.get("bolt_color", (255, 255, 255, 255))
+            c_bolt = c_bolt if len(c_bolt) == 4 else (*c_bolt, 255)
+            draw.rectangle([x, y, x + fill_w, y + height], fill=c)
+            import random
+            rng = random.Random(13)
+            num_bolts = max(1, fill_w // 25)
+            for _ in range(num_bolts):
+                bx = rng.randint(0, max(0, fill_w - 5))
+                by = y
+                points = [(x + bx, by)]
+                for _ in range(3):
+                    bx += rng.randint(-3, 3)
+                    by += max(1, height // 3)
+                    points.append((x + bx, min(by, y + height)))
+                draw.line(points, fill=c_bolt, width=1)
+
+        elif bar_type == "rainbow_sparkle":
+            for i in range(fill_w):
+                hue = (i / max(1, width)) * 360
+                r, g, b = colorsys.hsv_to_rgb(hue / 360.0, 1.0, 1.0)
+                c = (int(r * 255), int(g * 255), int(b * 255), 255)
+                draw.line([(x + i, y), (x + i, y + height)], fill=c, width=1)
+            c_spark = effect_data.get("sparkle_color", (255, 255, 255, 255))
+            c_spark = c_spark if len(c_spark) == 4 else (*c_spark, 255)
+            import random
+            rng = random.Random(99)
+            num_sparks = max(2, fill_w // 8)
+            for _ in range(num_sparks):
+                sx = rng.randint(0, max(0, fill_w - 1))
+                sy = rng.randint(0, max(0, height - 1))
+                if sx < fill_w:
+                    draw.point((x + sx, y + sy), fill=c_spark)
+
+        else:
+            c = color if isinstance(color, tuple) else (255, 215, 0, 255)
+            c = c if len(c) == 4 else (*c, 255)
+            draw.rectangle([x, y, x + fill_w, y + height], fill=c)
+
+
     def generate(self, request: GenerationRequest) -> Tuple[Optional[str], Optional[str]]:
         try:
             is_valid, error_msg = request.validate()
             if not is_valid:
                 return None, f"Invalid request: {error_msg}"
+            
+            custom_kwargs = request.options.custom_overlay_kwargs or {}
+            item_effects = custom_kwargs.get("item_effects", {})
+            
+            
+            self.text_renderer.reload_default_icons()
+            self.colors = dict(self._default_colors)
+            
+            icons = item_effects.get("icons", {})
+            if "bet" in icons:
+                icon_path = icons["bet"].get("path")
+                if icon_path:
+                    custom_icon = self._load_custom_icon(icon_path)
+                    if custom_icon:
+                        self.text_renderer.icon_cache['bet'] = custom_icon
+                        logger.debug(f"Loaded custom bet icon: {icon_path}")
+            
+            if "balance" in icons:
+                icon_path = icons["balance"].get("path")
+                if icon_path:
+                    custom_icon = self._load_custom_icon(icon_path)
+                    if custom_icon:
+                        self.text_renderer.icon_cache['balance'] = custom_icon
+                        logger.debug(f"Loaded custom balance icon: {icon_path}")
+            
+            exp_bar_effect = item_effects.get("exp_bar")
+            
             
             base_frames = self._load_animation_frames(request.animation_path)
             if not base_frames:
@@ -266,18 +487,18 @@ class AnimationGenerator:
             
             bg_img = self._load_image(request.background_path)
             
-            colors = self._calculate_colors(request)
+            colors_for_win = self._calculate_colors(request)
             
             win_text_img = None
             if options.show_win_text:
-                win_text_img = self._create_win_text(request, colors, options)
+                win_text_img = self._create_win_text(request, colors_for_win, options)
             
             user_overlay_before = self._create_user_overlay(
-                request.user_before, avatar_img, options, frame_width
+                request.user_before, avatar_img, options, frame_width, exp_bar_effect
             ) if avatar_img else None
             
             user_overlay_after = self._create_user_overlay(
-                request.user_after, avatar_img, options, frame_width
+                request.user_after, avatar_img, options, frame_width, exp_bar_effect
             ) if avatar_img else None
             
             custom_overlay_dict = None
@@ -350,8 +571,8 @@ class AnimationGenerator:
                 return None, "Failed to save file"
                     
         except Exception as e:
-            return None, f"Animation generation error: {str(e)}"   
-        
+            return None, f"Animation generation error: {str(e)}"
+    
     def _load_image(self, path: str) -> Optional[Image.Image]:
         if not path or not os.path.exists(path):
             return None
@@ -407,9 +628,10 @@ class AnimationGenerator:
             colors['win_text'] = (200, 200, 200, 255)
         
         return colors
-            
+    
     def _create_user_overlay(self, user_info: UserInfo, avatar_img: Image.Image, 
-                            options: GenerationOptions, frame_width: int) -> Dict:
+                            options: GenerationOptions, frame_width: int,
+                            exp_bar_effect: Optional[Dict] = None) -> Dict:
         if not avatar_img:
             return None
         
@@ -520,21 +742,29 @@ class AnimationGenerator:
         
         progress_draw.rectangle(
             [progress_bar_x, progress_bar_y, 
-            progress_bar_x + progress_bar_width, progress_bar_y + progress_bar_height],
+             progress_bar_x + progress_bar_width, progress_bar_y + progress_bar_height],
             fill=(40, 40, 60, 220)
         )
         
-        filled_width = int(progress_bar_width * level_progress)
-        if filled_width > 0:
-            progress_draw.rectangle(
-                [progress_bar_x, progress_bar_y, 
-                progress_bar_x + filled_width, progress_bar_y + progress_bar_height],
-                fill=(80, 160, 255, 220)
+        if exp_bar_effect:
+            self._draw_exp_bar(
+                progress_draw,
+                progress_bar_x, progress_bar_y,
+                progress_bar_width, progress_bar_height,
+                level_progress, exp_bar_effect
             )
+        else:
+            filled_width = int(progress_bar_width * level_progress)
+            if filled_width > 0:
+                progress_draw.rectangle(
+                    [progress_bar_x, progress_bar_y, 
+                     progress_bar_x + filled_width, progress_bar_y + progress_bar_height],
+                    fill=(80, 160, 255, 220)
+                )
         
         progress_draw.rectangle(
             [progress_bar_x, progress_bar_y, 
-            progress_bar_x + progress_bar_width, progress_bar_y + progress_bar_height],
+             progress_bar_x + progress_bar_width, progress_bar_y + progress_bar_height],
             outline=(255, 255, 255, 180),
             width=1
         )
@@ -713,6 +943,7 @@ class AnimationGenerator:
             result.alpha_composite(overlay_img, (overlay_x, overlay_y))
         
         return result
+    
     def _save_animation(self, frames: List[Image.Image], output_path: str,
                     options: GenerationOptions) -> bool:
         if not frames:
@@ -731,7 +962,6 @@ class AnimationGenerator:
                         else:
                             durations_to_use.append(options.frame_duration)
                 else:
-                    
                     multiplier = int(options.last_frame_multiplier)
                     start_index = options.final_frames_start_index
                     

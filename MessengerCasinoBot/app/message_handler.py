@@ -499,7 +499,6 @@ def start_monitoring_messages(command_queue):
             time.sleep(10)
 
 def click_go_to_recent_button(page):
-    """Kliknij przycisk 'Go to most recent message' jeśli istnieje"""
     try:
         recent_button = page.query_selector('div[aria-label="Go to most recent message"][role="button"]')
         

@@ -10,7 +10,7 @@ from plugins.weekly import record_weekly_win
 from decimal import Decimal, ROUND_HALF_UP
 
 DICE_MULTIPLIERS = {
-    "five_of_a_kind": 9,
+    "five_of_a_kind": 10,
     "four_of_a_kind": 3,
     "straight": 3,
     "full_house": 2,
