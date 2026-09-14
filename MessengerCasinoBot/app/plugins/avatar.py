@@ -656,75 +656,184 @@ class AvatarPlugin(BaseGamePlugin):
                 return ""
         
         cmd = args[0].lower()
-        
+                
         if cmd == "quicksell" or cmd == "q" or cmd == "qs":
             if len(args) < 2:
                 self.send_message_image(
                     nickname=nickname,
                     file_queue=file_queue,
-                    message="**Quick Sell Help**\nUsage: `/avatar quicksell <number>`\nExample: `/avatar quicksell 3`\n\nInstant 100 coins - avatar is destroyed!",
+                    message="**Quick Sell Help**\n"
+                            "Usage: `/avatar quicksell <number1>,<number2>,...`\n"
+                            "Examples:\n"
+                            "• `/avatar quicksell 3`\n"
+                            "• `/avatar quicksell 3,5,8`\n\n"
+                            f"Instant {self.quick_sell_price} coins each - avatars are destroyed!",
                     title="QUICKSELL HELP",
                     cache=cache,
                     user_id=user_id
                 )
                 return ""
-            
-            try:
-                index = int(args[1]) - 1
-                user_avatars = self.get_user_avatars_for_display(user_id)
-                
-                if index < 0 or index >= len(user_avatars):
-                    self.send_message_image(
-                        nickname=nickname,
-                        file_queue=file_queue,
-                        message=f"Invalid avatar number!\nChoose between 1-{len(user_avatars)}\nYou have {len(user_avatars)} avatars.",
-                        title="INVALID RANGE",
-                        cache=cache,
-                        user_id=user_id
-                    )
-                    return ""
-                
-                avatar_file = user_avatars[index]
-                
-                success, message = self.quick_sell_avatar(user_id, avatar_file)
-                
-                if success:
-                    user_avatars = self.get_user_avatars_for_display(user_id)
-                    collection_img = self.create_collection_image(user_avatars, user.get("avatar", ""), user_id, 1)
-                    
-                    if collection_img:
-                        img_path = os.path.join(self.results_folder, f"collection_after_quicksell_{user_id}.webp")
-                        collection_img.save(img_path, format='WEBP', quality=85, optimize=True)
-                        
-                        overlay_path, error = self.apply_user_overlay(
-                            img_path, user_id, sender, self.quick_sell_price, self.quick_sell_price, 
-                            user["balance"], user, show_win_text=False, show_bet_amount=False
+
+            quicksell_numbers = []
+
+            for arg in args[1:]:
+                for value in arg.split(','):
+                    value = value.strip()
+
+                    if not value:
+                        continue
+
+                    try:
+                        number = int(value)
+                    except ValueError:
+                        self.send_message_image(
+                            nickname=nickname,
+                            file_queue=file_queue,
+                            message=f"Invalid avatar number: **{value}**\n\n"
+                                    "Use numbers separated by commas.\n"
+                                    "Example: `/avatar quicksell 3,5,8`",
+                            title="INVALID INPUT",
+                            cache=cache,
+                            user_id=user_id
                         )
-                        if overlay_path:
-                            file_queue.put(overlay_path)
-                    
-                    return message
-                else:
+                        return ""
+
+                    quicksell_numbers.append(number)
+
+            if not quicksell_numbers:
+                return ""
+
+            quicksell_numbers = list(dict.fromkeys(quicksell_numbers))
+
+            user_avatars = self.get_user_avatars_for_display(user_id)
+
+            invalid_numbers = [
+                str(number)
+                for number in quicksell_numbers
+                if number < 1 or number > len(user_avatars)
+            ]
+
+            if invalid_numbers:
+                self.send_message_image(
+                    nickname=nickname,
+                    file_queue=file_queue,
+                    message=f"Invalid avatar number(s): **{', '.join(invalid_numbers)}**\n"
+                            f"Choose between 1-{len(user_avatars)}\n"
+                            f"You have {len(user_avatars)} avatars.",
+                    title="INVALID RANGE",
+                    cache=cache,
+                    user_id=user_id
+                )
+                return ""
+
+            avatar_files = [
+                user_avatars[number - 1]
+                for number in quicksell_numbers
+            ]
+
+            default_avatar_file = self.get_user_default_avatar_file(user_id)
+
+            for number, avatar_file in zip(quicksell_numbers, avatar_files):
+
+                if avatar_file == default_avatar_file or avatar_file == "default-avatar.png":
                     self.send_message_image(
                         nickname=nickname,
                         file_queue=file_queue,
-                        message=message,
+                        message=f"Cannot quick sell avatar **#{number}**!\n"
+                                "This is your default avatar.",
                         title="QUICKSELL ERROR",
                         cache=cache,
                         user_id=user_id
                     )
                     return ""
-                    
-            except ValueError:
+
+                if avatar_file == user.get("avatar"):
+                    self.send_message_image(
+                        nickname=nickname,
+                        file_queue=file_queue,
+                        message=f"Cannot quick sell avatar **#{number}**!\n"
+                                "This avatar is currently active.\n"
+                                "Change your active avatar first.",
+                        title="QUICKSELL ERROR",
+                        cache=cache,
+                        user_id=user_id
+                    )
+                    return ""
+
+            sold_avatars = []
+
+            for number, avatar_file in zip(quicksell_numbers, avatar_files):
+                success, message = self.quick_sell_avatar(
+                    user_id,
+                    avatar_file
+                )
+
+                if success:
+                    sold_avatars.append((number, avatar_file))
+
+            if not sold_avatars:
                 self.send_message_image(
                     nickname=nickname,
                     file_queue=file_queue,
-                    message="Invalid number format\nUsage: `/avatar quicksell <number>`",
-                    title="INVALID INPUT",
+                    message="No avatars were sold.",
+                    title="QUICKSELL ERROR",
                     cache=cache,
                     user_id=user_id
                 )
                 return ""
+
+            user = self.cache.get_user(user_id)
+            user_avatars = self.get_user_avatars_for_display(user_id)
+
+            collection_img = self.create_collection_image(
+                user_avatars,
+                user.get("avatar", ""),
+                user_id,
+                1
+            )
+
+            total_earned = len(sold_avatars) * self.quick_sell_price
+
+            if collection_img:
+                img_path = os.path.join(
+                    self.results_folder,
+                    f"collection_after_quicksell_{user_id}.webp"
+                )
+
+                collection_img.save(
+                    img_path,
+                    format="WEBP",
+                    quality=85,
+                    optimize=True
+                )
+
+                overlay_path, error = self.apply_user_overlay(
+                    img_path,
+                    user_id,
+                    sender,
+                    total_earned,
+                    total_earned,
+                    user["balance"],
+                    user,
+                    show_win_text=False,
+                    show_bet_amount=False
+                )
+
+                if overlay_path:
+                    file_queue.put(overlay_path)
+
+            sold_text = "\n".join(
+                f"• #{number} — **{avatar_file}**"
+                for number, avatar_file in sold_avatars
+            )
+
+            return (
+                f"**Quick Sell complete!**\n\n"
+                f"{sold_text}\n\n"
+                f"**Sold:** {len(sold_avatars)} avatar(s)\n"
+                f"**Earned:** {total_earned} coins"
+            )
+
         elif cmd == "set":
             if len(args) < 2:
                 self.send_message_image(
