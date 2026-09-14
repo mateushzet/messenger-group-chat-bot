@@ -929,20 +929,23 @@ class BlackjackGame:
             return int(self.bet * 2.5)
         
         if self.game_status == "push":
-            return self.bet
+            actual_bet = self.hand_bets[0] if self.hand_bets else self.bet
+            return actual_bet
         
         if self.game_status != "finished":
             return 0
         
         if not self.is_split:
+            actual_bet = self.hand_bets[0] if self.hand_bets else self.bet
+
             if self.player_points > 21:
                 return 0
             elif self.dealer_points > 21:
-                return self.bet * 2
+                return actual_bet * 2
             elif self.player_points > self.dealer_points:
-                return self.bet * 2
+                return actual_bet * 2
             elif self.player_points == self.dealer_points:
-                return self.bet
+                return actual_bet
             else:
                 return 0
         else:
@@ -1409,7 +1412,8 @@ class BlackjackPlugin(BaseGamePlugin):
             
             if is_game_finished:
                 if win_amount > 0:
-                    actual_profit = win_amount - game.bet
+                    total_bets = sum(game.hand_bets) if getattr(game, "hand_bets", None) else game.bet
+                    actual_profit = win_amount - total_bets
                     return f"{action_msg}! {game.message}\nTotal profit: +{actual_profit}$"
                 else:
                     return f"{action_msg}! {game.message}"
