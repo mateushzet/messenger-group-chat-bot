@@ -411,8 +411,18 @@ class SnakesPlugin(BaseGamePlugin):
                 )
                 return
 
+            animation_round = (
+                prev_round + 1
+                if game.last_outcome == "snake"
+                else game.round_index
+            )
+
             base_anim_path = self._get_animation_path(
-                game, game.round_index, game.last_sum, prev_mult, game.last_outcome
+                game,
+                animation_round,
+                game.last_sum,
+                prev_mult,
+                game.last_outcome
             )
             
             if not base_anim_path:
