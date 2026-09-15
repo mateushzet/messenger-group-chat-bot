@@ -372,23 +372,53 @@ class TexasHoldemGame:
         self.finish_bot_fold()
         return True, f"You bet {amount}. Bot folds."
 
-    def player_call(self) -> Tuple[bool, str]:
+    def player_call(self, amount: Optional[int] = None) -> Tuple[bool, str]:
         if self.status != "active":
             return False, "This poker hand is already finished."
+
         if self.to_call <= 0:
             return False, "There is nothing to call. You can check or bet."
 
-        call_amount = self.to_call
+        required_call = self.to_call
+
+        if amount is None:
+            call_amount = required_call
+        else:
+            if amount <= 0:
+                return False, "All-in amount must be greater than zero."
+
+            if amount > required_call:
+                return False, f"You cannot put more than the required call ({required_call}) with this action."
+
+            call_amount = amount
+
         self.street_player_bet += call_amount
         self.player_committed += call_amount
         self.pot += call_amount
+
+        if call_amount >= required_call:
+            self.to_call = 0
+
+            previous_stage = self.stage
+            self._reveal_next_stage()
+
+            if self.status == "finished":
+                return True, self.message
+
+            return True, f"You call {call_amount}. {previous_stage.upper()} betting is closed."
+
+        unmatched_bot = self.street_bot_bet - self.street_player_bet
+
+        if unmatched_bot > 0:
+            self.bot_committed -= unmatched_bot
+            self.pot -= unmatched_bot
+            self.street_bot_bet -= unmatched_bot
+
         self.to_call = 0
 
-        previous_stage = self.stage
-        self._reveal_next_stage()
-        if self.status == "finished":
-            return True, self.message
-        return True, f"You call {call_amount}. {previous_stage.upper()} betting is closed."
+        self.runout_to_showdown("All-in")
+
+        return True, self.message
 
     def player_raise(self, amount: int) -> Tuple[bool, str]:
         if self.status != "active":
@@ -1078,28 +1108,115 @@ class PokerPlugin(BaseGamePlugin):
         if cmd in {"check", "ch"}:
             success, message = game.player_check()
 
+            if success and self._force_showdown_if_broke(user, game):
+                message = game.message
+
         elif cmd in {"call", "c"}:
             cost = self._pending_player_cost(game, "call")
-            if not self._charge_player(user_id, user, cost):
-                self.send_message_image(sender, file_queue, f"Insufficient funds. Need {cost} to call.", "Poker Error", cache, user_id)
-                return ""
-            success, message = game.player_call()
+            balance = int(user.get("balance", 0))
+
+            if cost <= 0:
+                success, message = game.player_call()
+
+            elif balance < cost:
+                if balance <= 0:
+                    self.send_message_image(
+                        sender,
+                        file_queue,
+                        "You have no funds left.",
+                        "Poker Error",
+                        cache,
+                        user_id
+                    )
+                    return ""
+
+                all_in_amount = balance
+
+                if not self._charge_player(user_id, user, all_in_amount):
+                    return ""
+
+                success, message = game.player_call(all_in_amount)
+
+                if not success:
+                    user["balance"] += all_in_amount
+                    self.update_user_balance(user_id, user["balance"])
+
+                    self.send_message_image(
+                        sender,
+                        file_queue,
+                        message,
+                        "Poker Error",
+                        cache,
+                        user_id
+                    )
+                    return ""
+
+                message = game.message
+
+            else:
+                if not self._charge_player(user_id, user, cost):
+                    self.send_message_image(
+                        sender,
+                        file_queue,
+                        f"Insufficient funds. Need {cost} to call.",
+                        "Poker Error",
+                        cache,
+                        user_id
+                    )
+                    return ""
+
+                success, message = game.player_call()
+
+                if not success:
+                    user["balance"] += cost
+                    self.update_user_balance(user_id, user["balance"])
+
+                    self.send_message_image(
+                        sender,
+                        file_queue,
+                        message,
+                        "Poker Error",
+                        cache,
+                        user_id
+                    )
+                    return ""
+
             if success and self._force_showdown_if_broke(user, game):
                 message = game.message
 
         elif cmd in {"bet", "b"}:
             amount, amount_error = self._parse_amount(args, 1)
+
             if amount_error:
-                self.send_message_image(sender, file_queue, amount_error, "Poker Error", cache, user_id)
+                self.send_message_image(
+                    sender,
+                    file_queue,
+                    amount_error,
+                    "Poker Error",
+                    cache,
+                    user_id
+                )
                 return ""
+
             cost = self._pending_player_cost(game, "bet", amount)
+
             if not self._charge_player(user_id, user, cost):
-                self.send_message_image(sender, file_queue, f"Insufficient funds. Need {cost} to bet.", "Poker Error", cache, user_id)
+                self.send_message_image(
+                    sender,
+                    file_queue,
+                    f"Insufficient funds. Need {cost} to bet.",
+                    "Poker Error",
+                    cache,
+                    user_id
+                )
                 return ""
+
             success, message = game.player_bet(amount)
+
             if not success:
                 user["balance"] += cost
                 self.update_user_balance(user_id, user["balance"])
+
             elif self._force_showdown_if_broke(user, game):
                 message = game.message
 
