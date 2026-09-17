@@ -1123,12 +1123,15 @@ class DragonTowerPlugin(BaseGamePlugin):
             file_queue,
             "Dragon Tower Commands:\n\n"
             "Start new game:\n"
-            "/dragon start <bet> [difficulty]\n"
-            "Example: /dragon start 100 easy\n\n"
+            "/dragon start <bet> [difficulty] [tiles]\n"
+            "Example: /dragon start 100 easy\n"
+            "Example: /dragon start 100 easy 1,2,3\n"
+            "Example: /dragon start 100 1,3,2,4\n\n"
             "Shortcut:\n"
-            "/dragon <bet> [difficulty]\n"
+            "/dragon <bet> [difficulty] [tiles]\n"
             "Example: /dragon 100\n"
-            "Example: /dragon 100 hard\n\n"
+            "Example: /dragon 100 hard\n"
+            "Example: /dragon 100 hard 1,2\n\n"
             "Difficulty is optional - default: easy\n\n"
             "Difficulty:\n"
             "easy - 3/4 safe\n"
@@ -1174,6 +1177,187 @@ class DragonTowerPlugin(BaseGamePlugin):
             return None
 
         return tiles
+
+    def _process_reveal(
+        self,
+        user_id,
+        user,
+        sender,
+        game,
+        tiles,
+        file_queue
+    ):
+        """
+        Przetwarza listę kafelków dla aktywnej gry.
+        Zwraca True jeśli gra się zakończyła (skull/auto_win),
+        False jeśli gra nadal trwa.
+        """
+
+        for tile in tiles:
+
+            if game.game_over:
+                break
+
+            if (
+                tile < 1
+                or tile > game.tiles_per_level
+            ):
+
+                self.send_message_image(
+                    sender,
+                    file_queue,
+                    f"Tile {tile} invalid. "
+                    f"Choose 1-{game.tiles_per_level}.",
+                    "Dragon Tower - Error",
+                    self.cache,
+                    user_id
+                )
+
+                return True
+
+            result = game.reveal(
+                tile
+            )
+
+            if result == "already_revealed":
+
+                continue
+
+            if result == "skull":
+
+                self.active_games.pop(
+                    user_id,
+                    None
+                )
+
+                self._save_active_games_to_cache()
+
+                new_balance, net_win = (
+                    self._finish_game(
+                        user_id,
+                        user,
+                        sender,
+                        game,
+                        0,
+                        file_queue
+                    )
+                )
+
+                img_path = os.path.join(
+                    self.results_folder,
+                    f"dragon_tower_{user_id}_lost.webp"
+                )
+
+                self.get_game_state_image(
+                    game,
+                    img_path,
+                    "LOSE",
+                    user_id=user_id
+                )
+
+                overlay_path, overlay_error = (
+                    self.apply_user_overlay(
+                        img_path,
+                        user_id,
+                        sender,
+                        game.bet,
+                        net_win,
+                        new_balance,
+                        user,
+                        show_win_text=True,
+                        font_scale=self.font_scale,
+                        avatar_size=self.avatar_size,
+                        win_text_height=200
+                    )
+                )
+
+                if overlay_path:
+
+                    file_queue.put(
+                        overlay_path
+                    )
+
+                logger.info(
+                    f"[DragonTower] Loss: "
+                    f"user={sender}, "
+                    f"bet={game.bet}, "
+                    f"level={game.current_level}"
+                )
+
+                return True
+
+            if result == "auto_win":
+
+                payout = game.get_payout()
+
+                self.active_games.pop(
+                    user_id,
+                    None
+                )
+
+                self._save_active_games_to_cache()
+
+                new_balance, net_win = (
+                    self._finish_game(
+                        user_id,
+                        user,
+                        sender,
+                        game,
+                        payout,
+                        file_queue
+                    )
+                )
+
+                img_path = os.path.join(
+                    self.results_folder,
+                    f"dragon_tower_{user_id}_win.webp"
+                )
+
+                self.get_game_state_image(
+                    game,
+                    img_path,
+                    "WIN",
+                    user_id=user_id
+                )
+
+                overlay_path, overlay_error = (
+                    self.apply_user_overlay(
+                        img_path,
+                        user_id,
+                        sender,
+                        game.bet,
+                        net_win,
+                        new_balance,
+                        user,
+                        show_win_text=True,
+                        font_scale=self.font_scale,
+                        avatar_size=self.avatar_size,
+                        win_text_height=200
+                    )
+                )
+
+                if overlay_path:
+
+                    file_queue.put(
+                        overlay_path
+                    )
+
+                return True
+
+            if result == "egg":
+
+                logger.debug(
+                    f"[DragonTower] Safe tile: "
+                    f"user={sender}, "
+                    f"level={game.current_level}, "
+                    f"tile={tile}, "
+                    f"multiplier=x"
+                    f"{game.get_current_multiplier():.2f}"
+                )
+
+                self._save_active_games_to_cache()
+
+        return False
 
     def execute_game(
         self,
@@ -1246,18 +1430,38 @@ class DragonTowerPlugin(BaseGamePlugin):
 
                 if shortcut_bet > 0:
 
-                    shortcut_difficulty = (
-                        args[1].lower()
-                        if len(args) >= 2
-                        else "easy"
-                    )
+                    shortcut_difficulty = "easy"
+                    shortcut_tiles = None
 
-                    args = [
+                    if len(args) >= 2:
+
+                        second = args[1].lower()
+
+                        if second in DragonTowerGame.DIFFICULTIES or second in {
+                            "e", "m", "h", "x", "ma"
+                        }:
+
+                            shortcut_difficulty = second
+
+                            if len(args) >= 3:
+
+                                shortcut_tiles = args[2]
+
+                        else:
+
+                            shortcut_tiles = args[1]
+
+                    new_args = [
                         "start",
                         str(shortcut_bet),
                         shortcut_difficulty
                     ]
 
+                    if shortcut_tiles is not None:
+
+                        new_args.append(shortcut_tiles)
+
+                    args = new_args
                     cmd = "start"
 
             except (
@@ -1280,7 +1484,7 @@ class DragonTowerPlugin(BaseGamePlugin):
             )
 
             return ""
-        
+
         if cmd in {
             "start",
             "bet",
@@ -1294,13 +1498,15 @@ class DragonTowerPlugin(BaseGamePlugin):
                     sender,
                     file_queue,
                     "Usage:\n"
-                    "/dragon start <bet> [difficulty]\n\n"
+                    "/dragon start <bet> [difficulty] [tiles]\n\n"
                     "Shortcut:\n"
-                    "/dragon <bet> [difficulty]\n\n"
+                    "/dragon <bet> [difficulty] [tiles]\n\n"
                     "Examples:\n"
                     "/dragon start 100 easy\n"
+                    "/dragon start 100 easy 1,2,3\n"
+                    "/dragon start 100 1,3,2,4\n"
                     "/dragon 100\n"
-                    "/dragon 100 hard",
+                    "/dragon 100 hard 1,2",
                     "Dragon Tower - Start",
                     cache,
                     user_id
@@ -1327,12 +1533,6 @@ class DragonTowerPlugin(BaseGamePlugin):
 
                 return ""
 
-            difficulty = (
-                args[2].lower()
-                if len(args) >= 3
-                else "easy"
-            )
-
             aliases = {
                 "e": "easy",
                 "m": "medium",
@@ -1341,10 +1541,27 @@ class DragonTowerPlugin(BaseGamePlugin):
                 "ma": "master"
             }
 
-            difficulty = aliases.get(
-                difficulty,
-                difficulty
-            )
+            difficulty = "easy"
+            tiles_arg = None
+
+            if len(args) >= 3:
+
+                second = args[2].lower()
+
+                if second in DragonTowerGame.DIFFICULTIES or second in aliases:
+
+                    difficulty = aliases.get(
+                        second,
+                        second
+                    )
+
+                    if len(args) >= 4:
+
+                        tiles_arg = args[3]
+
+                else:
+
+                    tiles_arg = args[2]
 
             if difficulty not in (
                 DragonTowerGame.DIFFICULTIES
@@ -1425,6 +1642,84 @@ class DragonTowerPlugin(BaseGamePlugin):
             self.active_games[user_id] = game
 
             self._save_active_games_to_cache()
+
+            if tiles_arg:
+
+                tiles = self._parse_tiles(
+                    tiles_arg
+                )
+
+                if tiles is None:
+
+                    self.send_message_image(
+                        sender,
+                        file_queue,
+                        "Invalid tile format.\n\n"
+                        "Examples:\n"
+                        "/dragon start 100 1,2,3\n"
+                        "/dragon start 100 easy 1,2,3",
+                        "Dragon Tower - Error",
+                        cache,
+                        user_id
+                    )
+
+                    return ""
+
+                game_finished = self._process_reveal(
+                    user_id,
+                    user,
+                    sender,
+                    game,
+                    tiles,
+                    file_queue
+                )
+
+                if game_finished:
+
+                    return ""
+
+                img_path = os.path.join(
+                    self.results_folder,
+                    f"dragon_tower_{user_id}_move.webp"
+                )
+
+                self.get_game_state_image(
+                    game,
+                    img_path,
+                    user_id=user_id
+                )
+
+                current_payout = (
+                    game.get_payout()
+                )
+
+                current_profit = (
+                    current_payout - game.bet
+                )
+
+                overlay_path, overlay_error = (
+                    self.apply_user_overlay(
+                        img_path,
+                        user_id,
+                        sender,
+                        game.bet,
+                        current_profit,
+                        user["balance"],
+                        user,
+                        show_win_text=False,
+                        font_scale=self.font_scale,
+                        avatar_size=self.avatar_size,
+                        win_text_height=200
+                    )
+                )
+
+                if overlay_path:
+
+                    file_queue.put(
+                        overlay_path
+                    )
+
+                return ""
 
             img_path = os.path.join(
                 self.results_folder,
@@ -1578,9 +1873,9 @@ class DragonTowerPlugin(BaseGamePlugin):
                 file_queue,
                 "No active Dragon Tower game.\n\n"
                 "Start with:\n"
-                "/dragon start <bet> [difficulty]\n\n"
+                "/dragon start <bet> [difficulty] [tiles]\n\n"
                 "Or:\n"
-                "/dragon <bet> [difficulty]",
+                "/dragon <bet> [difficulty] [tiles]",
                 "Dragon Tower - Error",
                 cache,
                 user_id
@@ -1608,169 +1903,18 @@ class DragonTowerPlugin(BaseGamePlugin):
 
             return ""
 
-        for tile in tiles:
+        game_finished = self._process_reveal(
+            user_id,
+            user,
+            sender,
+            game,
+            tiles,
+            file_queue
+        )
 
-            if game.game_over:
-                break
+        if game_finished:
 
-            if (
-                tile < 1
-                or tile > game.tiles_per_level
-            ):
-
-                self.send_message_image(
-                    sender,
-                    file_queue,
-                    f"Tile {tile} invalid. "
-                    f"Choose 1-{game.tiles_per_level}.",
-                    "Dragon Tower - Error",
-                    cache,
-                    user_id
-                )
-
-                return ""
-
-            result = game.reveal(
-                tile
-            )
-
-            if result == "already_revealed":
-
-                continue
-
-            if result == "skull":
-
-                self.active_games.pop(
-                    user_id,
-                    None
-                )
-
-                self._save_active_games_to_cache()
-
-                new_balance, net_win = (
-                    self._finish_game(
-                        user_id,
-                        user,
-                        sender,
-                        game,
-                        0,
-                        file_queue
-                    )
-                )
-
-                img_path = os.path.join(
-                    self.results_folder,
-                    f"dragon_tower_{user_id}_lost.webp"
-                )
-
-                self.get_game_state_image(
-                    game,
-                    img_path,
-                    "LOSE",
-                    user_id=user_id
-                )
-
-                overlay_path, overlay_error = (
-                    self.apply_user_overlay(
-                        img_path,
-                        user_id,
-                        sender,
-                        game.bet,
-                        net_win,
-                        new_balance,
-                        user,
-                        show_win_text=True,
-                        font_scale=self.font_scale,
-                        avatar_size=self.avatar_size,
-                        win_text_height=200
-                    )
-                )
-
-                if overlay_path:
-
-                    file_queue.put(
-                        overlay_path
-                    )
-
-                logger.info(
-                    f"[DragonTower] Loss: "
-                    f"user={sender}, "
-                    f"bet={game.bet}, "
-                    f"level={game.current_level}"
-                )
-
-                return ""
-
-            if result == "auto_win":
-
-                payout = game.get_payout()
-
-                self.active_games.pop(
-                    user_id,
-                    None
-                )
-
-                self._save_active_games_to_cache()
-
-                new_balance, net_win = (
-                    self._finish_game(
-                        user_id,
-                        user,
-                        sender,
-                        game,
-                        payout,
-                        file_queue
-                    )
-                )
-
-                img_path = os.path.join(
-                    self.results_folder,
-                    f"dragon_tower_{user_id}_win.webp"
-                )
-
-                self.get_game_state_image(
-                    game,
-                    img_path,
-                    "WIN",
-                    user_id=user_id
-                )
-
-                overlay_path, overlay_error = (
-                    self.apply_user_overlay(
-                        img_path,
-                        user_id,
-                        sender,
-                        game.bet,
-                        net_win,
-                        new_balance,
-                        user,
-                        show_win_text=True,
-                        font_scale=self.font_scale,
-                        avatar_size=self.avatar_size,
-                        win_text_height=200
-                    )
-                )
-
-                if overlay_path:
-
-                    file_queue.put(
-                        overlay_path
-                    )
-
-                return ""
-
-            if result == "egg":
-
-                logger.debug(
-                    f"[DragonTower] Safe tile: "
-                    f"user={sender}, "
-                    f"level={game.current_level}, "
-                    f"tile={tile}, "
-                    f"multiplier=x"
-                    f"{game.get_current_multiplier():.2f}"
-                )
-
-                self._save_active_games_to_cache()
+            return ""
 
         img_path = os.path.join(
             self.results_folder,
@@ -1839,8 +1983,8 @@ def register():
             "Dragon Tower - Climb the tower "
             "and avoid the skulls.\n\n"
             "**Commands:**\n"
-            "- /dragon start <bet> [difficulty]\n"
-            "- /dragon <bet> [difficulty]\n"
+            "- /dragon start <bet> [difficulty] [tiles]\n"
+            "- /dragon <bet> [difficulty] [tiles]\n"
             "- /dragon <tile>\n"
             "- /dragon <tile>,<tile>,<tile>\n"
             "- /dragon cashout\n\n"
