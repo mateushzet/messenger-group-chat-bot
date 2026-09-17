@@ -1061,7 +1061,7 @@ def register():
     plugin = ItemsPlugin()
     return {
         "name": "items",
-        "aliases": ["/item"],
+        "aliases": ["/item", "/items", "/i"],
         "description": (
             "Item System\n\n"
             "Customize your interface with items!\n\n"
