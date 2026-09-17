@@ -548,7 +548,7 @@ class AvatarPlugin(BaseGamePlugin):
         
         self.cache.add_market_item(market_item)
         
-        return True, f"Listed **{avatar_file}** on market for {price} coins!\nListing fee: {self.auction_listing_fee} coins."
+        return True, f"Listed **{avatar_file}** on market for {price} coins!"
 
     def create_auction(self, user_id, avatar_file, start_price, min_bid, duration_hours):
         user = self.cache.get_user(user_id)

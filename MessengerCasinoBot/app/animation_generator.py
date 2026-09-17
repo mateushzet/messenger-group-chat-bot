@@ -695,7 +695,7 @@ class AnimationGenerator:
         icon_text_spacing = int(8 * font_scale)
         horizontal_spacing = int(20 * font_scale)
         
-        text_margin_left = int(2 * font_scale)
+        text_margin_left = int(20 * font_scale)
         text_margin_right = int(2 * font_scale)
         
         balance_width = 0
