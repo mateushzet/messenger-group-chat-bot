@@ -162,91 +162,63 @@ class WheelPlugin(BaseGamePlugin):
         return prizes
 
     def _generate_concentrated_prizes(self, ev):
-        """Generuje SKUMULOWANE nagrody dla EV >= 1.00 - RÓŻNE WARIANITY"""
-        # Oblicz siłę skumulowania (1.00 = lekko, 1.05 = bardzo)
         strength = (ev - 1.00) / 0.05  # 0-1
-        
-        # RÓŻNE warianty skumulowane (losowo wybierane)
+
         style = random.choice([
             "one_big_concentrated",
             "two_big_concentrated",
             "three_big_concentrated",
             "jackpot_concentrated",
-            "cluster_concentrated",
             "extreme_concentrated",
-            "balanced_concentrated",
         ])
-        
+
         if style == "one_big_concentrated":
-            # 1 duża, reszta mała
             small = [0, 5, 10, 15, 20, 25, 30]
-            big = int(100 + strength * 400)
+            big = int(250 + strength * 750)
             prizes = small + [big]
-            
+
         elif style == "two_big_concentrated":
-            # 2 duże, reszta mała
             small = [0, 5, 10, 15, 20, 25]
-            big1 = int(80 + strength * 200)
-            big2 = int(150 + strength * 350)
+            big1 = int(150 + strength * 350) 
+            big2 = int(300 + strength * 700) 
             prizes = small + [big1, big2]
-            
+
         elif style == "three_big_concentrated":
-            # 3 duże, reszta mała
             small = [0, 5, 10, 15, 20]
-            big1 = int(60 + strength * 150)
-            big2 = int(120 + strength * 250)
-            big3 = int(200 + strength * 400)
+            big1 = int(100 + strength * 200)   
+            big2 = int(200 + strength * 400)      
+            big3 = int(350 + strength * 650)  
             prizes = small + [big1, big2, big3]
-            
+
         elif style == "jackpot_concentrated":
-            # 1 ogromna, 1 średnia, reszta mała
             small = [0, 5, 10, 15, 20, 25]
-            medium = int(40 + strength * 100)
-            jackpot = int(150 + strength * 500)
+            medium = int(60 + strength * 90)  
+            jackpot = int(400 + strength * 1100) 
             prizes = small + [medium, jackpot]
-            
-        elif style == "cluster_concentrated":
-            # Grupa małych, grupa dużych
-            small_count = random.randint(4, 5)
-            big_count = 8 - small_count
-            
-            small = [random.randint(0, 20) for _ in range(small_count)]
-            big = [random.randint(80, int(150 + strength * 400)) for _ in range(big_count)]
-            
-            prizes = small + big
-            
-        elif style == "extreme_concentrated":
-            # 1 bardzo duża, reszta bardzo mała
+
+        else: 
             small = [0, 0, 5, 5, 10, 10, 15]
-            big = int(100 + strength * 500)
+            big = int(300 + strength * 1200)
             prizes = small + [big]
-            
-        else:  # balanced_concentrated
-            # 2 średnie + 2 duże
-            small = [0, 5, 10, 15]
-            medium1 = int(30 + strength * 80)
-            medium2 = int(50 + strength * 120)
-            big1 = int(100 + strength * 250)
-            big2 = int(150 + strength * 350)
-            prizes = small + [medium1, medium2, big1, big2]
-        
-        # Upewnij się że mamy 8 nagród
+
         while len(prizes) < 8:
             prizes.append(0)
         prizes = prizes[:8]
-        
-        # Zaokrąglij do 5
+
         prizes = [round(p / 5) * 5 for p in prizes]
         prizes = [max(0, p) for p in prizes]
-        
-        # Upewnij się że mamy małe i duże
-        if not any(p < 20 for p in prizes):
-            prizes[0] = random.randint(0, 15)
-            prizes[0] = round(prizes[0] / 5) * 5
-        if not any(p > 100 for p in prizes):
-            prizes[-1] = random.randint(150, int(200 + strength * 400))
+
+        prizes.sort()
+        median = prizes[len(prizes) // 2]
+        max_val = prizes[-1]
+
+        if median <= 0:
+            median = prizes[-2] if len(prizes) >= 2 else 0
+
+        if median > 0 and max_val < median * 8:
+            prizes[-1] = max(prizes[-1], int(median * 8))
             prizes[-1] = round(prizes[-1] / 5) * 5
-        
+
         prizes.sort()
         return prizes
 
