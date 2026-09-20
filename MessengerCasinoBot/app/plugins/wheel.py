@@ -521,28 +521,44 @@ class WheelPlugin(BaseGamePlugin):
     def get_user_avatars_for_display(self, user_id):
         user = self.cache.get_user(user_id)
         if not user:
-            return ["default-avatar.png"]
+            return []
 
-        display_avatars = ["default-avatar.png"]
+        default_filename = f"default_{user_id}.png"
+        display_avatars = [default_filename]
+
         for avatar_file in user.get("avatars", []):
             if avatar_file not in display_avatars:
                 display_avatars.append(avatar_file)
+
         return display_avatars
 
     def get_random_avatar(self, user_id):
         owned = set(self.get_user_avatars_for_display(user_id))
+        owned.add(f"default_{user_id}.png")
+
+        MIN_AVATAR = 1
+        MAX_AVATAR = 825
         candidates = []
 
-        if os.path.exists(self.avatars_folder):
-            for filename in os.listdir(self.avatars_folder):
-                if filename.lower().endswith(".png") and filename not in owned:
-                    candidates.append(filename)
+        for i in range(MIN_AVATAR, MAX_AVATAR + 1):
+            filename = f"{i}.png"
+            if filename in owned:
+                continue
+            path = os.path.join(self.avatars_folder, filename)
+            if os.path.exists(path):
+                candidates.append(filename)
 
         return random.choice(candidates) if candidates else None
 
     def add_user_avatar(self, user_id, avatar_file):
         user = self.cache.get_user(user_id)
         if not user or not avatar_file:
+            return False
+
+        if avatar_file == f"default_{user_id}.png" or avatar_file == "default-avatar.png":
+            return False
+
+        if not avatar_file.replace(".png", "").isdigit():
             return False
 
         avatars = list(user.get("avatars", []))

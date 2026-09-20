@@ -345,40 +345,41 @@ class GiftPlugin(BaseGamePlugin):
     
     def _find_recipient(self, name_or_id, cache):
         if name_or_id.isdigit():
-            for uid, udata in cache.users.items():
-                if uid == name_or_id:
-                    return [(uid, udata)]
-        
+            uid = str(name_or_id)
+            udata = cache.users.get(uid)
+            if udata:
+                return [(uid, udata)]
+            return []
         return self._find_recipient_by_name_safe(name_or_id, cache)
     
     def _find_recipient_by_name_safe(self, name, cache):
         if not hasattr(cache, 'users') or not cache.users:
             return []
-        
-        search_name = name
-        if search_name.startswith('@'):
-            search_name = search_name[1:].strip()
-        
+
+        search_name = name[1:].strip() if name.startswith('@') else name
+        name_lower = search_name.lower().strip()
+
         exact_matches = []
         partial_matches = []
-        name_lower = search_name.lower().strip()
-        
+
         for user_id, user_data in cache.users.items():
             if not isinstance(user_data, dict):
                 continue
-            
             user_name = user_data.get('name', '')
             if not user_name:
                 continue
-            
             user_name_lower = user_name.lower()
-            
+
             if user_name_lower == name_lower:
                 exact_matches.append((user_id, user_data))
             elif user_name_lower.startswith(name_lower):
                 partial_matches.append((user_id, user_data))
-        
-        return exact_matches + partial_matches
+
+        if len(exact_matches) == 1:
+            return exact_matches
+        if len(exact_matches) > 1:
+            return exact_matches
+        return partial_matches
     
     def _format_multiple_recipients_error(self, recipients, searched_name):
         error_msg = "MULTIPLE USERS FOUND\n\n"

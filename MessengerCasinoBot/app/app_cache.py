@@ -366,7 +366,13 @@ class AppCache:
     def get_avatar_path(self, user_id):
         user = self.get_user(user_id)
         if user and user.get("avatar"):
-            return self._resolve_relative_path(os.path.join("assets", "avatars", user["avatar"]))
+            path = self._resolve_relative_path(os.path.join("assets", "avatars", user["avatar"]))
+            if os.path.exists(path):
+                return path
+        user_id_str = str(user_id)
+        default_path = self._resolve_relative_path(os.path.join("assets", "avatars", f"default_{user_id_str}.png"))
+        if os.path.exists(default_path):
+            return default_path
         return self._resolve_relative_path(os.path.join("assets", "avatars", "default-avatar.png"))
 
     def get_background_path(self, user_id):

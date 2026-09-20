@@ -55,36 +55,24 @@ class AvatarPlugin(BaseGamePlugin):
         return []
 
     def get_user_default_avatar_file(self, user_id):
-        user = self.cache.get_user(user_id)
-        if user and "avatar_url" in user and user["avatar_url"]:
-            return user["avatar_url"]
-        return None
+        return f"default_{user_id}.png"
 
     def get_user_avatars_for_display(self, user_id):
         user = self.cache.get_user(user_id)
         if not user:
             return []
-        
+
         user_avatars = self.get_user_avatars(user_id)
-        default_avatar_file = self.get_user_default_avatar_file(user_id)
-        
-        display_avatars = []
-        
-        if default_avatar_file:
-            default_path = os.path.join(self.avatars_folder, default_avatar_file)
-            if os.path.exists(default_path):
-                display_avatars.append(default_avatar_file)
-            else:
-                display_avatars.append("default-avatar.png")
-        else:
-            display_avatars.append("default-avatar.png")
-        
+        default_filename = self.get_user_default_avatar_file(user_id)
+
+        display_avatars = [default_filename]
+
         for avatar in user_avatars:
-            if avatar != default_avatar_file and avatar not in display_avatars:
-                avatar_path = os.path.join(self.avatars_folder, avatar)
-                if os.path.exists(avatar_path):
+            if avatar != default_filename and avatar not in display_avatars:
+                path = os.path.join(self.avatars_folder, avatar)
+                if os.path.exists(path):
                     display_avatars.append(avatar)
-        
+
         return display_avatars
 
     def add_user_avatar(self, user_id, avatar_file):
@@ -125,24 +113,14 @@ class AvatarPlugin(BaseGamePlugin):
         if not user:
             return False
 
-        default_avatar_file = self.get_user_default_avatar_file(user_id)
-        
-        if avatar_file == "default-avatar.png" or avatar_file == default_avatar_file:
-            if default_avatar_file:
-                avatar_to_set = default_avatar_file
-            else:
-                avatar_to_set = "default-avatar.png"
-            
-            if user.get("avatar") == avatar_to_set:
-                return True
-            
-            self.cache.update_user(user_id, avatar=avatar_to_set)
+        default_filename = self.get_user_default_avatar_file(user_id)
+
+        if avatar_file == "default-avatar.png" or avatar_file == default_filename:
+            self.cache.update_user(user_id, avatar=default_filename)
             return True
-        
+
         user_avatars = self.get_user_avatars_for_display(user_id)
         if avatar_file not in user_avatars:
-            if user.get("avatar") == avatar_file:
-                return True
             return False
 
         self.cache.update_user(user_id, avatar=avatar_file)
