@@ -6,6 +6,7 @@ from logger import logger
 from PIL import Image, ImageDraw
 from plugins.monthly import record_monthly_win
 from plugins.weekly import record_weekly_win
+from plugins.dailyquest import record_daily_win
 
 class ColorsPlugin(BaseGamePlugin):
     def __init__(self):
@@ -482,6 +483,7 @@ class ColorsPlugin(BaseGamePlugin):
             return None
         
         if net_win > 0:
+            record_daily_win(self.cache, user_id, "colors", net_win)
             record_weekly_win(self.cache, user_id, "colors", net_win)
             record_monthly_win(self.cache, user_id, "colors", net_win)
         

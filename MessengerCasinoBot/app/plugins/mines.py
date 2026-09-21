@@ -7,6 +7,7 @@ from base_game_plugin import BaseGamePlugin
 from logger import logger
 from plugins.monthly import record_monthly_win
 from plugins.weekly import record_weekly_win
+from plugins.dailyquest import record_daily_win
 
 class MinesGame:
     def __init__(self, size=5, num_mines=5, text_renderer=None):
@@ -646,6 +647,7 @@ class MinesPlugin(BaseGamePlugin):
                 return ""
             
             if net_win > 0:
+                record_daily_win(self.cache, user_id, "mines", net_win)
                 record_weekly_win(self.cache, user_id, "mines", net_win)
                 record_monthly_win(self.cache, user_id, "mines", net_win)
             img_path = os.path.join(self.results_folder, f"mines_{user_id}_cashout.webp")

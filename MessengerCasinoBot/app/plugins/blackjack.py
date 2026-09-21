@@ -6,6 +6,7 @@ from logger import logger
 import time
 from plugins.monthly import record_monthly_win
 from plugins.weekly import record_weekly_win
+from plugins.dailyquest import record_daily_win
 
 class BlackjackTableGenerator:
     def __init__(self, text_renderer=None):
@@ -1260,6 +1261,7 @@ class BlackjackPlugin(BaseGamePlugin):
                 
                 net_profit = win_amount - bet
                 if net_profit > 0:
+                    record_daily_win(self.cache, user_id, "blackjack", net_profit)
                     record_weekly_win(self.cache, user_id, "blackjack", net_profit)
                     record_monthly_win(self.cache, user_id, "blackjack", net_profit)
                 

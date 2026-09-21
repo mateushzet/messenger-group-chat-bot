@@ -6,6 +6,7 @@ from base_game_plugin import BaseGamePlugin
 from logger import logger
 from plugins.monthly import record_monthly_win
 from plugins.weekly import record_weekly_win
+from plugins.dailyquest import record_daily_win
 
 class PlinkoPlugin(BaseGamePlugin):
     def __init__(self):
@@ -513,6 +514,7 @@ class PlinkoPlugin(BaseGamePlugin):
             return None
         
         if net_win > 0:
+            record_daily_win(self.cache, user_id, "plinko", net_win)
             record_weekly_win(self.cache, user_id, "plinko", net_win)
             record_monthly_win(self.cache, user_id, "plinko", net_win)
         

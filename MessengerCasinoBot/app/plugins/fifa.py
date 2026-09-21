@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw, ImageSequence
 from base_game_plugin import BaseGamePlugin
 from logger import logger
 from plugins.monthly import record_monthly_win
-
+from plugins.dailyquest import record_daily_win
 
 class FifaPackOpeningPlugin(BaseGamePlugin):
 
@@ -413,6 +413,7 @@ class FifaPackOpeningPlugin(BaseGamePlugin):
             logger.warning(f"[Fifa] add_experience failed: {e}")
 
         if net > 0:
+            record_daily_win(self.cache, user_id, "fifa", net)
             record_monthly_win(self.cache, user_id, "fifa", net)
 
         out = self._save_pack_animation(self.PACK_NAME, picks, pack_cost=pack_cost)

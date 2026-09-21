@@ -7,6 +7,7 @@ from logger import logger
 from PIL import Image, ImageDraw, ImageFont
 from plugins.monthly import record_monthly_win
 from plugins.weekly import record_weekly_win
+from plugins.dailyquest import record_daily_win
 
 class CaseBattle:
     def __init__(self, plugin_instance):
@@ -950,9 +951,11 @@ class CasePlugin(BaseGamePlugin):
         acceptor_net_win = acceptor_final_balance - acceptor_current_balance
 
         if creator_net_win > 0:
+            record_daily_win(self.cache, creator_user_id, "case", creator_net_win)
             record_weekly_win(self.cache, creator_user_id, "case", creator_net_win)
             record_monthly_win(self.cache, creator_user_id, "case", creator_net_win)
         if acceptor_net_win > 0:
+            record_daily_win(self.cache, acceptor_id, "case", acceptor_net_win)
             record_weekly_win(self.cache, acceptor_id, "case", acceptor_net_win)
             record_monthly_win(self.cache, acceptor_id, "case", acceptor_net_win)
         
@@ -1239,6 +1242,7 @@ class CasePlugin(BaseGamePlugin):
         
         if net_win > 0:
             result_status = f"WIN +${net_win}"
+            record_daily_win(self.cache, user_id, "case", net_win)
             record_weekly_win(self.cache, user_id, "case", net_win)
             record_monthly_win(self.cache, user_id, "case", net_win)
         elif net_win < 0:

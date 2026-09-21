@@ -8,6 +8,7 @@ from logger import logger
 from plugins.monthly import record_monthly_win
 from plugins.weekly import record_weekly_win
 from decimal import Decimal, ROUND_HALF_UP
+from plugins.dailyquest import record_daily_win
 
 DICE_MULTIPLIERS = {
     "five_of_a_kind": 10,
@@ -941,6 +942,7 @@ class DicePlugin(BaseGamePlugin):
             
             if win_amount > 0:
                 self.update_user_balance(user_id, final_balance)
+                record_daily_win(self.cache, user_id, "dice", win_amount)
                 record_weekly_win(self.cache, user_id, "dice", win_amount)
                 record_monthly_win(self.cache, user_id, "dice", win_amount)
             else:
@@ -1031,6 +1033,7 @@ class DicePlugin(BaseGamePlugin):
             
             if win_amount > 0:
                 self.update_user_balance(user_id, final_balance)
+                record_daily_win(self.cache, user_id, "dice", win_amount)
                 record_weekly_win(self.cache, user_id, "dice", win_amount)
                 record_monthly_win(self.cache, user_id, "dice", win_amount)
             else:

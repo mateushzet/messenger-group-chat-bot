@@ -10,6 +10,7 @@ from base_game_plugin import BaseGamePlugin
 from logger import logger
 from plugins.monthly import record_monthly_win
 from plugins.weekly import record_weekly_win
+from plugins.dailyquest import record_daily_win
 
 
 class Roulette2Plugin(BaseGamePlugin):
@@ -219,6 +220,7 @@ class Roulette2Plugin(BaseGamePlugin):
             logger.error(f"[Roulette2] Error adding experience: {e}")
 
         if net_win > 0:
+            record_daily_win(self.cache, user_id, "roulette", net_win)
             record_weekly_win(self.cache, user_id, "roulette", net_win)
             record_monthly_win(self.cache, user_id, "roulette", net_win)
 

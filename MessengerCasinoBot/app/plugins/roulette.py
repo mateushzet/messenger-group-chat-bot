@@ -6,7 +6,9 @@ from base_game_plugin import BaseGamePlugin
 from logger import logger
 from plugins.monthly import record_monthly_win
 from plugins.weekly import record_weekly_win
+from plugins.dailyquest import record_daily_win
 from PIL import Image, ImageDraw
+
 
 RED_NUMBERS = {1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36}
 BLACK_NUMBERS = set(range(1,37)) - RED_NUMBERS
@@ -430,6 +432,7 @@ class RoulettePlugin(BaseGamePlugin):
         user["level"] = newLevel
         user["level_progress"] = newLevelProgress
         if net_win > 0:
+            record_daily_win(self.cache, user_id, "roulette", net_win)
             record_weekly_win(self.cache, user_id, "roulette", net_win)
             record_monthly_win(self.cache, user_id, "roulette", net_win)
         user_info_after = self.create_user_info(sender, amount, net_win, new_balance, user)
