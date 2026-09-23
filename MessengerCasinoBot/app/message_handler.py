@@ -13,6 +13,7 @@ processed_in_session = set()
 
 BASE_DIR = os.path.dirname(__file__)
 TEMP_DIR = os.path.join(BASE_DIR, "temp")
+ASSETS_TEMP_DIR = os.path.join(BASE_DIR, "assets", "temp")
 LOG_PREVIEW_LEN = 140
 
 
@@ -376,20 +377,19 @@ def get_last_message_time():
     return last_message_time
 
 
-def cleanup_temp_folder():
+def _cleanup_single_dir(path):
     try:
-        if not os.path.exists(TEMP_DIR):
-            os.makedirs(TEMP_DIR, exist_ok=True)
+        if not os.path.exists(path):
+            os.makedirs(path, exist_ok=True)
             return 0
-        
+
         deleted_count = 0
-        
+
         all_files = []
-        for root, dirs, files in os.walk(TEMP_DIR):
+        for root, dirs, files in os.walk(path):
             for file in files:
-                file_path = os.path.join(root, file)
-                all_files.append(file_path)
-        
+                all_files.append(os.path.join(root, file))
+
         for file_path in all_files:
             try:
                 if os.path.isfile(file_path):
@@ -397,8 +397,8 @@ def cleanup_temp_folder():
                     deleted_count += 1
             except Exception as e:
                 logger.debug(f"[Cleanup] Could not delete {file_path}: {e}")
-        
-        for root, dirs, files in os.walk(TEMP_DIR, topdown=False):
+
+        for root, dirs, files in os.walk(path, topdown=False):
             for dir_name in dirs:
                 dir_path = os.path.join(root, dir_name)
                 try:
@@ -406,15 +406,23 @@ def cleanup_temp_folder():
                         os.rmdir(dir_path)
                 except:
                     pass
-        
-        if deleted_count > 0:
-            logger.debug(f"[Cleanup] Cleaned {deleted_count} temp files")
-            
+
         return deleted_count
-        
+
     except Exception as e:
-        logger.error(f"[Cleanup] Error cleaning temp: {e}")
+        logger.error(f"[Cleanup] Error cleaning {path}: {e}")
         return 0
+
+
+def cleanup_temp_folder():
+    total = 0
+    total += _cleanup_single_dir(TEMP_DIR)
+    total += _cleanup_single_dir(ASSETS_TEMP_DIR)
+
+    if total > 0:
+        logger.debug(f"[Cleanup] Cleaned {total} temp files (both dirs)")
+
+    return total
 
 
 def start_monitoring_messages(command_queue):
