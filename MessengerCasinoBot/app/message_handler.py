@@ -49,7 +49,7 @@ def get_sleep_time():
     
     if minutes_since_last < 2:
         logger.debug(f"[MessageHandler] get_sleep_time: minutes_since_last={minutes_since_last:.2f} -> sleep=0")
-        return 0
+        return 0.3
     if minutes_since_last < 5:
         logger.debug(f"[MessageHandler] get_sleep_time: minutes_since_last={minutes_since_last:.2f} -> sleep=1")
         return 1
@@ -470,7 +470,7 @@ def start_monitoring_messages(command_queue):
                         except Exception as e:
                             logger.warning(f"[MessageHandler] Hourly screenshot failed: {e}")
                     
-                    if sleep_time != 0:
+                    if sleep_time != 0.3:
                         current_time = time.time()
                         if (sleep_time == 3 and 
                             (last_cleanup_time is None or 

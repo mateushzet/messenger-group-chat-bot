@@ -212,7 +212,7 @@ EXAMPLE_COMMANDS:
 - /dice 123
 - /dice stand
 
-FIFA:
+:
 name: FIFA Pack Opening
 command: /fifa
 aliases: /pack, /packs, /fc
@@ -807,6 +807,27 @@ EXAMPLE_COMMANDS:
 - /weekly skip 2
 - /wq rotate 1
 
+WHEEL:
+name: Fortune Wheel
+command: /wheel
+aliases: /kolo, /kolofortuny, /fortune
+description: Spin a paid wheel for a random prize: a concrete coin amount, a random avatar, or a random background. The spin always costs 100 coins, and coin payout EV changes every 10 minutes between 0.80x and 1.10x.
+
+COMMAND_LIST:
+- /wheel - Spin the wheel for 100 coins.
+- /kolo - Polish alias.
+
+IMPORTANT_RULES:
+- Every spin costs exactly 100 coins.
+- Coin payout expected value is based on the current 10-minute time slot.
+- Coin prizes are concrete amounts shown on the wheel, not multipliers.
+- Cosmetic prizes are collection bonuses and do not count toward the coin EV.
+- If the player already owns all available avatars or backgrounds, that cosmetic prize falls back to a coin prize.
+
+EXAMPLE_COMMANDS:
+- /wheel
+- /kolo
+
 ASK:
 name: Ask Assistant
 command: /ask
@@ -823,54 +844,6 @@ IMPORTANT_RULES:
 EXAMPLE_COMMANDS:
 - /ask how does mines work?
 - /ask ile trzeba do monthly roulette?
-
-QUEENS:
-name: Queens
-command: /queens
-aliases: /queen, /qn
-description: Daily LinkedIn-style Queens puzzle with a graphical board. Players use numbered tiles to place queens and earn a completion reward.
-
-COMMAND_LIST:
-- /queens - Show today's graphical board.
-- /queens <tile> - Toggle one numbered tile.
-- /queens set <tile1> <tile2> ... - Submit all queen placements.
-- /queens clear - Clear current placements.
-
-IMPORTANT_RULES:
-- Reward is 30 coins.
-- Reward can be claimed once per calendar day.
-- Place one queen in each row, column, and region.
-- Queens cannot touch, including diagonally.
-
-EXAMPLE_COMMANDS:
-- /queens
-- /queens 2
-- /queens set 2 9 11 18 25
-
-TANGO:
-name: Tango
-command: /tango
-aliases: /tg
-description: Daily LinkedIn-style Tango puzzle with a graphical board. Players fill numbered cells with sun or moon symbols and earn a completion reward.
-
-COMMAND_LIST:
-- /tango - Show today's graphical board.
-- /tango <tile> <sun|moon> - Fill one tile.
-- /tango <tile1> <sun|moon> <tile2> <sun|moon> - Fill multiple tiles.
-- /tango clear <tile> - Clear one filled tile.
-- /tango reset - Clear all non-fixed tiles.
-
-IMPORTANT_RULES:
-- Reward is 30 coins.
-- Reward can be claimed once per calendar day.
-- Each row and column must have equal suns and moons.
-- Three matching symbols in a row or column are not allowed.
-- Same and different links must be respected.
-
-EXAMPLE_COMMANDS:
-- /tango 2 sun
-- /tg 3 moon 5 sun
-- /tango clear 2
 
 ZIP:
 name: Zip
