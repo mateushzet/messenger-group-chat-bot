@@ -615,7 +615,8 @@ class CrashPlugin(BaseGamePlugin):
     def create_animation_with_custom_frames(self, crash_multiplier, cashout_multiplier, 
                                         user_info_before, user_info_after, 
                                         avatar_path, bg_path, animated=True,
-                                        split_bet=False, cashouts=None, wins=None):
+                                        split_bet=False, cashouts=None, wins=None,
+                                        low_quality=False):
         try:
             if split_bet and cashouts:
                 cashout1, cashout2 = cashouts
@@ -716,7 +717,8 @@ class CrashPlugin(BaseGamePlugin):
                 font_scale=0.8,
                 avatar_size=90,
                 show_bet_amount=True,
-                win_text_height=80
+                win_text_height=80,
+                lowQuality=low_quality
             )
             
             try:
@@ -773,7 +775,7 @@ class CrashPlugin(BaseGamePlugin):
             self.send_message_image(sender, file_queue, error, "Invalid Usage", cache, None)
             return ""
         
-        bet_type, amount, cashout_multiplier, static_mode, mult1, mult2 = bet_info
+        bet_type, amount, cashout_multiplier, static_mode, low_quality, mult1, mult2 = bet_info
         
         user_id, user, error = self.validate_user_and_balance(cache, sender, avatar_url, amount)
             
@@ -849,7 +851,8 @@ class CrashPlugin(BaseGamePlugin):
             bg_path=bg_path,
             animated=not static_mode,
             split_bet=(bet_type == "split"),
-            cashouts=cashouts if bet_type == "split" else None
+            cashouts=cashouts if bet_type == "split" else None,
+            low_quality=low_quality
         )
         
         self.add_to_history(
@@ -939,10 +942,8 @@ class CrashPlugin(BaseGamePlugin):
         if len(args) < 2:
             return None, "Usage: /crash <bet> <multiplier> OR /crash <bet> <mult1>,<mult2>"
         
-        static_mode = False
-        if args[-1].lower() == 'x':
-            static_mode = True
-            args = args[:-1]
+        args, animated, low_quality = self.parse_static_quality_flag(args, min_args_before_flag=1)
+        static_mode = not animated
         
         try:
             amount = int(args[0])
@@ -965,7 +966,7 @@ class CrashPlugin(BaseGamePlugin):
                 if mult2 <= mult1:
                     return None, "Second multiplier (mult2) must be greater than first multiplier (mult1)"
                 
-                return ("split", amount, None, static_mode, mult1, mult2), None
+                return ("split", amount, None, static_mode, low_quality, mult1, mult2), None
             else:
                 cashout = float(args[1])
                 if cashout < 1.0:
@@ -973,7 +974,7 @@ class CrashPlugin(BaseGamePlugin):
                 if cashout > 100.0:
                     return None, "Cashout multiplier cannot exceed 100.0"
                 
-                return ("single", amount, cashout, static_mode, None, None), None
+                return ("single", amount, cashout, static_mode, low_quality, None, None), None
                 
         except ValueError as e:
             logger.error(f"[Crash] Parse error: {e}")

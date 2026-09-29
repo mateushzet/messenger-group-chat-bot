@@ -1402,6 +1402,7 @@ class BlackjackPlugin(BaseGamePlugin):
                     total_bets = sum(game.hand_bets) if getattr(game, "hand_bets", None) else game.bet
                     net_profit = win_amount - total_bets
                     if net_profit > 0:
+                        record_daily_win(self.cache, user_id, "blackjack", net_profit)
                         record_weekly_win(self.cache, user_id, "blackjack", net_profit)
                         record_monthly_win(self.cache, user_id, "blackjack", net_profit)
                 

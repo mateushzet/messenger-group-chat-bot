@@ -404,10 +404,7 @@ class ColorsPlugin(BaseGamePlugin):
             self.send_message_image(sender, file_queue, help_text, "Colors Help", cache, None)
             return None
 
-        animated = True
-        if len(args) >= 2 and args[-1].lower() == "x":
-            animated = False
-            args = args[:-1]
+        args, animated, low_quality = self.parse_static_quality_flag(args, min_args_before_flag=1)
 
         if len(args) == 4:
             try:
@@ -522,7 +519,8 @@ class ColorsPlugin(BaseGamePlugin):
             show_win_text=True,
             font_scale=0.8,
             avatar_size=75,
-            win_text_height=110
+            win_text_height=110,
+            lowQuality=low_quality
         )
         
         self.add_to_history(result_color, result_position)

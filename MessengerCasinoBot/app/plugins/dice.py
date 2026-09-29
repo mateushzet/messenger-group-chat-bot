@@ -685,7 +685,7 @@ class DicePlugin(BaseGamePlugin):
             "/dice cashout - End game and take result"
         )
     
-    def _finish_game(self, user_id, game, sender, file_queue, cache, user, win_amount, final_balance, is_reroll=False, reroll_indices=None, cashout=False, static=False):
+    def _finish_game(self, user_id, game, sender, file_queue, cache, user, win_amount, final_balance, is_reroll=False, reroll_indices=None, cashout=False, static=False, low_quality=False):
         fresh_user = cache.get_user(user_id)
         if fresh_user:
             user = fresh_user
@@ -752,7 +752,8 @@ class DicePlugin(BaseGamePlugin):
                 win_text_height=35,
                 font_scale=0.45,
                 avatar_size=45,
-                overlay_position='top'
+                overlay_position='top',
+                lowQuality=low_quality
             )
             
             if result_path:
@@ -766,7 +767,7 @@ class DicePlugin(BaseGamePlugin):
         if user_id in self.active_games:
             del self.active_games[user_id]
     
-    def _show_waiting_state(self, user_id, game, sender, file_queue, cache, user, static=False):
+    def _show_waiting_state(self, user_id, game, sender, file_queue, cache, user, static=False, low_quality=False):
         game_state = game.get_game_state()
         
         user_info = self.create_user_info(sender, game.bet, 0, user["balance"], user)
@@ -797,7 +798,8 @@ class DicePlugin(BaseGamePlugin):
                 show_win_text=False,
                 font_scale=0.45,
                 avatar_size=45,
-                overlay_position='top'
+                overlay_position='top',
+                lowQuality=low_quality
             )
             
             if result_path:
@@ -847,10 +849,8 @@ class DicePlugin(BaseGamePlugin):
             self._show_waiting_state(user_id, game, sender, file_queue, cache, user)
             return ""
         
-        static = False
-        if args and args[-1].lower() == "x":
-            static = True
-            args = args[:-1]
+        args, animated, low_quality = self.parse_static_quality_flag(args)
+        static = not animated
         
         if len(args) == 0:
             help_text = self._get_help_text()
@@ -948,7 +948,7 @@ class DicePlugin(BaseGamePlugin):
             else:
                 self.update_user_balance(user_id, final_balance)
             
-            self._finish_game(user_id, game, sender, file_queue, cache, user, win_amount, final_balance, True, zero_based, False, static)
+            self._finish_game(user_id, game, sender, file_queue, cache, user, win_amount, final_balance, True, zero_based, False, static, low_quality)
             return ""
         
         if cmd == "bet":
@@ -996,7 +996,7 @@ class DicePlugin(BaseGamePlugin):
             game.roll_dice()
             self.active_games[user_id] = game
             
-            self._show_waiting_state(user_id, game, sender, file_queue, cache, user, static)
+            self._show_waiting_state(user_id, game, sender, file_queue, cache, user, static, low_quality)
             return ""
         
         if cmd in ["cashout", "cash", "c"]:
@@ -1039,7 +1039,7 @@ class DicePlugin(BaseGamePlugin):
             else:
                 self.update_user_balance(user_id, final_balance)
             
-            self._finish_game(user_id, game, sender, file_queue, cache, user, win_amount, final_balance, False, None, True, static)
+            self._finish_game(user_id, game, sender, file_queue, cache, user, win_amount, final_balance, False, None, True, static, low_quality)
             return ""
         
         if cmd in ["start", "s", "bet2", "b"]:
@@ -1087,7 +1087,7 @@ class DicePlugin(BaseGamePlugin):
             game.roll_dice()
             self.active_games[user_id] = game
             
-            self._show_waiting_state(user_id, game, sender, file_queue, cache, user, static)
+            self._show_waiting_state(user_id, game, sender, file_queue, cache, user, static, low_quality)
             return ""
         
         else:

@@ -237,7 +237,7 @@ def _build_catalog() -> Dict[str, Dict]:
 class ItemsPlugin(BaseGamePlugin):
     def __init__(self):
         super().__init__(game_name="items")
-        self.results_folder = self.get_asset_path("results")
+        self.results_folder = self.get_asset_path("temp")
         self.items_folder = self.get_asset_path("items")
 
         os.makedirs(self.results_folder, exist_ok=True)

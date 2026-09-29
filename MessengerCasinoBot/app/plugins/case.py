@@ -1120,10 +1120,7 @@ class CasePlugin(BaseGamePlugin):
                 )
                 return ""
         
-        animated = True
-        if len(args) >= 1 and args[-1].lower() == "x":
-            animated = False
-            args = args[:-1]
+        args, animated, low_quality = self.parse_static_quality_flag(args)
 
         if len(args) == 0:
             case_ranges = {
@@ -1228,7 +1225,8 @@ class CasePlugin(BaseGamePlugin):
             animated=animated,
             frame_duration=70,
             show_win_text=False,
-            last_frame_multiplier=30
+            last_frame_multiplier=30,
+            lowQuality=low_quality
         )
         
         if error:

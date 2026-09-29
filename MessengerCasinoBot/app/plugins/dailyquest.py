@@ -18,18 +18,15 @@ DAILY_GAMES = [
     "crash",
     "dice",
     "fifa",
-    "hilo",
-    "jackpot",
     "keno",
     "lotto",
     "mines",
-    "piggy",
+    "dragon_tower",
     "plinko",
     "poker",
     "roulette",
     "slots",
     "snakes",
-    "tree",
 ]
 
 DAILY_TARGET = 10000

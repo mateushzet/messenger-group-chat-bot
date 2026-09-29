@@ -4,6 +4,7 @@ import time
 from PIL import Image, ImageDraw
 from base_game_plugin import BaseGamePlugin
 from logger import logger
+from plugins.dailyquest import record_daily_win
 from plugins.monthly import record_monthly_win
 from plugins.weekly import record_weekly_win
 
@@ -425,10 +426,8 @@ class KenoPlugin(BaseGamePlugin):
         balance = user.get('balance', 0)
         user_id_str = str(user_id)
         
-        static = False
-        if args and args[-1].lower() == 'x':
-            static = True
-            args = args[:-1]
+        args, animated, low_quality = self.parse_static_quality_flag(args)
+        static = not animated
         
         if not args or args[0].lower() in ["help", "h", "?"]:
             payout_table = self._get_payout_table_text()
@@ -549,6 +548,7 @@ class KenoPlugin(BaseGamePlugin):
             logger.warning(f"[Keno] Error adding experience: {e}")
         
         if net_win > 0:
+            record_daily_win(self.cache, user_id, "keno", net_win)
             record_weekly_win(self.cache, user_id, "keno", net_win)
             record_monthly_win(self.cache, user_id, "keno", net_win)
         
@@ -573,7 +573,8 @@ class KenoPlugin(BaseGamePlugin):
                         show_win_text=True,
                         font_scale=0.9,
                         avatar_size=45,
-                        win_text_height=280
+                        win_text_height=280,
+                        lowQuality=low_quality
                     )
                 else:
                     result_path, error = self.generate_animation(
@@ -588,7 +589,8 @@ class KenoPlugin(BaseGamePlugin):
                         show_win_text=True,
                         font_scale=0.9,
                         avatar_size=45,
-                        win_text_height=280
+                        win_text_height=280,
+                        lowQuality=low_quality
                     )
                 
                 if result_path:

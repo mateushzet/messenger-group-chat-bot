@@ -154,10 +154,7 @@ class SlotsPlugin(BaseGamePlugin):
 
         self.cache = cache
         
-        animated = True
-        if len(args) >= 2 and args[-1].lower() == "x":
-            animated = False
-            args = args[:-1]
+        args, animated, low_quality = self.parse_static_quality_flag(args, min_args_before_flag=1)
         
         if len(args) < 1:
             self.send_message_image(sender, file_queue, 
@@ -244,7 +241,8 @@ class SlotsPlugin(BaseGamePlugin):
             show_bet_amount=True,
             win_text_scale=0.6,
             win_text_height=110,
-            final_frames_start_index=90
+            final_frames_start_index=90,
+            lowQuality=low_quality,
         )
         
         if error or not result_path:

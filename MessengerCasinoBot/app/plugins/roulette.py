@@ -336,10 +336,7 @@ class RoulettePlugin(BaseGamePlugin):
                         "Error sending help image!", "Roulette - Error", cache, None)
             return None
 
-        animated = True
-        if len(args) >= 3 and args[-1].lower() == "x":
-            animated = False
-            args = args[:-1]
+        args, animated, low_quality = self.parse_static_quality_flag(args, min_args_before_flag=2)
 
         if len(args) < 2:
             self.send_message_image(sender, file_queue, 
@@ -451,7 +448,8 @@ class RoulettePlugin(BaseGamePlugin):
             },
             show_win_text=True,
             font_scale=1.2,
-            avatar_size=90
+            avatar_size=90,
+            lowQuality=low_quality
         )
         
         self.add_to_history(result_number)

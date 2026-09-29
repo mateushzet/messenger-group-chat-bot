@@ -172,10 +172,7 @@ class Roulette2Plugin(BaseGamePlugin):
             )
             return None
 
-        animated = True
-        if len(args) >= 3 and args[-1].lower() == "x":
-            animated = False
-            args = args[:-1]
+        args, animated, low_quality = self.parse_static_quality_flag(args, min_args_before_flag=2)
 
         if len(args) < 2:
             self.send_message_image(sender, file_queue, "Usage: /roulette2 <amount> <bet>", "Roulette2 - Invalid Usage", cache, None)
@@ -261,6 +258,7 @@ class Roulette2Plugin(BaseGamePlugin):
             win_text_height=34,
             win_text_scale=0.72,
             quality=68,
+            lowQuality=low_quality,
         )
 
         self.add_to_history(result)

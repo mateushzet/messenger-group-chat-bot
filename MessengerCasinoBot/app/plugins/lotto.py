@@ -213,12 +213,16 @@ class LottoPlugin(BaseGamePlugin):
         self.cache = cache
         
         animated = True
+        low_quality = False
         multi_game_count = 1
         
         if args:
             last_arg = args[-1].lower()
             if last_arg == "x":
                 animated = False
+                args = args[:-1]
+            elif last_arg == "xx":
+                low_quality = True
                 args = args[:-1]
             elif last_arg.startswith("x"):
                 try:
@@ -341,7 +345,8 @@ class LottoPlugin(BaseGamePlugin):
                 show_win_text=True,
                 font_scale=0.8,
                 avatar_size=75,
-                win_text_height=50
+                win_text_height=50,
+                lowQuality=low_quality
             )
             
             if error:

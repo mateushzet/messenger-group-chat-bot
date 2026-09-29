@@ -10,6 +10,7 @@ from logger import logger
 from plugins.monthly import record_monthly_win
 from plugins.dailyquest import record_daily_win
 
+
 class FifaPackOpeningPlugin(BaseGamePlugin):
 
     PACK_SIZE = 5
@@ -22,8 +23,8 @@ class FifaPackOpeningPlugin(BaseGamePlugin):
     def _cards_root(self) -> Path:
         return Path(__file__).resolve().parent.parent / "assets" / "fifa" / "cards"
 
-    def _results_dir(self) -> Path:
-        return Path(__file__).resolve().parent.parent / "results"
+    def _temp_dir(self) -> Path:
+        return Path(__file__).resolve().parent.parent / "assets" / "temp"
 
     def _coins_icon_path(self) -> Path:
         return Path(__file__).resolve().parent.parent / "assets" / "fifa" / "fifa_coins.png"
@@ -46,7 +47,7 @@ class FifaPackOpeningPlugin(BaseGamePlugin):
         idx = name.lower().rfind(marker)
         if idx < 0:
             return 0
-        tail = name[idx + len(marker) :]
+        tail = name[idx + len(marker):]
         num = ""
         for ch in tail:
             if ch.isdigit():
@@ -58,7 +59,7 @@ class FifaPackOpeningPlugin(BaseGamePlugin):
         except Exception:
             return 0
 
-    def _load_and_resize_cards(self, paths: List[Path], target_h: int = 180) -> List[Image.Image]:  # Zmniejszone z 360 na 180
+    def _load_and_resize_cards(self, paths: List[Path], target_h: int = 180) -> List[Image.Image]:
         images: List[Image.Image] = []
         for p in paths:
             try:
@@ -98,7 +99,6 @@ class FifaPackOpeningPlugin(BaseGamePlugin):
         slot = Image.new("RGBA", (cell_w, cell_h), (255, 255, 255, 0))
         try:
             from PIL import ImageDraw
-
             d = ImageDraw.Draw(slot)
             d.rounded_rectangle([0, 0, cell_w - 1, cell_h - 1], radius=18, outline=(220, 220, 230, 80), width=3, fill=(255, 255, 255, 20))
         except Exception:
@@ -110,7 +110,7 @@ class FifaPackOpeningPlugin(BaseGamePlugin):
                 y0 = pad + r * (cell_h + pad)
                 canvas.alpha_composite(slot, (x0, y0))
 
-    def _load_coins_icon(self, target_h: int = 20) -> Optional[Image.Image]:  # Zmniejszone z 22 na 20
+    def _load_coins_icon(self, target_h: int = 20) -> Optional[Image.Image]:
         p = self._coins_icon_path()
         if not p.exists():
             return None
@@ -130,7 +130,7 @@ class FifaPackOpeningPlugin(BaseGamePlugin):
         pos: Tuple[int, int],
         price: int,
         coin_icon: Optional[Image.Image],
-        pad: int = 5,  # Zmniejszone z 10 na 5
+        pad: int = 5,
     ):
         x, y = pos
         if not self.text_renderer:
@@ -240,7 +240,7 @@ class FifaPackOpeningPlugin(BaseGamePlugin):
                     max(0, best_card.height - 10),
                 )
             )
-            max_w = int(round(base_w* 0.9))
+            max_w = int(round(base_w * 0.9))
             max_h = int(round(base_h * 0.7))
         except Exception:
             strip = None
@@ -341,7 +341,7 @@ class FifaPackOpeningPlugin(BaseGamePlugin):
         if not frames:
             return None
 
-        out_dir = self._results_dir()
+        out_dir = self._temp_dir()
         out_dir.mkdir(parents=True, exist_ok=True)
         out_path = out_dir / f"fifa_pack_{pack_name}_{random.randint(1000, 9999)}.webp"
         try:
@@ -362,7 +362,9 @@ class FifaPackOpeningPlugin(BaseGamePlugin):
         return (
             "PACK OPENING\n\n"
             "Commands:\n"
-            "• /fifa open\n\n"
+            "• /fifa open       — animated\n"
+            "• /fifa open x     — static (last frame)\n"
+            "• /fifa open xx    — low quality / low resolution\n\n"
             "Cost: 2000"
         )
 
@@ -381,6 +383,19 @@ class FifaPackOpeningPlugin(BaseGamePlugin):
         if sub not in ("open", "o"):
             self.send_message_image(sender, file_queue, self._usage(), "FIFA - Pack Opening", cache, None)
             return ""
+
+        # --- Parsowanie sufiksu x / xx ---
+        mode = "normal"          # "normal" | "static" | "lowres"
+        if len(args) >= 2:
+            suffix = args[1].lower().strip()
+            if suffix == "x":
+                mode = "static"
+            elif suffix == "xx":
+                mode = "lowres"
+
+        animated = (mode != "static")
+        low_quality = (mode == "lowres")
+        # ---------------------------------
 
         count = self.PACK_SIZE
         pack_cost = self.PACK_COST
@@ -423,14 +438,15 @@ class FifaPackOpeningPlugin(BaseGamePlugin):
 
         user_info_before = self.create_user_info(sender, pack_cost, 0, balance_before, user)
         user_info_after = self.create_user_info(sender, pack_cost, net, new_balance, user)
-        
+
         result_path, error = self.generate_animation(
             base_animation_path=out,
             user_id=user_id,
             user=user,
             user_info_before=user_info_before,
             user_info_after=user_info_after,
-            animated=True,
+            animated=animated,
+            lowQuality=low_quality,
             frame_duration=100,
             last_frame_multiplier=30,
             show_win_text=True,

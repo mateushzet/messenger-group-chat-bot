@@ -931,10 +931,7 @@ class WheelPlugin(BaseGamePlugin):
     def execute_game(self, command_name, args, file_queue, cache=None, sender=None, avatar_url=None):
         self.cache = cache
 
-        animated = True
-        if args and args[-1].lower() == "x":
-            animated = False
-            args = args[:-1]
+        args, animated, low_quality = self.parse_static_quality_flag(args)
 
         bet, error = self.parse_bet(args)
         if error:
@@ -1088,6 +1085,7 @@ class WheelPlugin(BaseGamePlugin):
                 show_bet_amount=True,
                 overlay_position="bottom",
                 quality=88,
+                lowQuality=low_quality,
             )
             if error or not result_path:
                 raise RuntimeError(error or "Animation generation failed")

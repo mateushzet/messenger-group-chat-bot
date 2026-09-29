@@ -439,11 +439,7 @@ class PlinkoPlugin(BaseGamePlugin):
             return None
         
         ball_count = 1
-        animated = True
-        
-        if len(args) >= 2 and args[-1].lower() == "x":
-            animated = False
-            args = args[:-1]
+        args, animated, low_quality = self.parse_static_quality_flag(args, min_args_before_flag=1)
         
         if len(args) >= 3 and args[-1].isdigit():
             ball_count = int(args[-1])
@@ -563,7 +559,8 @@ class PlinkoPlugin(BaseGamePlugin):
             win_text_scale=0.7,
             avatar_size=65,
             win_text_height=150,
-            overlay_position = 'top'
+            overlay_position = 'top',
+            lowQuality=low_quality
         )
         
         if error or not result_path:

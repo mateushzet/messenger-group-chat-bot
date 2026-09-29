@@ -375,6 +375,23 @@ class SnakesPlugin(BaseGamePlugin):
             )
             return
 
+        low_quality = False
+        if args[-1].lower() == "xx":
+            low_quality = True
+            args = args[:-1]
+
+        if not args:
+            help_text = "SNAKES GAME\n\nUse:\n/sn <bet> [difficulty]\n/sn roll [xx]\n/sn cashout [xx]"
+            self.send_message_image(
+                nickname=sender_display,
+                file_queue=file_queue,
+                message=help_text,
+                title="Snakes - Help",
+                cache=cache,
+                user_id=user_id,
+            )
+            return
+
         sub = args[0].lower()
 
         if sub in ("roll", "r"):
@@ -460,7 +477,8 @@ class SnakesPlugin(BaseGamePlugin):
                     show_win_text=True,
                     win_text_height=5,
                     font_scale=0.7,
-                    avatar_size=45
+                    avatar_size=45,
+                    lowQuality=low_quality
                 )
                 
                 if result_path:
@@ -501,7 +519,8 @@ class SnakesPlugin(BaseGamePlugin):
                     show_win_text=True,
                     win_text_height=5,
                     font_scale=0.7,
-                    avatar_size=45
+                    avatar_size=45,
+                    lowQuality=low_quality
                 )
                 
                 if result_path:
@@ -523,7 +542,8 @@ class SnakesPlugin(BaseGamePlugin):
                 last_frame_multiplier=20,
                 show_win_text=False,
                 font_scale=0.7,
-                avatar_size=45
+                avatar_size=45,
+                lowQuality=low_quality
             )
             
             if result_path:
@@ -604,7 +624,8 @@ class SnakesPlugin(BaseGamePlugin):
                     show_win_text=True,
                     win_text_height=5,
                     font_scale=0.7,
-                    avatar_size=45
+                    avatar_size=45,
+                    lowQuality=low_quality
                 )
                 
                 if result_path:
@@ -737,7 +758,8 @@ class SnakesPlugin(BaseGamePlugin):
                 show_win_text=True,
                 win_text_height=5,
                 font_scale=0.7,
-                avatar_size=45
+                avatar_size=45,
+                lowQuality=low_quality
             )
             
             if result_path:
@@ -773,7 +795,8 @@ class SnakesPlugin(BaseGamePlugin):
                 show_win_text=True,
                 win_text_height=5,
                 font_scale=0.7,
-                avatar_size=45
+                avatar_size=45,
+                lowQuality=low_quality
             )
             
             if result_path:
@@ -795,7 +818,8 @@ class SnakesPlugin(BaseGamePlugin):
             last_frame_multiplier=20,
             show_win_text=False,
             font_scale=0.7,
-            avatar_size=45
+            avatar_size=45,
+            lowQuality=low_quality
         )
         
         if result_path:
