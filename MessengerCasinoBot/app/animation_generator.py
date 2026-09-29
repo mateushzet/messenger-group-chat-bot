@@ -26,6 +26,7 @@ class GenerationOptions:
     final_frames_start_index: int = -1
     win_text_scale: int = -1
     overlay_position: str = 'bottom'
+    lowQuality: bool = False
 
     @classmethod
     def from_kwargs(cls, **kwargs) -> 'GenerationOptions':
@@ -557,6 +558,15 @@ class AnimationGenerator:
 
             output_path = request.get_effective_output_path(output_dir)
 
+            if options.lowQuality:
+                processed_frames = [
+                    frame.resize(
+                        (max(1, frame.width // 2), max(1, frame.height // 2)),
+                        Image.Resampling.LANCZOS
+                    )
+                    for frame in processed_frames
+                ]
+
             if options.animated:
                 success = self._save_animation(processed_frames, output_path, options)
             else:
@@ -989,7 +999,8 @@ class AnimationGenerator:
                 append_images=frames[1:],
                 duration=durations_to_use,
                 loop=0,
-                quality=options.quality
+                quality=50 if options.lowQuality else options.quality,
+                method=0 if options.lowQuality else 4,
             )
             return True
         except Exception as e:

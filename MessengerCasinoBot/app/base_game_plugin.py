@@ -36,6 +36,21 @@ class BaseGamePlugin:
     
     def get_custom_overlay(self, **kwargs) -> Optional[Dict]:
         return None
+
+    def parse_static_quality_flag(self, args: List[str], min_args_before_flag: int = 0) -> Tuple[List[str], bool, bool]:
+        animated = True
+        low_quality = False
+
+        if len(args) > min_args_before_flag:
+            flag = args[-1].lower()
+            if flag == "x":
+                animated = False
+                args = args[:-1]
+            elif flag == "xx":
+                low_quality = True
+                args = args[:-1]
+
+        return args, animated, low_quality
     
     def _find_plugin_path(self, plugin_name: str) -> Optional[str]:
         possible_paths = [
@@ -117,7 +132,7 @@ class BaseGamePlugin:
                          last_frame_multiplier=1.0, custom_overlay_kwargs=None, 
                          show_win_text=True, font_scale=1.0, avatar_size=85, 
                          show_bet_amount=True, win_text_height=-1, final_frames_start_index=-1,
-                         win_text_scale=-1, overlay_position="bottom", quality=90):
+                         win_text_scale=-1, overlay_position="bottom", quality=90, lowQuality=False):
         
         item_effects = self._get_user_effects(user_id)
         
@@ -174,7 +189,8 @@ class BaseGamePlugin:
             final_frames_start_index=final_frames_start_index,
             win_text_scale=win_text_scale,
             overlay_position=overlay_position,
-            quality=quality
+            quality=quality,
+            lowQuality=lowQuality
         )
         
         request = GenerationRequest(
