@@ -39,6 +39,7 @@ class AdminPlugin(BaseGamePlugin):
                             "9. buycoins <user_id> <amount_pln> <pool_percent> - Manual coin purchase\n" \
                             "10. kill - Stop the bot\n" \
                             "11. restart - Restart the bot\n\n" \
+                            "12. mergeUsers <source_id> into <target_id> - Remove duplicate, refresh avatar_url\n"
                             "Admin access only",
                             "Admin Commands", cache, None)
             return ""
@@ -105,7 +106,7 @@ class AdminPlugin(BaseGamePlugin):
                     self.send_message_image(sender, file_queue, f"ERROR: {message}", "Admin - Error", cache, None)
                 return ""
                 
-            elif subcommand == "listusers":
+            elif subcommand == "listusers" or subcommand == "users":
                 users_text = self.list_users(cache)
                 self.send_message_image(sender, file_queue, users_text, "Admin - User List", cache, None)
                 return ""
@@ -365,6 +366,68 @@ class AdminPlugin(BaseGamePlugin):
             elif subcommand == "screenshot":
                 file_queue.put("TAKE_SCREENSHOT")
                 return ""
+
+            elif subcommand == "mergeusers":
+                if len(args) < 4:
+                    self.send_message_image(
+                        sender, file_queue,
+                        "Usage: /admin mergeUsers <source_id> into <target_id>\n\n"
+                        "Example: /admin mergeUsers 17 into 1",
+                        "Admin - Merge Users", cache, None
+                    )
+                    return ""
+
+                if args[2].lower() != "into":
+                    self.send_message_image(
+                        sender, file_queue,
+                        f"Missing 'into' keyword!\n\n"
+                        f"Usage: /admin mergeUsers <source_id> into <target_id>\n"
+                        f"Example: /admin mergeUsers 17 into 1",
+                        "Admin - Merge Users", cache, None
+                    )
+                    return ""
+
+                source_id = args[1]
+                target_id = args[3]
+
+                if not source_id.isdigit() or not target_id.isdigit():
+                    self.send_message_image(
+                        sender, file_queue,
+                        "Both IDs must be numeric.",
+                        "Admin - Merge Users", cache, None
+                    )
+                    return ""
+
+                source_data = cache.users.get(str(source_id))
+                target_data = cache.users.get(str(target_id))
+
+                if not source_data:
+                    self.send_message_image(
+                        sender, file_queue,
+                        f"Source user {source_id} not found.",
+                        "Admin - Merge Users", cache, None
+                    )
+                    return ""
+                if not target_data:
+                    self.send_message_image(
+                        sender, file_queue,
+                        f"Target user {target_id} not found.",
+                        "Admin - Merge Users", cache, None
+                    )
+                    return ""
+
+                source_name = source_data.get("name", "unknown")
+                target_name = target_data.get("name", "unknown")
+
+                success, message = self.merge_users(user_manager, source_id, target_id)
+
+                if success:
+                    logger.info(f"[Admin] mergeUsers by {sender}: {source_id} → {target_id}")
+                    self.send_message_image(sender, file_queue, message, "Admin - Merge Users", cache, None)
+                else:
+                    logger.error(f"[Admin] mergeUsers failed: {message}")
+                    self.send_message_image(sender, file_queue, f"ERROR: {message}", "Admin - Merge Users", cache, None)
+                return ""
             
             else:
                 self.send_message_image(sender, file_queue, 
@@ -584,6 +647,67 @@ Created: {created_at}
             logger.error(f"[Admin] Error in admin_buy_coins: {e}", exc_info=True)
             return False, f"Error: {e}"
 
+    def merge_users(self, user_manager, source_id, target_id):
+        users = user_manager.cache.users
+
+        source_id = str(source_id)
+        target_id = str(target_id)
+
+        if source_id == target_id:
+            return False, "Source and target are the same user"
+
+        if source_id not in users:
+            return False, f"Source user {source_id} not found"
+        if target_id not in users:
+            return False, f"Target user {target_id} not found"
+
+        source = users[source_id]
+        target = users[target_id]
+
+        new_avatar_url = source.get("avatar_url")
+        source_name = source.get("name", "unknown")
+        target_name = target.get("name", "unknown")
+
+        if new_avatar_url:
+            target["avatar_url"] = new_avatar_url
+
+        import os
+        import shutil
+        avatars_folder = self.get_asset_path("avatars")
+        src_default = os.path.join(avatars_folder, f"default_{source_id}.png")
+        tgt_default = os.path.join(avatars_folder, f"default_{target_id}.png")
+        copied = False
+        if os.path.exists(src_default):
+            try:
+                shutil.copy2(src_default, tgt_default)
+                copied = True
+            except Exception as e:
+                logger.warning(f"[Admin] merge_users: could not copy default avatar: {e}")
+
+        del users[source_id]
+
+        try:
+            if os.path.exists(src_default):
+                os.remove(src_default)
+        except Exception as e:
+            logger.warning(f"[Admin] merge_users: could not remove {src_default}: {e}")
+
+        user_manager.cache.save_to_disk()
+
+        logger.critical(
+            f"[Admin] merge_users: {source_id} ({source_name}) -> {target_id} ({target_name}), "
+            f"avatar_url updated, default copied={copied}"
+        )
+
+        return True, (
+            f"Merged users\n"
+            f"----------------\n"
+            f"Source: ID {source_id} ({source_name}) - REMOVED\n"
+            f"Target: ID {target_id} ({target_name})\n"
+            f"avatar_url updated: {'YES' if new_avatar_url else 'NONE'}\n"
+            f"default_{target_id}.png overwritten: {'YES' if copied else 'NO'}\n"
+        )
+
 def register():
     plugin = AdminPlugin()
     return {
@@ -598,6 +722,7 @@ def register():
                     "/admin listUsers - List all users (detailed)\n" \
                     "/admin resetAvatar <user_id> - Mark user avatar for update\n" \
                     "/admin buycoins <user_id> <amount_pln> <pool_percent> - Manual coin purchase\n" \
+                    "/admin mergeUsers <source_id> into <target_id> - Remove duplicate, refresh avatar_url\n" \
                     "/admin kill - Stop the bot\n" \
                     "/admin restart - Restart the bot",
         "execute": plugin.execute
