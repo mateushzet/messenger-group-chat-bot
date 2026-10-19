@@ -957,7 +957,7 @@ class HiLoPlugin(BaseGamePlugin):
 
         cmd = args[0].lower()
 
-        if cmd in ("start", "play", "bet"):
+        if cmd in ("start", "play", "bet", "b"):
             if len(args) < 2:
                 self._notify_usage(sender, file_queue, cache, None)
                 return ""
@@ -1101,7 +1101,7 @@ class HiLoPlugin(BaseGamePlugin):
             
             return f" Correct guess! Streak: {game.streak} | Multiplier: x{game.get_multiplier():.2f}"
 
-        if cmd in ("collect", "cashout", "stop", "bank"):
+        if cmd in ("collect", "cashout", "c", "stop", "stand"):
             user_id, user, error = self.validate_user(cache, sender, avatar_url)
             if error:
                 self.send_message_image(sender, file_queue, error, "Hi-Lo Error", cache, user_id)
