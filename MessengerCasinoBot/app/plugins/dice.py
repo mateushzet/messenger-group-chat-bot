@@ -12,12 +12,12 @@ from plugins.dailyquest import record_daily_win
 
 DICE_MULTIPLIERS = {
     "five_of_a_kind": 10,
+    "straight": 6,
     "four_of_a_kind": 3,
-    "straight": 3,
     "full_house": 2,
-    "three_of_a_kind": 0.5,
-    "two_pair": 0,
-    "one_pair": 0,
+    "three_of_a_kind": 0.4,
+    "two_pair": 0.2,
+    "one_pair": 0.1,
     "high_card": 0
 }
 
@@ -203,13 +203,13 @@ class DiceAnimationGenerator:
         }
         
         self.table_data = [
-            ("five_of_a_kind", "Five of a Kind", "x9"),
+            ("five_of_a_kind", "Five of a Kind", "x10"),
+            ("straight", "Straight", "x6"),
             ("four_of_a_kind", "Four of a Kind", "x3"),
-            ("straight", "Straight", "x3"),
             ("full_house", "Full House", "x2"),
-            ("three_of_a_kind", "Three of a Kind", "x0.5"),
-            ("two_pair", "Two Pair", "x0"),
-            ("one_pair", "One Pair", "x0"),
+            ("three_of_a_kind", "Three of a Kind", "x.4"),
+            ("two_pair", "Two Pair", "x.2"),
+            ("one_pair", "One Pair", "x.1"),
             ("high_card", "High Card", "x0")
         ]
     
@@ -669,13 +669,13 @@ class DicePlugin(BaseGamePlugin):
             "Roll 5 dice and get a winning combination!\n"
             "You have 1 reroll or you can cashout\n\n"
             "Multipliers:\n"
-            "Five of a Kind: x9\n"
+            "Five of a Kind: x10\n"
+            "Straight: x6\n"
             "Four of a Kind: x3\n"
-            "Straight: x3\n"
             "Full House: x2\n"
-            "Three of a Kind: x0.5\n"
-            "Two Pair: x0\n"
-            "One Pair: x0\n"
+            "Three of a Kind: x0.4\n"
+            "Two Pair: x0.2\n"
+            "One Pair: x0.1\n"
             "High Card: x0\n\n"
             "Commands:\n"
             "/dice bet <amount> - Roll dice with bet\n"
@@ -1102,6 +1102,6 @@ def register():
     return {
         "name": "dice",
         "aliases": ["/d", "/dices"],
-        "description": "Roll dice and win multipliers - five of a kind x9, four of a kind x3, full house x2, straight x3, three of a kind x0.5, two pair x0, one pair x0",
+        "description": "Roll dice and win multipliers - five of a kind x10, four of a kind x3, full house x2, straight x6, three of a kind x0.4, two pair x0.2, one pair x0.1",
         "execute": plugin.execute_game
     }
