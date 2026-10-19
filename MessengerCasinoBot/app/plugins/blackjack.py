@@ -1023,6 +1023,7 @@ class BlackjackGame:
         
         return game_state
 
+
 class BlackjackPlugin(BaseGamePlugin):
     def __init__(self):
         super().__init__(game_name="blackjack")
@@ -1034,6 +1035,113 @@ class BlackjackPlugin(BaseGamePlugin):
             self.table_generator.load_elements(self.elements_folder, self.elements_folder)
         except Exception as e:
             logger.error(f"[BlackJack] Failed to load blackjack elements: {e}")
+
+    def _get_autostand(self, user_id):
+        user_id = str(user_id)
+        if not (hasattr(self, 'cache') and self.cache):
+            return False
+        try:
+            if hasattr(self.cache, 'get_user_preferences'):
+                prefs = self.cache.get_user_preferences(user_id)
+                if isinstance(prefs, dict):
+                    return bool(prefs.get('blackjack_autostand', False))
+            if hasattr(self.cache, 'get_user_setting'):
+                val = self.cache.get_user_setting(user_id, 'blackjack_autostand')
+                return bool(val) if val is not None else False
+            if hasattr(self.cache, 'get_user'):
+                user = self.cache.get_user(user_id)
+                if isinstance(user, dict):
+                    return bool(user.get('blackjack_autostand', False))
+        except Exception as e:
+            logger.warning(f"[BlackJack] Failed to read autostand pref: {e}")
+        return False
+
+    def _set_autostand(self, user_id, value):
+        user_id = str(user_id)
+        value = bool(value)
+        if not (hasattr(self, 'cache') and self.cache):
+            return False
+        try:
+            if hasattr(self.cache, 'get_user_preferences') and hasattr(self.cache, 'set_user_preferences'):
+                prefs = self.cache.get_user_preferences(user_id) or {}
+                if not isinstance(prefs, dict):
+                    prefs = {}
+                prefs['blackjack_autostand'] = value
+                self.cache.set_user_preferences(user_id, prefs)
+                return True
+            if hasattr(self.cache, 'set_user_setting'):
+                self.cache.set_user_setting(user_id, 'blackjack_autostand', value)
+                return True
+            if hasattr(self.cache, 'update_user'):
+                user = self.cache.get_user(user_id) or {}
+                user['blackjack_autostand'] = value
+                self.cache.update_user(user_id, user)
+                return True
+        except Exception as e:
+            logger.warning(f"[BlackJack] Failed to save autostand pref: {e}")
+        return False
+
+    def _apply_autostand(self, game, user_id):
+        if not self._get_autostand(user_id):
+            return False
+        
+        if game.game_status != "player_turn":
+            return False
+        
+        did_something = False
+        max_iterations = 10
+        
+        while max_iterations > 0:
+            max_iterations -= 1
+            
+            if game.game_status != "player_turn":
+                break
+            
+            current_status = game._get_current_hand_status()
+            if current_status != "active":
+                break
+            
+            current_points = game._get_current_hand_points()
+            
+            if current_points >= 18:
+                game.stand()
+                did_something = True
+            else:
+                break
+        
+        return did_something
+
+    def _finalize_game_if_finished(self, user_id, game, sender, file_queue):
+        if game.game_status != "finished":
+            return 0, None
+        
+        user = self.cache.get_user(user_id)
+        if not user:
+            self.active_games.pop(user_id, None)
+            if hasattr(self, 'cache') and self.cache:
+                self.cache.save_game_state(user_id, self.game_name, None)
+            return 0, None
+        
+        win_amount = game.calculate_win_amount()
+        final_balance = user["balance"] + win_amount
+        self.update_user_balance(user_id, final_balance)
+        
+        new_level, new_progress = self.cache.add_experience(user_id, win_amount, sender, file_queue)
+        user["level"] = new_level
+        user["level_progress"] = new_progress
+        
+        total_bets = sum(game.hand_bets) if getattr(game, "hand_bets", None) else game.bet
+        net_profit = win_amount - total_bets
+        if net_profit > 0:
+            record_daily_win(self.cache, user_id, "blackjack", net_profit)
+            record_weekly_win(self.cache, user_id, "blackjack", net_profit)
+            record_monthly_win(self.cache, user_id, "blackjack", net_profit)
+        
+        self.active_games.pop(user_id, None)
+        if hasattr(self, 'cache') and self.cache:
+            self.cache.save_game_state(user_id, self.game_name, None)
+        
+        return win_amount, final_balance
 
     def load_game_state(self, user_id):
         user_id = str(user_id)
@@ -1224,9 +1332,16 @@ class BlackjackPlugin(BaseGamePlugin):
             
             existing_game = self.load_game_state(user_id)
             if existing_game or user_id in self.active_games:
-                self.send_message_image(sender, file_queue, "You already have an active game! Use /bj to see status.", 
-                                    "Blackjack Error", cache, user_id)
-                return ""
+                game_to_check = existing_game or self.active_games.get(user_id)
+                if game_to_check and game_to_check.game_status == "finished":
+                    logger.warning(f"[BlackJack] Cleaning up stale finished game for {user_id}")
+                    self.active_games.pop(user_id, None)
+                    if hasattr(self, 'cache') and self.cache:
+                        self.cache.save_game_state(user_id, self.game_name, None)
+                else:
+                    self.send_message_image(sender, file_queue, "You already have an active game! Use /bj to see status.", 
+                                        "Blackjack Error", cache, user_id)
+                    return ""
             
             balance_before = user["balance"]
             
@@ -1245,27 +1360,37 @@ class BlackjackPlugin(BaseGamePlugin):
             
             logger.info(f"[BlackJack] New blackjack game started for {sender}, bet: {bet}, balance: {balance_before} -> {new_balance}")
             
-            is_game_finished = game.game_status in ["player_blackjack", "push"]
+            if game.game_status == "player_turn":
+                self._apply_autostand(game, user_id)
+            
+            is_game_finished = game.game_status in ["finished", "player_blackjack", "push"]
             win_amount = 0
             final_balance = new_balance
             
             if is_game_finished:
-                win_amount = game.calculate_win_amount()
-                if win_amount > 0:
-                    final_balance = new_balance + win_amount
-                    self.update_user_balance(user_id, final_balance)
-                
-                newLevel, newLevelProgress = self.cache.add_experience(user_id, win_amount, sender, file_queue)
-                user["level"] = newLevel
-                user["level_progress"] = newLevelProgress
-                
-                net_profit = win_amount - bet
-                if net_profit > 0:
-                    record_daily_win(self.cache, user_id, "blackjack", net_profit)
-                    record_weekly_win(self.cache, user_id, "blackjack", net_profit)
-                    record_monthly_win(self.cache, user_id, "blackjack", net_profit)
-                
-                self.active_games.pop(user_id, None)
+                if game.game_status == "finished":
+                    win_amount, final_balance = self._finalize_game_if_finished(user_id, game, sender, file_queue)
+                    if final_balance is None:
+                        final_balance = new_balance
+                else:
+                    win_amount = game.calculate_win_amount()
+                    if win_amount > 0:
+                        final_balance = new_balance + win_amount
+                        self.update_user_balance(user_id, final_balance)
+                    
+                    newLevel, newLevelProgress = self.cache.add_experience(user_id, win_amount, sender, file_queue)
+                    user["level"] = newLevel
+                    user["level_progress"] = newLevelProgress
+                    
+                    net_profit = win_amount - bet
+                    if net_profit > 0:
+                        record_daily_win(self.cache, user_id, "blackjack", net_profit)
+                        record_weekly_win(self.cache, user_id, "blackjack", net_profit)
+                        record_monthly_win(self.cache, user_id, "blackjack", net_profit)
+                    
+                    self.active_games.pop(user_id, None)
+                    if hasattr(self, 'cache') and self.cache:
+                        self.cache.save_game_state(user_id, self.game_name, None)
             else:
                 self.save_game_state(user_id, game)
             
@@ -1276,6 +1401,13 @@ class BlackjackPlugin(BaseGamePlugin):
                     return f"**BLACKJACK!**\nYou won {win_amount} ({bet} × 2.5)!"
                 elif game.game_status == "push":
                     return f"**Push!** Both have Blackjack!\nYour bet of {bet} is returned."
+                elif game.game_status == "finished":
+                    if win_amount > 0:
+                        total_bets = sum(game.hand_bets) if getattr(game, "hand_bets", None) else game.bet
+                        actual_profit = win_amount - total_bets
+                        return f"Autostand! {game.message}\nTotal profit: +{actual_profit}$"
+                    else:
+                        return f"Autostand! {game.message}"
                 else:
                     return f"Game finished! {game.message}"
             else:
@@ -1309,16 +1441,29 @@ class BlackjackPlugin(BaseGamePlugin):
                 self.send_message_image(sender, file_queue, "Cannot split this hand!", "Blackjack Error", cache, user_id)
                 return ""
             
+            if game.game_status == "player_turn":
+                self._apply_autostand(game, user_id)
+            
             new_balance = user["balance"] - game.bet
             self.update_user_balance(user_id, new_balance)
             user["balance"] = new_balance
             
-            self.save_game_state(user_id, game)
+            win_amount = 0
+            final_balance = new_balance
+            
+            if game.game_status == "finished":
+                win_amount, final_balance = self._finalize_game_if_finished(user_id, game, sender, file_queue)
+                if final_balance is None:
+                    final_balance = new_balance
+            else:
+                self.save_game_state(user_id, game)
             
             user = self.cache.get_user(user_id)
-            self._send_game_image(user_id, user, sender, game, file_queue)
+            self._send_game_image(user_id, user, sender, game, file_queue, win_amount, final_balance)
             
-            return "Split successful! Now playing hand 1."
+            if game.game_status == "finished":
+                return f"Split + Autostand! {game.message}"
+            return "Split successful!"
 
         elif cmd in ["hit", "h", "stand", "s", "double", "d"]:
             user_id, user, error = self.validate_user(cache, sender, avatar_url)
@@ -1343,6 +1488,10 @@ class BlackjackPlugin(BaseGamePlugin):
             if cmd == "hit" or cmd == "h":
                 action_completed = game.hit()
                 action_msg = "Hit"
+                
+                if action_completed and game.game_status == "player_turn":
+                    if self._apply_autostand(game, user_id):
+                        action_msg = "Hit → Autostand"
                 
             elif cmd == "stand" or cmd == "s":
                 action_completed = game.stand()
@@ -1382,38 +1531,21 @@ class BlackjackPlugin(BaseGamePlugin):
                 self.send_message_image(sender, file_queue, "Cannot perform this action now!", "Blackjack Error", cache, user_id)
                 return ""
             
-            self.save_game_state(user_id, game)
-            
-            is_game_finished = game.game_status == "finished"
-            win_amount = 0
-            final_balance = user["balance"] if user else 0
-            
-            if is_game_finished:
-                win_amount = game.calculate_win_amount()
+            if game.game_status == "finished":
+                win_amount, final_balance = self._finalize_game_if_finished(user_id, game, sender, file_queue)
+                if final_balance is None:
+                    user = self.cache.get_user(user_id)
+                    final_balance = user["balance"] if user else 0
+            else:
+                win_amount = 0
                 user = self.cache.get_user(user_id)
-                if user:
-                    final_balance = user["balance"] + win_amount
-                    self.update_user_balance(user_id, final_balance)
-                    
-                    new_level, new_progress = self.cache.add_experience(user_id, win_amount, sender, file_queue)
-                    user["level"] = new_level
-                    user["level_progress"] = new_progress
-                    
-                    total_bets = sum(game.hand_bets) if getattr(game, "hand_bets", None) else game.bet
-                    net_profit = win_amount - total_bets
-                    if net_profit > 0:
-                        record_daily_win(self.cache, user_id, "blackjack", net_profit)
-                        record_weekly_win(self.cache, user_id, "blackjack", net_profit)
-                        record_monthly_win(self.cache, user_id, "blackjack", net_profit)
-                
-                self.active_games.pop(user_id, None)
-                if hasattr(self, 'cache') and self.cache:
-                    self.cache.save_game_state(user_id, self.game_name, None)
+                final_balance = user["balance"] if user else 0
+                self.save_game_state(user_id, game)
             
             user = self.cache.get_user(user_id)
             self._send_game_image(user_id, user, sender, game, file_queue, win_amount, final_balance)
             
-            if is_game_finished:
+            if game.game_status == "finished":
                 if win_amount > 0:
                     total_bets = sum(game.hand_bets) if getattr(game, "hand_bets", None) else game.bet
                     actual_profit = win_amount - total_bets
@@ -1423,10 +1555,61 @@ class BlackjackPlugin(BaseGamePlugin):
             else:
                 return f"{action_msg}! {game.message}"
 
+        elif cmd in ["autostand", "as"]:
+            user_id, user, error = self.validate_user(cache, sender, avatar_url)
+            if error:
+                self.send_message_image(sender, file_queue, error, "Blackjack Error", cache, user_id)
+                return ""
+            
+            if len(args) < 2:
+                status = "ON" if self._get_autostand(user_id) else "OFF"
+                self.send_message_image(sender, file_queue, 
+                    f"Autostand is currently: **{status}**\n\nUsage: /bj autostand <on|off>", 
+                    "Blackjack Autostand", cache, user_id)
+                return f"Autostand is {status}"
+            
+            setting = args[1].lower()
+            if setting in ["on", "true", "1", "yes"]:
+                self._set_autostand(user_id, True)
+                
+                game = self.active_games.get(user_id) or self.load_game_state(user_id)
+                extra_msg = ""
+                if game and game.game_status == "player_turn":
+                    self._apply_autostand(game, user_id)
+                    
+                    if game.game_status == "finished":
+                        win_amount, final_balance = self._finalize_game_if_finished(user_id, game, sender, file_queue)
+                        user = self.cache.get_user(user_id)
+                        self._send_game_image(user_id, user, sender, game, file_queue, win_amount, final_balance)
+                        return f"Autostand **ON** and game finished! {game.message}"
+                    else:
+                        self.save_game_state(user_id, game)
+                        extra_msg = "\n\nZastosowano do aktywnej gry."
+                
+                self.send_message_image(sender, file_queue, 
+                    f"Autostand **ON** - your hand will automatically stand at 18+ points (per user).{extra_msg}", 
+                    "Blackjack Autostand", cache, user_id)
+                return "Autostand **ON** - your hand will automatically stand at 18+ points (per user)."
+            
+            elif setting in ["off", "false", "0", "no"]:
+                self._set_autostand(user_id, False)
+                
+                self.send_message_image(sender, file_queue, 
+                    "Autostand **OFF** - you have full control over your hand.", 
+                    "Blackjack Autostand", cache, user_id)
+                return "Autostand **OFF** - you have full control over your hand."
+            
+            else:
+                self.send_message_image(sender, file_queue, 
+                    "Invalid setting. Use: /bj autostand <on|off>", 
+                    "Blackjack Error", cache, user_id)
+                return ""
+
         else:
-            self.send_message_image(sender, file_queue, "Unknown command. Use: /bj start <bet>, /bj hit, /bj stand, /bj double, /bj split", 
+            self.send_message_image(sender, file_queue, "Unknown command. Use: /bj start <bet>, /bj hit, /bj stand, /bj double, /bj split, /bj autostand <on|off>", 
                                 "Blackjack Error", cache)
             return ""
+
 
 def register():
     logger.info("[BlackJack] Registering Blackjack plugin")
@@ -1434,6 +1617,6 @@ def register():
     return {
         "name": "blackjack",
         "aliases": ["/bj"],
-        "description": "Blackjack Card Game\n\n**Commands:**\n- /bj start <bet> - Start new game\n- /bj hit - Take another card\n- /bj stand - Keep current hand\n- /bj double - Double your bet (on first turn)\n- /bj split - Split your hand (matching cards)\n\n**Payouts:**\n- Blackjack (21): 2.5× bet\n- Normal win: 2× bet\n- Push: Bet returned",
+        "description": "Blackjack Card Game\n\n**Commands:**\n- /bj start <bet> - Start new game\n- /bj hit - Take another card\n- /bj stand - Keep current hand\n- /bj double - Double your bet (on first turn)\n- /bj split - Split your hand (matching cards)\n- /bj autostand <on|off> - Auto-stand at 18+ points (per user)\n\n**Payouts:**\n- Blackjack (21): 2.5× bet\n- Normal win: 2× bet\n- Push: Bet returned",
         "execute": plugin.execute_game
     }
