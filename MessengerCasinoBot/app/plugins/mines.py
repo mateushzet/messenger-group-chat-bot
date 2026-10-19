@@ -481,6 +481,169 @@ class MinesPlugin(BaseGamePlugin):
         else:
             return "\n".join(info_lines)
 
+    def _process_tiles(self, user_id, sender, file_queue, cache, user, tiles_str, balance_before):
+        """Process tile reveals - used for both /mines <tile> and /mines <bet> <bombs> <tiles>"""
+        data = self.active_games.get(user_id)
+        if not data:
+            self.send_message_image(sender, file_queue,
+                                  "No active game found!",
+                                  "Mines - No Game", cache, user_id)
+            return ""
+        
+        game = data["game"]
+        bet = data["bet"]
+        bombs = data["bombs"]
+        
+        try:
+            tiles = [int(t.strip()) for t in tiles_str.split(",")]
+        except ValueError:
+            self.send_message_image(sender, file_queue,
+                                  "Invalid tile format!\n\n"
+                                  "Usage: /mines <tile>\n"
+                                  "Example: /mines 13\n"
+                                  "Multiple tiles: /mines 1,2,3",
+                                  "Mines - Error", cache, user_id)
+            return ""
+        
+        messages = []
+        lost_game = False
+        
+        for t in tiles:
+            if not (1 <= t <= 25):
+                messages.append(f"Tile {t} out of range 1-25.")
+                continue
+                
+            row, col = (t - 1) // 5, (t - 1) % 5
+            
+            safe = game.reveal(row, col)
+            
+            if safe == "already_revealed":
+                messages.append(f"Tile {t} was already revealed!")
+                continue
+            elif safe == "auto_win":
+                messages.append(f"Safe! Tile {t}")
+                messages.append(f"ALL SAFE TILES REVEALED! Automatic cashout!")
+                
+                if user_id in self.active_games:
+                    self.active_games.pop(user_id, None)
+                    self._save_active_games_to_cache()
+                
+                mult = game.get_current_multiplier()
+                win_amount = int(bet * mult)
+                net_win = win_amount - bet
+                new_balance = balance_before + win_amount
+                
+                try:
+                    newLevel, newLevelProgress = self.cache.add_experience(user_id, net_win, sender, file_queue)
+                    user["level"] = newLevel
+                    user["level_progress"] = newLevelProgress
+                except Exception as e:
+                    logger.error(f"[Mines] Error adding experience for win: {e}")
+                
+                try:
+                    self.update_user_balance(user_id, new_balance)
+                except Exception as e:
+                    logger.error(f"[Mines] Error updating balance for auto-win: {e}")
+                    self.send_message_image(sender, file_queue,
+                                          "Error updating balance!\n\n"
+                                          "Please try again or contact support.",
+                                          "Mines - System Error", cache, user_id)
+                    return ""
+                                    
+                img_path = os.path.join(self.results_folder, f"mines_{user_id}_win.webp")
+                game.get_game_state_image(img_path, self.elements_folder, "WIN", net_win)
+                
+                overlay_path, error = self.apply_user_overlay(img_path, user_id, sender, bet, net_win, new_balance, user, show_win_text=True, 
+                                                              font_scale=self.font_scale, avatar_size=self.avatar_size, win_text_height=200)
+                if overlay_path:
+                    file_queue.put(overlay_path)
+                
+                messages.append(f"Multiplier: x{mult:.2f}")
+                messages.append(f"Total payout: ${win_amount} (+${net_win})")
+                messages.append(f"New balance: ${new_balance}")
+                                    
+                return ""
+            elif safe is None:
+                logger.error(f"[Mines] Failed to reveal tile {t} for {sender}")
+                continue
+            
+            if not safe:
+                lost_game = True
+                logger.info(f"[Mines] Game lost by {sender} on tile {t}")
+                
+                if user_id in self.active_games:
+                    self.active_games.pop(user_id, None)
+                    self._save_active_games_to_cache()
+                
+                try:
+                    newLevel, newLevelProgress = self.cache.add_experience(user_id, -bet, sender, file_queue)
+                    user["level"] = newLevel
+                    user["level_progress"] = newLevelProgress
+                except Exception as e:
+                    logger.error(f"[Mines] Error adding experience for loss: {e}")
+
+                img_path = os.path.join(self.results_folder, f"mines_{user_id}_lost.webp")
+                game.get_game_state_image(img_path, self.elements_folder, "LOST", bet)
+                
+                overlay_path, error = self.apply_user_overlay(img_path, user_id, sender, bet, -bet, balance_before, user, show_win_text=True, 
+                                                              font_scale=self.font_scale, avatar_size=self.avatar_size, win_text_height=200)
+                if overlay_path:
+                    file_queue.put(overlay_path)
+                
+                break
+            else:
+                mult = game.get_current_multiplier()
+                total_payout = int(bet * mult)
+                net_payout = total_payout - bet
+                
+                messages.append(f"Safe! Tile {t}")
+                messages.append(f"Multiplier: x{mult:.2f}")
+                messages.append(f"Current payout: ${total_payout} (+${net_payout})")
+                logger.debug(f"[Mines] Tile {t} safe: multiplier={mult:.2f}, payout={total_payout}, net={net_payout}")
+        
+        if not lost_game:
+            img_path = os.path.join(self.results_folder, f"mines_{user_id}_move.webp")
+            game.get_game_state_image(img_path, self.elements_folder)
+            
+            current_mult = game.get_current_multiplier()
+            total_payout = int(bet * current_mult)
+            net_payout = total_payout - bet
+            safe_tiles_left = game.total_safe - game.safe_revealed
+            
+            mines_left = bombs
+            for row in range(5):
+                for col in range(5):
+                    if (row, col) in game.mines_positions and game.revealed[row][col]:
+                        mines_left -= 1
+            
+            overlay_path, error = self.apply_user_overlay(img_path, user_id, sender, bet, net_payout, balance_before, user, show_win_text=False, 
+                                                          font_scale=self.font_scale, avatar_size=self.avatar_size, win_text_height=200)
+            if overlay_path:
+                file_queue.put(overlay_path)
+            
+            if game.safe_revealed > 0:
+                messages.append(f"Progress: {game.safe_revealed}/{game.total_safe} safe tiles")
+                messages.append(f"Safe tiles left: {safe_tiles_left}")
+                messages.append(f"Mines left: {mines_left}")
+                
+                if safe_tiles_left > 0 and mines_left > 0:
+                    prob_safe = safe_tiles_left / (safe_tiles_left + mines_left)
+                    messages.append(f"Next safe chance: {prob_safe*100:.1f}%")
+                
+                if safe_tiles_left > 0 and game.current_multiplier_index + 1 < len(game.all_multipliers):
+                    next_mult = game.all_multipliers[game.current_multiplier_index + 1]
+                    next_payout = int(bet * next_mult)
+                    next_net = next_payout - bet
+                    messages.append(f"Next safe: x{next_mult:.2f} (payout: ${next_payout}, +${next_net})")
+                
+                cashout_mult = game.get_current_multiplier()
+                cashout_payout = int(bet * cashout_mult)
+                cashout_net = cashout_payout - bet
+                messages.append(f"Cashout now: x{cashout_mult:.2f} = ${cashout_payout} (+${cashout_net})")
+                messages.append(f"Use: /mines cashout")
+                    
+        return ""
+
     def execute_game(self, command_name, args, file_queue, cache=None, sender=None, avatar_url=None):
         
         self.cache = cache
@@ -516,11 +679,15 @@ class MinesPlugin(BaseGamePlugin):
         implicit_start = False
         implicit_bet = None
         implicit_bombs = None
+        implicit_tiles = None
         if len(args) >= 2:
             try:
                 implicit_bet = int(args[0])
                 implicit_bombs = int(args[1])
                 implicit_start = True
+                # Sprawdź czy podano pola do odsłonięcia (3. argument)
+                if len(args) >= 3:
+                    implicit_tiles = args[2]
             except ValueError:
                 implicit_start = False
 
@@ -591,7 +758,11 @@ class MinesPlugin(BaseGamePlugin):
                                       "Please try again or contact support.",
                                       "Mines - System Error", cache, user_id)
                 return ""
-                        
+            
+            # Jeśli podano pola do odsłonięcia od razu, przetwórz je
+            if implicit_tiles:
+                return self._process_tiles(user_id, sender, file_queue, cache, user, implicit_tiles, new_balance)
+            
             img_path = os.path.join(self.results_folder, f"mines_{user_id}.webp")
             game.get_game_state_image(img_path, self.elements_folder)
             
@@ -667,162 +838,8 @@ class MinesPlugin(BaseGamePlugin):
                                       "Start a new game with: /mines start <bet> <bombs>",
                                       "Mines - No Game", cache, user_id)
                 return ""
-                
-            data = self.active_games[user_id]
-            game = data["game"]
-            bet = data["bet"]
-            bombs = data["bombs"]
-                        
-            try:
-                tiles = [int(t.strip()) for t in cmd.split(",")]
-            except ValueError as e:
-                self.send_message_image(sender, file_queue,
-                                      "Invalid tile format!\n\n"
-                                      "Usage: /mines <tile>\n"
-                                      "Example: /mines 13\n"
-                                      "Multiple tiles: /mines 1,2,3",
-                                      "Mines - Error", cache, user_id)
-                return ""
-                
-            messages = []
-            lost_game = False
             
-            for t in tiles:
-                if not (1 <= t <= 25):
-                    messages.append(f"Tile {t} out of range 1-25.")
-                    continue
-                    
-                row, col = (t - 1) // 5, (t - 1) % 5
-                
-                safe = game.reveal(row, col)
-                
-                if safe == "already_revealed":
-                    messages.append(f"Tile {t} was already revealed!")
-                    continue
-                elif safe == "auto_win":
-                    messages.append(f"Safe! Tile {t}")
-                    messages.append(f"ALL SAFE TILES REVEALED! Automatic cashout!")
-                    
-                    if user_id in self.active_games:
-                        self.active_games.pop(user_id, None)
-                        self._save_active_games_to_cache()
-                    
-                    mult = game.get_current_multiplier()
-                    win_amount = int(bet * mult)
-                    net_win = win_amount - bet
-                    new_balance = balance_before + win_amount
-                    
-                    try:
-                        newLevel, newLevelProgress = self.cache.add_experience(user_id, net_win, sender, file_queue)
-                        user["level"] = newLevel
-                        user["level_progress"] = newLevelProgress
-                    except Exception as e:
-                        logger.error(f"[Mines] Error adding experience for win: {e}")
-                    
-                    try:
-                        self.update_user_balance(user_id, new_balance)
-                    except Exception as e:
-                        logger.error(f"[Mines] Error updating balance for auto-win: {e}")
-                        self.send_message_image(sender, file_queue,
-                                              "Error updating balance!\n\n"
-                                              "Please try again or contact support.",
-                                              "Mines - System Error", cache, user_id)
-                        return ""
-                                        
-                    img_path = os.path.join(self.results_folder, f"mines_{user_id}_win.webp")
-                    game.get_game_state_image(img_path, self.elements_folder, "WIN", net_win)
-                    
-                    overlay_path, error = self.apply_user_overlay(img_path, user_id, sender, bet, net_win, new_balance, user, show_win_text=True, 
-                                                                  font_scale=self.font_scale, avatar_size=self.avatar_size, win_text_height=200)
-                    if overlay_path:
-                        file_queue.put(overlay_path)
-                    
-                    messages.append(f"Multiplier: x{mult:.2f}")
-                    messages.append(f"Total payout: ${win_amount} (+${net_win})")
-                    messages.append(f"New balance: ${new_balance}")
-                                        
-                    return ""
-                elif safe is None:
-                    logger.error(f"[Mines] Failed to reveal tile {t} for {sender}")
-                    continue
-                
-                if not safe:
-                    lost_game = True
-                    logger.info(f"[Mines] Game lost by {sender} on tile {t}")
-                    
-                    if user_id in self.active_games:
-                        self.active_games.pop(user_id, None)
-                        self._save_active_games_to_cache()
-                    
-                    try:
-                        newLevel, newLevelProgress = self.cache.add_experience(user_id, -bet, sender, file_queue)
-                        user["level"] = newLevel
-                        user["level_progress"] = newLevelProgress
-                    except Exception as e:
-                        logger.error(f"[Mines] Error adding experience for loss: {e}")
-
-                    img_path = os.path.join(self.results_folder, f"mines_{user_id}_lost.webp")
-                    game.get_game_state_image(img_path, self.elements_folder, "LOST", bet)
-                    
-                    overlay_path, error = self.apply_user_overlay(img_path, user_id, sender, bet, -bet, balance_before, user, show_win_text=True, 
-                                                                  font_scale=self.font_scale, avatar_size=self.avatar_size, win_text_height=200)
-                    if overlay_path:
-                        file_queue.put(overlay_path)
-                    
-                    break
-                else:
-                    mult = game.get_current_multiplier()
-                    total_payout = int(bet * mult)
-                    net_payout = total_payout - bet
-                    
-                    messages.append(f"Safe! Tile {t}")
-                    messages.append(f"Multiplier: x{mult:.2f}")
-                    messages.append(f"Current payout: ${total_payout} (+${net_payout})")
-                    logger.debug(f"[Mines] Tile {t} safe: multiplier={mult:.2f}, payout={total_payout}, net={net_payout}")
-            
-            if not lost_game:
-                img_path = os.path.join(self.results_folder, f"mines_{user_id}_move.webp")
-                game.get_game_state_image(img_path, self.elements_folder)
-                
-                current_mult = game.get_current_multiplier()
-                total_payout = int(bet * current_mult)
-                net_payout = total_payout - bet
-                safe_tiles_left = game.total_safe - game.safe_revealed
-                
-                mines_left = bombs
-                for row in range(5):
-                    for col in range(5):
-                        if (row, col) in game.mines_positions and game.revealed[row][col]:
-                            mines_left -= 1
-                
-                
-                overlay_path, error = self.apply_user_overlay(img_path, user_id, sender, bet, net_payout, balance_before, user, show_win_text=False, 
-                                                              font_scale=self.font_scale, avatar_size=self.avatar_size, win_text_height=200)
-                if overlay_path:
-                    file_queue.put(overlay_path)
-                
-                if game.safe_revealed > 0:
-                    messages.append(f"Progress: {game.safe_revealed}/{game.total_safe} safe tiles")
-                    messages.append(f"Safe tiles left: {safe_tiles_left}")
-                    messages.append(f"Mines left: {mines_left}")
-                    
-                    if safe_tiles_left > 0 and mines_left > 0:
-                        prob_safe = safe_tiles_left / (safe_tiles_left + mines_left)
-                        messages.append(f"Next safe chance: {prob_safe*100:.1f}%")
-                    
-                    if safe_tiles_left > 0 and game.current_multiplier_index + 1 < len(game.all_multipliers):
-                        next_mult = game.all_multipliers[game.current_multiplier_index + 1]
-                        next_payout = int(bet * next_mult)
-                        next_net = next_payout - bet
-                        messages.append(f"Next safe: x{next_mult:.2f} (payout: ${next_payout}, +${next_net})")
-                    
-                    cashout_mult = game.get_current_multiplier()
-                    cashout_payout = int(bet * cashout_mult)
-                    cashout_net = cashout_payout - bet
-                    messages.append(f"Cashout now: x{cashout_mult:.2f} = ${cashout_payout} (+${cashout_net})")
-                    messages.append(f"Use: /mines cashout")
-                        
-            return ""
+            return self._process_tiles(user_id, sender, file_queue, cache, user, cmd, balance_before)
 
 
 def register():
@@ -831,6 +848,6 @@ def register():
     return {
         "name": "mines",
         "aliases": ["/m"],
-        "description": "Minesweeper Game - Find Safe Tiles Before Hitting Mines\n\n**Commands:**\n- /mines start <bet> <bombs> - Start new game\n- /mines <tile> - Reveal tile (1-25)\n- /mines cashout - Cashout and collect winnings\n\n**Bombs:** 1-24 mines on 5×5 board\n**Multiplier:** Increases with each safe tile revealed",
+        "description": "Minesweeper Game - Find Safe Tiles Before Hitting Mines\n\n**Commands:**\n- /mines start <bet> <bombs> - Start new game\n- /mines <bet> <bombs> <tiles> - Start game and reveal tiles\n- /mines <tile> - Reveal tile (1-25)\n- /mines cashout - Cashout and collect winnings\n\n**Bombs:** 1-24 mines on 5×5 board\n**Multiplier:** Increases with each safe tile revealed",
         "execute": plugin.execute_game
     }
