@@ -11,6 +11,15 @@ last_message_time = None
 initial_load_done = False
 processed_in_session = set()
 
+last_user_command = {}
+bind_enabled = set()
+bind_custom_text = {}
+bind_triggered_ids = set()
+
+BIND_ON = "!bind on"
+BIND_OFF = "!bind off"
+BIND_PREFIX = "!bind "
+
 BASE_DIR = os.path.dirname(__file__)
 TEMP_DIR = os.path.join(BASE_DIR, "temp")
 ASSETS_TEMP_DIR = os.path.join(BASE_DIR, "assets", "temp")
@@ -28,6 +37,12 @@ def _preview(text, limit=LOG_PREVIEW_LEN):
 
 def _perf_ms(start):
     return round((time.perf_counter() - start) * 1000, 1)
+
+
+def _is_flag_emoji(text):
+    if not text or len(text) != 2:
+        return False
+    return all(0x1F1E6 <= ord(c) <= 0x1F1FF for c in text)
 
 
 def update_last_message_time():
@@ -48,7 +63,7 @@ def get_sleep_time():
     minutes_since_last = (now - last_message_time).total_seconds() / 60
     
     if minutes_since_last < 2:
-        logger.debug(f"[MessageHandler] get_sleep_time: minutes_since_last={minutes_since_last:.2f} -> sleep=0")
+        logger.debug(f"[MessageHandler] get_sleep_time: minutes_since_last={minutes_since_last:.2f} -> sleep=0.3")
         return 0.3
     if minutes_since_last < 5:
         logger.debug(f"[MessageHandler] get_sleep_time: minutes_since_last={minutes_since_last:.2f} -> sleep=1")
@@ -86,6 +101,39 @@ def get_sleep_time():
 
 
 pending_unknown_messages = []
+
+
+def _handle_bind_command(sender_name, message_text, data_message_id):
+    global bind_enabled, last_user_command, bind_custom_text
+    text_raw = (message_text or "").strip()
+    text_lower = text_raw.lower()
+
+    if text_lower == BIND_OFF:
+        bind_enabled.discard(sender_name)
+        last_user_command.pop(sender_name, None)
+        bind_custom_text.pop(sender_name, None)
+        logger.info(f"[MessageHandler] BIND OFF for '{sender_name}' (ID: {data_message_id})")
+        return True
+
+    if text_lower == BIND_ON:
+        bind_custom_text.pop(sender_name, None)
+        bind_enabled.add(sender_name)
+        logger.info(f"[MessageHandler] BIND ON for '{sender_name}' (ID: {data_message_id})")
+        return True
+
+    if text_lower.startswith(BIND_PREFIX):
+        custom = text_raw[len(BIND_PREFIX):].strip()
+        if not custom:
+            logger.warning(f"[MessageHandler] BIND <text> for '{sender_name}' but no text provided")
+            return True
+
+        bind_custom_text[sender_name] = custom
+        bind_enabled.add(sender_name)
+        logger.info(f"[MessageHandler] BIND CUSTOM for '{sender_name}': '{_preview(custom)}' (ID: {data_message_id})")
+        return True
+
+    return False
+
 
 def fill_unknown_senders(messages):
     global USER_NAME_CACHE, pending_unknown_messages
@@ -171,6 +219,7 @@ def fill_unknown_senders(messages):
 
 def extract_messages_fix_unknown_sender(page, command_queue):
     global initial_load_done, processed_in_session, pending_unknown_messages
+    global last_user_command, bind_enabled, bind_custom_text, bind_triggered_ids
     
     cycle_id = uuid.uuid4().hex[:8]
     cycle_start = time.perf_counter()
@@ -243,23 +292,45 @@ def extract_messages_fix_unknown_sender(page, command_queue):
                 )
                 message_text = message_el.inner_text().strip() if message_el else ""
 
-                if message_text == "":
-                    if row.query_selector("a[href*='/messenger_media/?attachment_id='], a[href*='messenger_media'][role='link']"):
-                        message_text = "media_attachment"
-                    elif row.query_selector("img[alt='GIF Image']"):
-                        message_text = "gif_attachment"
+                aria_label = row.get_attribute("aria-label") or ""
 
                 if message_text == "":
-                    aria_label = row.get_attribute("aria-label")
-                    if aria_label and any(word in aria_label.lower() for word in ["like", "thumbs", "reaction", "emoji"]):
-                        message_text = "reaction"
+                    flag_detected = False
+                    for img in row.query_selector_all("img[alt]"):
+                        alt = img.get_attribute("alt") or ""
+                        src = img.get_attribute("src") or ""
+                        is_flag_alt = (
+                            len(alt) == 2
+                            and all(0x1F1E6 <= ord(c) <= 0x1F1FF for c in alt)
+                        )
+                        is_flag_src = ("/emoji.php/" in src and "1f1f" in src)
+                        if is_flag_alt or is_flag_src:
+                            message_text = alt if alt else ""
+                            flag_detected = True
+                            break
+
+                    if not flag_detected and message_text == "":
+                        if ": " in aria_label:
+                            msg_part = aria_label.rsplit(": ", 1)[1].strip()
+                            if len(msg_part) == 2 and all(0x1F1E6 <= ord(c) <= 0x1F1FF for c in msg_part):
+                                message_text = msg_part
+                                flag_detected = True
+
+                    if not flag_detected and message_text == "":
+                        if row.query_selector("a[href*='/messenger_media/?attachment_id='], a[href*='messenger_media'][role='link']"):
+                            message_text = "media_attachment"
+                        elif row.query_selector("img[alt='GIF Image']"):
+                            message_text = "gif_attachment"
+
+                    if not flag_detected and message_text == "":
+                        if aria_label and any(word in aria_label.lower() for word in ["like", "thumbs", "reaction", "emoji"]):
+                            message_text = "reaction"
 
                 if message_text == "Enter":
                     continue
                     
                 avatar = row.query_selector("img.x1rg5ohu, [role='row'] img")
                 row_text = row.inner_text().lower()
-                aria_label = row.get_attribute("aria-label") or ""
                 aria_label_lower = aria_label.lower()
                 contains_you_sent = (
                     bool(you_sent_element)
@@ -351,6 +422,78 @@ def extract_messages_fix_unknown_sender(page, command_queue):
             f"text='{_preview(message_text)}'"
         )
 
+        if sender_name != "You" and not message.get("has_you_sent"):
+            if _handle_bind_command(sender_name, message_text, data_message_id):
+                if data_message_id and data_message_id not in processed_in_session:
+                    processed_in_session.add(data_message_id)
+                update_last_message_time()
+                continue
+
+        if (is_command_message
+                and sender_name != "You"
+                and not message.get("has_you_sent")):
+            last_user_command[sender_name] = message
+            logger.debug(f"[MessageHandler] Saved last command for '{sender_name}': '{_preview(message_text)}'")
+
+        if (not is_command_message
+                and sender_name in bind_enabled
+                and sender_name != "You"
+                and not message.get("has_you_sent")
+                and _is_flag_emoji(message_text)):
+
+            if data_message_id and data_message_id in bind_triggered_ids:
+                logger.debug(
+                    f"[MessageHandler] BIND: flag {data_message_id} already triggered bind, skipping"
+                )
+                continue
+
+            custom_text = bind_custom_text.get(sender_name)
+            saved = last_user_command.get(sender_name)
+
+            if custom_text:
+                action_message = custom_text
+                action_source = "custom_text"
+                base_msg = {
+                    "sender": sender_name,
+                    "avatar_url": message.get("avatar_url"),
+                    "has_you_sent": False,
+                }
+            elif saved is not None:
+                action_message = saved["message"]
+                action_source = "last_command"
+                base_msg = dict(saved)
+            else:
+                logger.debug(
+                    f"[MessageHandler] BIND: no custom text and no saved command for '{sender_name}', "
+                    f"skipping flag '{_preview(message_text)}'"
+                )
+                if data_message_id:
+                    processed_in_session.add(data_message_id)
+                continue
+
+            bound_message = dict(base_msg)
+            bound_message["message"] = action_message
+            bound_message["original_message"] = message_text
+            bound_message["sender"] = sender_name
+            bound_message["bind_source"] = action_source
+
+            base_id = f"bind:{data_message_id}" if data_message_id else f"bind:{uuid.uuid4().hex[:8]}"
+            bound_message["data_message_id"] = base_id
+
+            if data_message_id and data_message_id in processed_in_session:
+                logger.debug(f"[MessageHandler] BIND: already processed {data_message_id}")
+            else:
+                logger.info(
+                    f"[MessageHandler] BIND queued for '{sender_name}': source={action_source} "
+                    f"cmd='{_preview(action_message)}' triggered_by='{_preview(message_text)}' (ID: {base_id})"
+                )
+                command_queue.put(bound_message)
+                if data_message_id:
+                    processed_in_session.add(data_message_id)
+                    bind_triggered_ids.add(data_message_id)
+                update_last_message_time()
+            continue
+
         if is_command_message and sender_name != "You" and not message.get("has_you_sent"):
             if data_message_id and data_message_id not in processed_in_session:
                 logger.info(f"[MessageHandler] Command queued: '{sender_name}' - '{message_text}' (ID: {data_message_id})")
@@ -427,11 +570,16 @@ def cleanup_temp_folder():
 
 def start_monitoring_messages(command_queue):
     global initial_load_done, processed_in_session
+    global last_user_command, bind_enabled, bind_custom_text, bind_triggered_ids
     
     last_cleanup_time = None
     last_hourly_screenshot_time = None
     initial_load_done = False
     processed_in_session = set()
+    last_user_command = {}
+    bind_enabled = set()
+    bind_custom_text = {}
+    bind_triggered_ids = set()
     
     while True:
         try:
@@ -505,6 +653,7 @@ def start_monitoring_messages(command_queue):
         except Exception as e:
             logger.critical(f"[MessageHandler] Unexpected error in monitoring: {e}")
             time.sleep(10)
+
 
 def click_go_to_recent_button(page):
     try:
