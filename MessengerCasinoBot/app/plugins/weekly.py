@@ -68,10 +68,18 @@ CORE_WEEKLY_QUESTS = [
     ("slots_1000", "Slots", 1000),
     ("slots_1600", "Slots", 1600),
 
-    ("snakes_500", "snakes", 500),
-    ("snakes_800", "snakes", 800),
-    ("snakes_1000", "snakes", 1000),
-    ("snakes_1600", "snakes", 1600),
+    ("snakes_500", "Snakes", 500),
+    ("snakes_800", "Snakes", 800),
+    ("snakes_1000", "Snakes", 1000),
+    ("snakes_1600", "Snakes", 1600),
+
+    ("poker_500", "Poker", 500),
+    ("poker_800", "Poker", 800),
+
+    ("dragon_tower_500", "Dragon Tower", 500),
+    ("dragon_tower_800", "Dragon Tower", 800),
+    ("dragon_tower_500", "Dragon Tower", 1000),
+    ("dragon_tower_800", "Dragon Tower", 1200),
 ]
 
 
@@ -450,8 +458,13 @@ class WeeklyPlugin(BaseGamePlugin):
         return "\n".join(lines)
 
     def _load_game_icon(self, game_key: str, size: int = 64) -> Image.Image:
-        base_key = weekly_manager._base_game_key(game_key or "")
-        icon_path = self.get_asset_path("icons", f"{base_key}.png")
+        full_key = game_key or ""
+        icon_path = self.get_asset_path("icons", f"{full_key}.png")
+        if not os.path.exists(icon_path):
+            base_key = weekly_manager._base_game_key(full_key)
+            icon_path = self.get_asset_path("icons", f"{base_key}.png")
+        else:
+            base_key = full_key
 
         try:
             if os.path.exists(icon_path):
