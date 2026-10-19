@@ -1,6 +1,7 @@
 import os
 import time
 import re
+import html
 import threading
 import imaplib
 import email
@@ -119,7 +120,17 @@ class EmailMonitor:
         except Exception as e:
             logger.error(f"Error decoding header: {e}")
             return str(header)
-        
+    
+    def _normalize_text(self, text):
+        """Normalizuje tekst: dekoduje encje HTML, zamienia NBSP na spacje, redukuje białe znaki."""
+        if not text:
+            return ""
+        text = html.unescape(text)
+        text = text.replace('\xa0', ' ').replace('\u00a0', ' ')
+        text = text.replace('\u202f', ' ').replace('\u2009', ' ')
+        text = re.sub(r'\s+', ' ', text)
+        return text.strip()
+
     def extract_transfer_details(self, email_body):
         try:
             if '<html' in email_body.lower() or '<div' in email_body.lower():
@@ -127,6 +138,8 @@ class EmailMonitor:
                 text = soup.get_text(separator=' ', strip=True)
             else:
                 text = email_body
+            
+            text = self._normalize_text(text)
             
             result = {
                 'kwota_pln': None,
@@ -163,13 +176,8 @@ class EmailMonitor:
                     result['kwota_grosze'] = int(round(result['kwota_pln'] * 100))
             
             title_patterns = [
-                r'tytuł\s*:\s*([^,\s]+(?:\s+[^,\n]+?)?)(?=\s*,|\s*$|\s*\.|\s*<|$)',
-                r'tytuł\s*:\s*([^\n,]+)',
-                r'tytu[łl]\s*:\s*([^,\s]+)',
-                r'tytu[łl][:\s]+([^\n,]+)',
-                r'tytu\s*:\s*([^,\s]+)',
-                r'tytu[:\s]+([^\n,]+)',
-                r'tytuł\s*([^\n,]+)',
+                r'tytu[łl]\s*:\s*([^\n]+?)(?=\s*Stan\s+konta|\s*$|\s*<)',
+                r'tytu[łl]\s*:\s*([^\n]+)',
             ]
             
             match_title = None
@@ -179,28 +187,29 @@ class EmailMonitor:
                     break
             
             if match_title:
-                result['tytul'] = match_title.group(1).strip()
-                result['tytul'] = re.sub(r'\s+', ' ', result['tytul'])
+                raw_title = match_title.group(1).strip()
+                raw_title = re.split(r'\s+Stan\s+konta', raw_title, flags=re.IGNORECASE)[0]
+                raw_title = self._normalize_text(raw_title)
+                raw_title = raw_title.strip(' .,;')
+                result['tytul'] = raw_title
             
             if result['tytul']:
-                clean_title = re.sub(r'\s+', '', result['tytul'])
+                title = result['tytul']
+                clean_title = re.sub(r'\s+', '', title)
                 
                 if re.match(r'^\d+$', clean_title):
                     result['user_id'] = clean_title
                     logger.info(f"Found clean numeric ID: {result['user_id']}")
                 else:
                     id_patterns = [
-                        r'^(\d+)\s+OD:',
-                        r'^(\d+)\s+od\s+',
-                        r'^(\d+)\s+',
-                        r'#(\d+)',
-                        r'ID[:\s]+(\d+)',
-                        r'ID[:\s]*#?(\d+)',
+                        r'^(\d+)\b',
+                        r'^#\s*(\d+)\b',
+                        r'^(?:ID|id)\s*[:#]?\s*(\d+)\b',
                     ]
                     
                     match_id = None
                     for pattern in id_patterns:
-                        match_id = re.search(pattern, result['tytul'], re.IGNORECASE)
+                        match_id = re.search(pattern, title, re.IGNORECASE)
                         if match_id:
                             break
                     
@@ -208,17 +217,16 @@ class EmailMonitor:
                         potential_id = match_id.group(1).strip()
                         if re.match(r'^\d+$', potential_id):
                             result['user_id'] = potential_id
-                            logger.info(f"Found ID in pattern: {result['user_id']}")
+                            logger.info(f"Found ID in pattern: {result['user_id']} (title: {title!r})")
                         else:
                             logger.warning(f"Found non-numeric ID pattern: {potential_id}")
                     else:
-                        if re.match(r'^[\d\s]+$', result['tytul']):
-                            clean_id = re.sub(r'\s+', '', result['tytul'])
-                            if re.match(r'^\d+$', clean_id):
-                                result['user_id'] = clean_id
-                                logger.info(f"Found numeric title: {result['user_id']}")
+                        numbers = re.findall(r'\b(\d+)\b', title)
+                        if numbers:
+                            result['user_id'] = numbers[0]
+                            logger.info(f"Fallback ID from title: {result['user_id']} (title: {title!r})")
                         else:
-                            logger.warning(f"Title contains non-numeric characters: {result['tytul']}")
+                            logger.warning(f"No user ID found in title: {title!r}")
             
             sender_patterns = [
                 r'nadawca:\s*([^,]+)',
@@ -248,18 +256,24 @@ class EmailMonitor:
             if match_date:
                 result['data_waluty'] = match_date.group(1)
             
-            balance_match = re.search(r'Stan\s+konta\s+po\s+operacji:\s*\+([\d\s]+,\d{2})\s+PLN', text, re.IGNORECASE)
+            balance_match = re.search(
+                r'Stan\s+konta\s+po\s+operacji:\s*\+?([\d\s]+,\d{2})\s+PLN',
+                text, re.IGNORECASE
+            )
             if balance_match:
                 result['stan_konta'] = balance_match.group(1).replace(' ', '').replace(',', '.')
             
             if result['kwota_pln']:
-                logger.info(f"Transfer: {result['kwota_pln']:.2f} PLN, UserID: {result['user_id']}, Title: {result['tytul']}")
+                logger.info(
+                    f"Transfer: {result['kwota_pln']:.2f} PLN, "
+                    f"UserID: {result['user_id']}, Title: {result['tytul']!r}"
+                )
                 return result
             else:
                 return None
             
         except Exception as e:
-            logger.error(f"Error parsing email: {e}")
+            logger.error(f"Error parsing email: {e}", exc_info=True)
             return None
 
     def process_email(self, msg):
@@ -326,10 +340,13 @@ class EmailMonitor:
                 return False
             
             if not details['user_id']:
-                logger.warning(f"No user ID found - title: {details['tytul']}")
+                logger.warning(f"No user ID found - title: {details['tytul']!r}")
                 return False
             
-            logger.info(f"Transfer: {details['kwota_pln']:.2f} PLN | User: {details['user_id']} | Sender: {details['nadawca']}")
+            logger.info(
+                f"Transfer: {details['kwota_pln']:.2f} PLN | "
+                f"User: {details['user_id']} | Sender: {details['nadawca']}"
+            )
             
             success = self.add_coins_for_transfer(
                 details['user_id'], 
@@ -349,7 +366,7 @@ class EmailMonitor:
             return False
                 
         except Exception as e:
-            logger.error(f"Error processing email: {e}")
+            logger.error(f"Error processing email: {e}", exc_info=True)
             return False
 
     def check_emails(self):
@@ -473,7 +490,10 @@ class EmailMonitor:
             
             try:
                 with open(self.log_file, 'a', encoding='utf-8') as f:
-                    f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} | {user_id} | {user_name} | {kwota_pln:.2f} PLN | {coins_to_add} coins | {tytul}\n")
+                    f.write(
+                        f"{time.strftime('%Y-%m-%d %H:%M:%S')} | {user_id} | {user_name} | "
+                        f"{kwota_pln:.2f} PLN | {coins_to_add} coins | {tytul}\n"
+                    )
             except:
                 pass
             
@@ -492,7 +512,10 @@ class EmailMonitor:
             bg_path = self.cache.get_background_path(user_id)
         
         if not bg_path or not os.path.exists(bg_path):
-            bg_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "backgrounds", "default-bg.png")
+            bg_path = os.path.join(
+                os.path.dirname(os.path.dirname(__file__)),
+                "assets", "backgrounds", "default-bg.png"
+            )
             if not os.path.exists(bg_path):
                 return Image.new("RGB", (width, height), self.colors["bg"])
         
