@@ -14,20 +14,22 @@ MONTHLY_QUESTS = {
     "case": ("Case", 3000),
     "colors": ("Colors Wheel", 3000),
     "crash": ("Crash", 3000),
-    "dice": ("Dice", 1000),
+    "dice": ("Dice", 900),
     "fifa": ("FIFA Pack", 500),
     "hilo": ("Hi-Lo", 1500),
-    "jackpot": ("Jackpot", 200),
-    "keno": ("Keno", 500),
-    "lotto": ("Lotto", 500),
+    "jackpot": ("Jackpot", 500),
+    "keno": ("Keno", 750),
+    "lotto": ("Lotto", 750),
     "mines": ("Mines", 1500),
     "piggy": ("Piggy", 200),
     "plinko": ("Plinko", 3000),
-    "poker": ("Poker", 200),
+    "poker": ("Poker", 500),
     "roulette": ("Roulette", 3000),
     "slots": ("Slots", 3000),
-    "snakes": ("Snakes", 2000),
+    "snakes": ("Snakes", 3000),
     "tree": ("Tree", 100),
+    "dragon_tower": ("Dragon Tower", 2000),
+    "wheel": ("Wheel", 500),
 }
 
 MAX_ACTIVE_QUESTS = 15
@@ -43,6 +45,8 @@ class MonthlyQuestManager:
         }
 
     def _base_game_key(self, game_key):
+        if game_key in self.quests:
+            return game_key
         return game_key.split("_", 1)[0] if "_" in game_key else game_key
 
     def _current_month_start(self):
@@ -98,7 +102,10 @@ class MonthlyQuestManager:
         if not active_quests:
             active_quests = self._select_active_quests()
             monthly["active_quests"] = active_quests
-            monthly["progress"] = {game_key: monthly.get("progress", {}).get(game_key, 0) for game_key in active_quests}
+            monthly["progress"] = {
+                game_key: monthly.get("progress", {}).get(game_key, 0)
+                for game_key in active_quests
+            }
             user["monthly_quests"] = monthly
             cache.update_user(user_id, monthly_quests=monthly)
 
@@ -149,7 +156,7 @@ class MonthlyQuestManager:
             return False, "Cannot skip quests after claiming reward"
 
         active_quests = monthly.get("active_quests", [])
-        
+
         if quest_to_skip.isdigit():
             idx = int(quest_to_skip) - 1
             if idx < 0 or idx >= len(active_quests):
@@ -167,19 +174,19 @@ class MonthlyQuestManager:
             return False, "No other quests available"
 
         new_quest = random.choice(available_quests)
-        
+
         active_quests.remove(quest_to_skip)
         active_quests.append(new_quest)
-        
+
         if quest_to_skip in progress:
             del progress[quest_to_skip]
         progress[new_quest] = 0
-        
+
         monthly["active_quests"] = active_quests
         monthly["progress"] = progress
         user["monthly_quests"] = monthly
         cache.update_user(user_id, monthly_quests=monthly)
-        
+
         return True, f"Replaced '{quest_to_skip}' with '{new_quest}'"
 
     def get_status(self, cache, user_id):
@@ -234,7 +241,7 @@ class MonthlyQuestManager:
 
         active_quests = monthly.get("active_quests", [])
         progress = monthly.get("progress", {})
-        
+
         for game_key in active_quests:
             if int(progress.get(game_key, 0) or 0) < int(self.quests[game_key]["target"]):
                 return False, "Complete all active quests first"
@@ -553,7 +560,7 @@ class MonthlyPlugin(BaseGamePlugin):
             draw.line([(0, sep_y), (image_width, sep_y)], fill=(30, 30, 40, 220), width=2)
             nick_y = sep_y + 10
             canvas.alpha_composite(nick_img, ((image_width - nick_img.width) // 2, nick_y))
-            
+
             canvas.alpha_composite(skip_img, ((image_width - skip_img.width) // 2, nick_y + nick_img.height + 8))
 
             if notice:
@@ -634,7 +641,7 @@ class MonthlyPlugin(BaseGamePlugin):
 
         if args:
             action = args[0].lower()
-            
+
             if action in {"claim", "c"}:
                 success, payload = monthly_manager.claim_reward(cache, user_id)
                 status = monthly_manager.get_status(cache, user_id)
@@ -647,12 +654,12 @@ class MonthlyPlugin(BaseGamePlugin):
                     message = f"{payload}\n\n{message}"
                 self._respond(sender, file_queue, message, cache, user_id, status=status, notice=notice)
                 return ""
-            
+
             elif action in {"skip", "reroll", "s"}:
                 if len(args) < 2:
                     self._respond(sender, file_queue, "Usage: /monthly skip <number> or /monthly skip <game>", cache, user_id)
                     return ""
-                
+
                 quest_to_skip = args[1].lower()
                 success, message = monthly_manager.skip_quest(cache, user_id, quest_to_skip)
                 status = monthly_manager.get_status(cache, user_id)
